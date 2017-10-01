@@ -36,45 +36,38 @@ const print_rule = (rule: Rule, cursor?: number): string => {
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
 
-interface BaseState {
+type Next = {data: Object, terminal: true} | {state: State, terminal: false};
+
+interface State {
   cursor: number,
-  next?: NextState,
+  next?: Next,
   prev?: State,
   rule: Rule,
   start: number,
-  wanted_by: IncompleteState[],
+  wanted_by: State[],
 }
 
-interface CompleteState extends BaseState {complete: true, data: Object}
-
-interface IncompleteState extends BaseState {complete: false}
-
-interface NextState {data: Object};
-
-type State = CompleteState | IncompleteState;
-
-const fill_state = (state: IncompleteState): State => {
-  if (state.cursor < state.rule.rhs.length) return state;
-  const xs = [];
+const fill_state = (state: State): Object => {
+  const data = [];
   let current: State = state;
   for (let i = current.cursor; i--;) {
-    xs.push(current.next!.data);
+    const next = current.next!;
+    data.push(next.terminal ? next.data : fill_state(next.state));
     current = current.prev!;
   }
+  data.reverse();
   const transform = state.rule.transform;
-  const data = transform ? transform(xs.reverse()) : xs.reverse();
-  return Object.assign(state, {complete: true, data});
+  return transform ? transform(data) : data;
 }
 
-const make_state = (
-    rule: Rule, start: number, wanted_by: IncompleteState[]): State =>
-  fill_state({complete: false, cursor: 0, rule, start, wanted_by});
+const make_state = (rule: Rule, start: number, wanted_by: State[]): State =>
+    ({cursor: 0, rule, start, wanted_by});
 
-const next_state = (prev: IncompleteState, next: NextState): State =>
-  fill_state(Object.assign({}, prev, {cursor: prev.cursor + 1, prev, next}));
+const next_state = (prev: State, next: Next): State =>
+    ({...prev, cursor: prev.cursor + 1, prev, next});
 
 const print_state = (state: State): string =>
-  `{${print_rule(state.rule, state.cursor)}}, from: ${state.start}`;
+    `{${print_rule(state.rule, state.cursor)}}, from: ${state.start}`;
 
 // A Column is a list of states all which all end at the same token index.
 
@@ -82,9 +75,9 @@ interface Column {
   grammar: Grammar,
   index: number,
   states: State[],
-  states_completed: {[name: string]: CompleteState[]},
-  states_scannable: IncompleteState[],
-  states_wanted: {[name: string]: IncompleteState[]},
+  states_completed: {[name: string]: State[]},
+  states_scannable: State[],
+  states_wanted: {[name: string]: State[]},
 }
 
 const fill_column = (column: Column) => {
@@ -95,11 +88,11 @@ const fill_column = (column: Column) => {
 
   for (let i = 0; i < states.length; i++) {
     const state = states[i];
-    if (state.complete) {
+    if (state.cursor === state.rule.rhs.length) {
       // Handle completed states, while keeping track of nullable ones.
       const wanted_by = state.wanted_by;
-      for (let i = wanted_by.length; i--;) {
-        states.push(next_state(wanted_by[i], state));
+      for (let j = wanted_by.length; j--;) {
+        states.push(next_state(wanted_by[j], {state, terminal: false}));
       }
       if (state.cursor === 0) {
         const lhs = state.rule.lhs;
@@ -117,7 +110,7 @@ const fill_column = (column: Column) => {
         wanted[term].push(state);
         const nulls = completed[term] || [];
         for (let j = nulls.length; j--;) {
-          states.push(next_state(state, nulls[j]));
+          states.push(next_state(state, {state: nulls[j], terminal: false}));
         }
       } else {
         const index = column.index;
@@ -140,7 +133,7 @@ const make_column = (grammar: Grammar, index: number): Column => {
     states: [],
     states_completed: {},
     states_scannable: [],
-    states_wanted: {}
+    states_wanted: {},
   };
   if (index > 0) return column;
   const rules = grammar.by_name[grammar.start] || [];
@@ -159,7 +152,7 @@ const next_column = (prev: Column, token: string): Column => {
     const term = state.rule.rhs[state.cursor];
     if (typeof term !== 'string' &&
         (term instanceof RegExp ? term.test(token) : term.literal === token)) {
-      column.states.push(next_state(state, {data: token}));
+      column.states.push(next_state(state, {data: token, terminal: true}));
     }
   }
   return fill_column(column);
@@ -176,10 +169,10 @@ class Parser {
   private grammar: Grammar;
   private options: Options;
   private table: Column[];
-  constructor(grammar: Grammar, options?: Options) {
+  constructor(grammar: Grammar, options: Options = {}) {
     this.column = make_column(grammar, 0);
     this.grammar = grammar;
-    this.options = options || {};
+    this.options = options;
     this.maybe_throw(`No rules for initial state: ${grammar.start}`);
     if (this.options.keep_history) this.table = [this.column];
   }
@@ -199,9 +192,9 @@ class Parser {
   }
   parses(): Object[] {
     const start = this.grammar.start;
-    const match = (x: State) => x.complete && x.start === 0 &&
-                                x.rule.lhs === start;
-    return this.column.states.filter(match).map((x: CompleteState) => x.data);
+    const match = (x: State) => x.cursor === x.rule.rhs.length &&
+                                x.rule.lhs === start && x.start === 0;
+    return this.column.states.filter(match).map(fill_state);
   }
   private maybe_throw(message: string) {
     if (this.column.states.length === 0) throw Error(message);

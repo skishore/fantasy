@@ -19,8 +19,6 @@
     "member-access": [true, "no-public"],
     "member-ordering": false,
     "no-angle-bracket-type-assertion": false,
-    "no-empty-interface": false,
-    "no-shadowed-variable": false,
     "no-var-requires": false,
     "object-literal-shorthand": false,
     "object-literal-sort-keys": false,
