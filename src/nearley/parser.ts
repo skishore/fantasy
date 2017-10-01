@@ -1,4 +1,3 @@
-
 // A Grammar is a list of rules along with an index to access them.
 
 interface Grammar {
@@ -7,24 +6,30 @@ interface Grammar {
   start: string,
 }
 
+const make_grammar = (rules: Rule[], start?: string): Grammar => {
+  const by_name: {[name: string]: Rule[]} = {};
+  rules.forEach((x) => (by_name[x.lhs] = by_name[x.lhs] || []).push(x));
+  return {by_name, rules, start: start || rules[0].lhs};
+}
+
 // A Rule is a single production option in a grammar.
 
 type Rule = {
-  id: number,
   lhs: string,
   rhs: Term[],
-  preprocess: (xs: Object[]) => Object,
+  transform?: (xs: Object[]) => Object,
 }
 
-type Term = string | {literal: string};
+type Term = string | {literal: string} | RegExp;
 
 const print_rule = (rule: Rule, cursor?: number): string => {
   const print_term = (term: Term) =>
-      typeof term === 'string' ? term : JSON.stringify(term.literal);
-  const xs = rule.rhs.map(print_term);
-  const ys = cursor == null ? xs.join(' ') :
-      xs.slice(0, cursor).join(' ') + ' ● ' + xs.slice(cursor).join(' ');
-  return rule.lhs + ' → ' + ys;
+      typeof term === 'string' ? term :
+             term instanceof RegExp ? term.toString() :
+             JSON.stringify(term.literal);
+  const terms = rule.rhs.map(print_term);
+  if (cursor != null) terms.splice(cursor, 0, '●');
+  return `${rule.lhs} -> ${terms.join(' ')}`;
 }
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
@@ -56,8 +61,8 @@ const fill_state = (state: IncompleteState): State => {
     xs.push(current.next!.data);
     current = current.prev!;
   }
-  const preprocess = state.rule.preprocess;
-  const data = preprocess ? preprocess(xs.reverse()) : xs.reverse();
+  const transform = state.rule.transform;
+  const data = transform ? transform(xs.reverse()) : xs.reverse();
   return Object.assign(state, {complete: true, data});
 }
 
@@ -152,7 +157,8 @@ const next_column = (prev: Column, token: string): Column => {
   for (let i = scannable.length; i--;) {
     const state = scannable[i];
     const term = state.rule.rhs[state.cursor];
-    if (typeof term !== 'string' && term.literal === token) {
+    if (typeof term !== 'string' &&
+        (term instanceof RegExp ? term.test(token) : term.literal === token)) {
       column.states.push(next_state(state, {data: token}));
     }
   }
@@ -163,17 +169,33 @@ const next_column = (prev: Column, token: string): Column => {
 // parser is a lightweight operation, but Parsers are stateful, so each one
 // can only be used to parse a single token sequence.
 
+interface Options {keep_history?: boolean}
+
 class Parser {
   private column: Column;
   private grammar: Grammar;
-  constructor(grammar: Grammar) {
+  private options: Options;
+  private table: Column[];
+  constructor(grammar: Grammar, options?: Options) {
     this.column = make_column(grammar, 0);
     this.grammar = grammar;
+    this.options = options || {};
     this.maybe_throw(`No rules for initial state: ${grammar.start}`);
+    if (this.options.keep_history) this.table = [this.column];
+  }
+  debug(): string {
+    const table = this.table || [this.column];
+    const block = table.map((x) => {
+      const lines = [`Column: ${x.index}`];
+      x.states.forEach((y, i) => lines.push(`${i}: ${print_state(y)}`));
+      return lines.join('\n');
+    });
+    return block.join('\n\n');
   }
   feed(token: string) {
     this.column = next_column(this.column, token);
     this.maybe_throw(`Unexpected token: ${token}`);
+    if (this.options.keep_history) this.table.push(this.column);
   }
   parses(): Object[] {
     const start = this.grammar.start;
@@ -187,3 +209,23 @@ class Parser {
 }
 
 export {Grammar, Parser, Rule};
+
+// Tests of the parser above.
+
+declare const require: any;
+const util = require('util');
+const config = {breakLength: Infinity, colors: true, depth: null};
+const debug = (x: any) => util.inspect(x, config);
+const grammar = make_grammar([
+  {lhs: 'P', rhs: ['S'], transform: (x: any) => x[0]},
+  {lhs: 'S', rhs: ['M'], transform: (x: any) => x[0]},
+  {lhs: 'S', rhs: ['S', {literal: '+'}, 'M'], transform: (x: any) => x[0] + x[2]},
+  {lhs: 'M', rhs: ['T'], transform: (x: any) => x[0]},
+  {lhs: 'M', rhs: ['M', {literal: '*'}, 'T'], transform: (x: any) => x[0] * x[2]},
+  {lhs: 'T', rhs: [/[0-9]/], transform: (x: any) => parseInt(x, 10)},
+]);
+const parser = new Parser(grammar, {keep_history: true});
+Array.from('1*2*3*4+2*3+4').forEach((x) => parser.feed(x));
+console.log(parser.debug());
+console.log('');
+console.log(debug(parser.parses()));
