@@ -1,15 +1,23 @@
 // A Grammar is a list of rules along with an index to access them.
 
+class Builder {
+  private names: Set<string> = new Set();
+  private rules: Rule[] = [];
+  add(lhs: string, rhs: Term[], transform?: Transform) {
+    this.rules.push({lhs, rhs, transform});
+  }
+  build(start?: string): Grammar {
+    const rules = this.rules;
+    const by_name: {[name: string]: Rule[]} = {};
+    rules.forEach((x) => (by_name[x.lhs] = by_name[x.lhs] || []).push(x));
+    return {by_name, rules, start: start || rules[0].lhs};
+  }
+}
+
 interface Grammar {
   by_name: {[name: string]: Rule[]},
   rules: Rule[],
   start: string,
-}
-
-const make_grammar = (rules: Rule[], start?: string): Grammar => {
-  const by_name: {[name: string]: Rule[]} = {};
-  rules.forEach((x) => (by_name[x.lhs] = by_name[x.lhs] || []).push(x));
-  return {by_name, rules, start: start || rules[0].lhs};
 }
 
 // A Rule is a single production option in a grammar.
@@ -17,10 +25,12 @@ const make_grammar = (rules: Rule[], start?: string): Grammar => {
 type Rule = {
   lhs: string,
   rhs: Term[],
-  transform?: (xs: Object[]) => Object,
+  transform?: Transform,
 }
 
 type Term = string | {literal: string} | RegExp;
+
+type Transform = (xs: Object[]) => Object;
 
 const print_rule = (rule: Rule, cursor?: number): string => {
   const print_term = (term: Term) =>
@@ -206,19 +216,27 @@ export {Grammar, Parser, Rule};
 // Tests of the parser above.
 
 declare const require: any;
+const fs = require('fs');
 const util = require('util');
 const config = {breakLength: Infinity, colors: true, depth: null};
 const debug = (x: any) => util.inspect(x, config);
-const grammar = make_grammar([
-  {lhs: 'P', rhs: ['S'], transform: (x: any) => x[0]},
-  {lhs: 'S', rhs: ['M'], transform: (x: any) => x[0]},
-  {lhs: 'S', rhs: ['S', {literal: '+'}, 'M'], transform: (x: any) => x[0] + x[2]},
-  {lhs: 'M', rhs: ['T'], transform: (x: any) => x[0]},
-  {lhs: 'M', rhs: ['M', {literal: '*'}, 'T'], transform: (x: any) => x[0] * x[2]},
-  {lhs: 'T', rhs: [/[0-9]/], transform: (x: any) => parseInt(x, 10)},
-]);
+
+const make_nearley_grammar = (path: string) => {
+  const nearley = require(path);
+  const builder = new Builder();
+  nearley.ParserRules.forEach(
+      (x: any) => builder.add(x.name, x.symbols, x.postprocess));
+  return builder.build(nearley.ParserStart);
+}
+
+const path = '../../node_modules/nearley/lib/nearley-language-bootstrapped';
+const grammar = make_nearley_grammar(path);
 const parser = new Parser(grammar, {keep_history: true});
-Array.from('1*2*3*4+2*3+4').forEach((x) => parser.feed(x));
-console.log(parser.debug());
-console.log('');
-console.log(debug(parser.parses()));
+
+const name = 'node_modules/nearley/lib/nearley-language-bootstrapped.ne';
+fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
+  Array.from(data).forEach((x) => parser.feed(x));
+  console.log(parser.debug());
+  console.log('');
+  console.log(debug(parser.parses()));
+});
