@@ -1,21 +1,25 @@
 // A Grammar is a list of rules along with an index to access them.
 
 class Builder {
+  private index: number = 0;
   private names: Set<string> = new Set();
   private rules: Rule[] = [];
   add(lhs: string, rhs: Term[], transform?: Transform) {
-    this.rules.push({lhs, rhs, transform});
+    this.rules.push({index: this.index, lhs, rhs, transform});
+    this.index += rhs.length + 1;
   }
   build(start?: string): Grammar {
     const rules = this.rules;
+    const max_index = this.index;
     const by_name: {[name: string]: Rule[]} = {};
     rules.forEach((x) => (by_name[x.lhs] = by_name[x.lhs] || []).push(x));
-    return {by_name, rules, start: start || rules[0].lhs};
+    return {by_name, max_index, rules, start: start || rules[0].lhs};
   }
 }
 
 interface Grammar {
   by_name: {[name: string]: Rule[]},
+  max_index: number,
   rules: Rule[],
   start: string,
 }
@@ -23,6 +27,7 @@ interface Grammar {
 // A Rule is a single production option in a grammar.
 
 type Rule = {
+  index: number,
   lhs: string,
   rhs: Term[],
   transform?: Transform,
@@ -90,8 +95,18 @@ interface Column {
   states_wanted: {[name: string]: State[]},
 }
 
+const complete_state = (completed_set: Set<number>, max_index: number,
+                        prev: State, next: State, states: State[]) => {
+  const key = prev.cursor + prev.rule.index + prev.start * max_index;
+  if (completed_set.has(key)) return;
+  completed_set.add(key);
+  states.push(next_state(prev, {state: next, terminal: false}));
+}
+
 const fill_column = (column: Column) => {
+  const completed_set = new Set<number>();
   const completed = column.states_completed;
+  const max_index = column.grammar.max_index;
   const scannable = column.states_scannable;
   const states = column.states;
   const wanted = column.states_wanted;
@@ -102,7 +117,7 @@ const fill_column = (column: Column) => {
       // Handle completed states, while keeping track of nullable ones.
       const wanted_by = state.wanted_by;
       for (let j = wanted_by.length; j--;) {
-        states.push(next_state(wanted_by[j], {state, terminal: false}));
+        complete_state(completed_set, max_index, wanted_by[j], state, states);
       }
       if (state.cursor === 0) {
         const lhs = state.rule.lhs;
@@ -120,7 +135,7 @@ const fill_column = (column: Column) => {
         wanted[term].push(state);
         const nulls = completed[term] || [];
         for (let j = nulls.length; j--;) {
-          states.push(next_state(state, {state: nulls[j], terminal: false}));
+          complete_state(completed_set, max_index, state, nulls[j], states);
         }
       } else {
         const index = column.index;
@@ -231,12 +246,13 @@ const make_nearley_grammar = (path: string) => {
 
 const path = '../../node_modules/nearley/lib/nearley-language-bootstrapped';
 const grammar = make_nearley_grammar(path);
-const parser = new Parser(grammar, {keep_history: true});
 
 const name = 'node_modules/nearley/lib/nearley-language-bootstrapped.ne';
 fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
+  const start = Date.now();
+  const parser = new Parser(grammar, {keep_history: true});
   Array.from(data).forEach((x) => parser.feed(x));
-  console.log(parser.debug());
-  console.log('');
-  console.log(debug(parser.parses()));
+  const total = Date.now() - start;
+  console.log(`${parser.debug()}\n\n${debug(parser.parses())}`);
+  console.log(`\nTotal time: ${total}ms`);
 });
