@@ -55,7 +55,7 @@ type Next = {data: Object, terminal: true} | {state: State, terminal: false};
 
 interface State {
   cursor: number,
-  next?: Next,
+  next?: Next[],
   prev?: State,
   rule: Rule,
   start: number,
@@ -66,7 +66,7 @@ const fill_state = (state: State): Object => {
   const data = [];
   let current: State = state;
   for (let i = current.cursor; i--;) {
-    const next = current.next!;
+    const next = current.next![0];
     data.push(next.terminal ? next.data : fill_state(next.state));
     current = current.prev!;
   }
@@ -78,9 +78,6 @@ const fill_state = (state: State): Object => {
 const make_state = (rule: Rule, start: number, wanted_by: State[]): State =>
     ({cursor: 0, rule, start, wanted_by});
 
-const next_state = (prev: State, next: Next): State =>
-    ({...prev, cursor: prev.cursor + 1, prev, next});
-
 const print_state = (state: State): string =>
     `{${print_rule(state.rule, state.cursor)}}, from: ${state.start}`;
 
@@ -90,34 +87,38 @@ interface Column {
   grammar: Grammar,
   index: number,
   states: State[],
-  states_completed: {[name: string]: State[]},
-  states_scannable: State[],
-  states_wanted: {[name: string]: State[]},
+  structures: {
+    completed: {[name: string]: State[]},
+    map: Map<number,Next[]>,
+    scannable: State[],
+    wanted: {[name: string]: State[]},
+  },
 }
 
-const complete_state = (completed_set: Set<number>, max_index: number,
-                        prev: State, next: State, states: State[]) => {
+const advance_state = (map: Map<number,Next[]>, max_index: number,
+                       prev: State, states: State[]): Next[] => {
   const key = prev.cursor + prev.rule.index + prev.start * max_index;
-  if (completed_set.has(key)) return;
-  completed_set.add(key);
-  states.push(next_state(prev, {state: next, terminal: false}));
+  const existing = map.get(key);
+  if (existing) return existing;
+  const new_state = {...prev, cursor: prev.cursor + 1, next: [], prev};
+  map.set(key, new_state.next);
+  states.push(new_state);
+  return new_state.next;
 }
 
 const fill_column = (column: Column) => {
-  const completed_set = new Set<number>();
-  const completed = column.states_completed;
+  const {completed, map, scannable, wanted} = column.structures;
   const max_index = column.grammar.max_index;
-  const scannable = column.states_scannable;
   const states = column.states;
-  const wanted = column.states_wanted;
 
   for (let i = 0; i < states.length; i++) {
     const state = states[i];
     if (state.cursor === state.rule.rhs.length) {
       // Handle completed states, while keeping track of nullable ones.
+      const next: Next = {state, terminal: false};
       const wanted_by = state.wanted_by;
       for (let j = wanted_by.length; j--;) {
-        complete_state(completed_set, max_index, wanted_by[j], state, states);
+        advance_state(map, max_index, wanted_by[j], states).push(next);
       }
       if (state.cursor === 0) {
         const lhs = state.rule.lhs;
@@ -134,8 +135,11 @@ const fill_column = (column: Column) => {
       if (wanted[term]) {
         wanted[term].push(state);
         const nulls = completed[term] || [];
-        for (let j = nulls.length; j--;) {
-          complete_state(completed_set, max_index, state, nulls[j], states);
+        if (nulls.length > 0) {
+          const next = advance_state(map, max_index, state, states);
+          for (let j = nulls.length; j--;) {
+            next.push({state: nulls[j], terminal: false});
+          }
         }
       } else {
         const index = column.index;
@@ -156,13 +160,16 @@ const make_column = (grammar: Grammar, index: number): Column => {
     grammar,
     index: index,
     states: [],
-    states_completed: {},
-    states_scannable: [],
-    states_wanted: {},
+    structures: {
+      completed: {},
+      map: new Map(),
+      scannable: [],
+      wanted: {},
+    },
   };
   if (index > 0) return column;
   const rules = grammar.by_name[grammar.start] || [];
-  const wanted_by = column.states_wanted[grammar.start] = [];
+  const wanted_by = column.structures.wanted[grammar.start] = [];
   for (let j = rules.length; j--;) {
     column.states.push(make_state(rules[j], index, wanted_by));
   }
@@ -171,13 +178,16 @@ const make_column = (grammar: Grammar, index: number): Column => {
 
 const next_column = (prev: Column, token: string): Column => {
   const column = make_column(prev.grammar, prev.index + 1);
-  const scannable = prev.states_scannable;
+  const map = column.structures.map;
+  const max_index = column.grammar.max_index;
+  const next: Next = {data: token, terminal: true};
+  const scannable = prev.structures.scannable;
   for (let i = scannable.length; i--;) {
     const state = scannable[i];
     const term = state.rule.rhs[state.cursor];
     if (typeof term !== 'string' &&
         (term instanceof RegExp ? term.test(token) : term.literal === token)) {
-      column.states.push(next_state(state, {data: token, terminal: true}));
+      advance_state(map, max_index, state, column.states).push(next);
     }
   }
   return fill_column(column);
@@ -215,11 +225,12 @@ class Parser {
     this.maybe_throw(`Unexpected token: ${token}`);
     if (this.options.keep_history) this.table.push(this.column);
   }
-  parses(): Object[] {
+  result(): Object | null {
     const start = this.grammar.start;
     const match = (x: State) => x.cursor === x.rule.rhs.length &&
                                 x.rule.lhs === start && x.start === 0;
-    return this.column.states.filter(match).map(fill_state);
+    const states = this.column.states.filter(match);
+    return states.length === 0 ? null : fill_state(states[0]);
   }
   private maybe_throw(message: string) {
     if (this.column.states.length === 0) throw Error(message);
@@ -253,6 +264,6 @@ fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
   const parser = new Parser(grammar, {keep_history: true});
   Array.from(data).forEach((x) => parser.feed(x));
   const total = Date.now() - start;
-  console.log(`${parser.debug()}\n\n${debug(parser.parses())}`);
+  console.log(`${parser.debug()}\n\n${debug(parser.result())}`);
   console.log(`\nTotal time: ${total}ms`);
 });
