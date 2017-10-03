@@ -30,6 +30,7 @@ type Rule = {
   index: number,
   lhs: string,
   rhs: Term[],
+  score?: number,
   transform?: Transform,
 }
 
@@ -58,6 +59,7 @@ interface State {
   next?: Next[],
   prev?: State,
   rule: Rule,
+  score?: number,
   start: number,
   wanted_by: State[],
 }
@@ -152,6 +154,11 @@ const fill_column = (column: Column) => {
     }
   }
 
+  // After generating all paths, score states and choose one "next" for each.
+  for (let i = states.length; i--;) {
+    score_state(states[i]);
+  }
+
   return column;
 }
 
@@ -193,6 +200,24 @@ const next_column = (prev: Column, token: string): Column => {
   return fill_column(column);
 }
 
+const score_state = (state: State): number => {
+  if (state.score != null) return state.score;
+  if (state.cursor === 0) return state.score = state.rule.score || 0;
+  const next = state.next!;
+  let best_nexti: Next | null = null;
+  let best_score = -Infinity;
+  for (let i = next.length; i--;) {
+    const nexti = next[i];
+    const score = nexti.terminal ? 0 : score_state(nexti.state);
+    if (score > best_score) {
+      best_nexti = nexti;
+      best_score = score;
+    }
+  }
+  state.next = [best_nexti!];
+  return state.score = best_score + score_state(state.prev!);
+}
+
 // A Parser allows us to parse token sequences with a grammar. Constructing a
 // parser is a lightweight operation, but Parsers are stateful, so each one
 // can only be used to parse a single token sequence.
@@ -229,7 +254,8 @@ class Parser {
     const start = this.grammar.start;
     const match = (x: State) => x.cursor === x.rule.rhs.length &&
                                 x.rule.lhs === start && x.start === 0;
-    const states = this.column.states.filter(match);
+    const states = this.column.states.filter(match).sort(
+        (x, y) => y.score! - x.score!);
     return states.length === 0 ? null : fill_state(states[0]);
   }
   private maybe_throw(message: string) {
