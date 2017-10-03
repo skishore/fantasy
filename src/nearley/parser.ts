@@ -1,12 +1,19 @@
 // A Grammar is a list of rules along with an index to access them.
 
-class Builder {
+interface RuleSpec {
+  lhs: string,
+  rhs: Term[],
+  score?: number,
+  transform?: Transform,
+}
+
+class GrammarBuilder {
   private index: number = 0;
   private names: Set<string> = new Set();
   private rules: Rule[] = [];
-  add(lhs: string, rhs: Term[], transform?: Transform) {
-    this.rules.push({index: this.index, lhs, rhs, transform});
-    this.index += rhs.length + 1;
+  add(rule: RuleSpec) {
+    this.rules.push({...rule, index: this.index, score: rule.score || 0});
+    this.index += rule.rhs.length + 1;
   }
   build(start?: string): Grammar {
     const rules = this.rules;
@@ -30,7 +37,7 @@ type Rule = {
   index: number,
   lhs: string,
   rhs: Term[],
-  score?: number,
+  score: number,
   transform?: Transform,
 }
 
@@ -202,7 +209,7 @@ const next_column = (prev: Column, token: string): Column => {
 
 const score_state = (state: State): number => {
   if (state.score != null) return state.score;
-  if (state.cursor === 0) return state.score = state.rule.score || 0;
+  if (state.cursor === 0) return state.score = state.rule.score;
   const next = state.next!;
   let best_nexti: Next | null = null;
   let best_score = -Infinity;
@@ -222,33 +229,23 @@ const score_state = (state: State): number => {
 // parser is a lightweight operation, but Parsers are stateful, so each one
 // can only be used to parse a single token sequence.
 
-interface Options {keep_history?: boolean}
-
 class Parser {
   private column: Column;
   private grammar: Grammar;
-  private options: Options;
-  private table: Column[];
-  constructor(grammar: Grammar, options: Options = {}) {
+  constructor(grammar: Grammar) {
     this.column = make_column(grammar, 0);
     this.grammar = grammar;
-    this.options = options;
     this.maybe_throw(`No rules for initial state: ${grammar.start}`);
-    if (this.options.keep_history) this.table = [this.column];
   }
   debug(): string {
-    const table = this.table || [this.column];
-    const block = table.map((x) => {
-      const lines = [`Column: ${x.index}`];
-      x.states.forEach((y, i) => lines.push(`${i}: ${print_state(y)}`));
-      return lines.join('\n');
-    });
-    return block.join('\n\n');
+    const column = this.column;
+    const lines = [`Column: ${column.index}`];
+    column.states.forEach((x, i) => lines.push(`${i}: ${print_state(x)}`));
+    return lines.join('\n');
   }
   feed(token: string) {
     this.column = next_column(this.column, token);
     this.maybe_throw(`Unexpected token: ${token}`);
-    if (this.options.keep_history) this.table.push(this.column);
   }
   result(): Object | null {
     const start = this.grammar.start;
@@ -275,9 +272,9 @@ const debug = (x: any) => util.inspect(x, config);
 
 const make_nearley_grammar = (path: string) => {
   const nearley = require(path);
-  const builder = new Builder();
-  nearley.ParserRules.forEach(
-      (x: any) => builder.add(x.name, x.symbols, x.postprocess));
+  const builder = new GrammarBuilder();
+  nearley.ParserRules.forEach((x: any) => builder.add(
+      {lhs: x.name, rhs: x.symbols, transform: x.postprocess}));
   return builder.build(nearley.ParserStart);
 }
 
@@ -286,10 +283,14 @@ const grammar = make_nearley_grammar(path);
 
 const name = 'node_modules/nearley/lib/nearley-language-bootstrapped.ne';
 fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
+  const lines: string[] = [];
   const start = Date.now();
-  const parser = new Parser(grammar, {keep_history: true});
-  Array.from(data).forEach((x) => parser.feed(x));
+  const parser = new Parser(grammar);
+  for (const token of Array.from(data)) {
+    parser.feed(token);
+    lines.push(parser.debug());
+  }
   const total = Date.now() - start;
-  console.log(`${parser.debug()}\n\n${debug(parser.result())}`);
-  console.log(`\nTotal time: ${total}ms`);
+  lines.push(debug(parser.result()));
+  console.log(`${lines.join('\n\n')}\n\nTotal time: ${total}ms`);
 });
