@@ -457,11 +457,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   }
 
   Lexer.prototype.formatError = function(token, message) {
-    var value = token.value
-    var index = token.offset
-    var eol = token.lineBreaks ? value.indexOf('\n') : value.length
-    var start = Math.max(0, index - token.col + 1)
-    var firstLine = this.buffer.substring(start, index + eol)
+    var start = Math.max(0, token.offset - token.col + 1);
+    var end = this.buffer.indexOf('\n', start);
+    if (end < 0) end = this.buffer.length;
+    var firstLine = this.buffer.substring(start, end);
     message += " at line " + token.line + " col " + token.col + ":\n\n"
     message += "  " + firstLine + "\n"
     message += "  " + Array(token.col).join(" ") + "^"
