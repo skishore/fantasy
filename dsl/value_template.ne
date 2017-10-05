@@ -1,9 +1,25 @@
-@builtin "number.ne"
-@builtin "string.ne"
+# A lexer and a macro used to create comma-separated lists of terms.
 
-# A macro used to create comma-separated lists of terms.
+@lexer lexer
 
 @{%
+
+const moo = require('../src/nearley/moo');
+
+const swap_quotes = (x) => x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
+
+const lexer = moo.compile({
+  boolean: {match: /(?:false|true)\b/, value: (x) => x === 'true'},
+  float: {match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/, value: (x) => parseFloat(x, 10)},
+  identifier: /[a-zA-Z_][a-zA-Z_$0-9]*/,
+  integer: {match: /-?(?:[0-9]|[1-9][0-9]+)\b/, value: (x) => parseInt(x, 10)},
+  string: [
+    {match: /"[^"]*"/, value: (x) => JSON.parse(x)},
+    {match: /'[^']*'/, value: (x) => JSON.parse(swap_quotes(x))},
+  ],
+  whitespace: {match: /\s+/, lineBreaks: true},
+  _: /./,
+});
 
 const create_list = (d) => d[0].concat(d[1].map((x) => x[3][0]));
 
@@ -26,16 +42,14 @@ join -> "(" _ commas[dict_or_variable] _ ")" {% (d) => create_join(d[2]) %}
       | "(" _ ")" {% () => [] %}
 list -> "[" _ commas[template] _ "]" {% (d) => d[2].map((x) => ['_', x]) %}
       | "[" _ "]" {% () => [] %}
-variable -> "$" int {% (d) => ({index: d[1]}) %}
+variable -> "$" %integer {% (d) => ({index: d[1].value}) %}
 
-item -> identifier _ ":" _ template {% (d) => [d[0], d[4]] %}
+item -> %identifier _ ":" _ template {% (d) => [d[0].value, d[4]] %}
 dict_or_variable -> (dict | variable) {% (d) => d[0][0] %}
 list_or_variable -> (list | variable) {% (d) => d[0][0] %}
 
 # Primitives and whitespace.
 
-identifier -> [a-zA-Z0-9_$]:+ {% (d) => d[0].join('') %}
-primitive -> (boolean | decimal | string) {% (d) => d[0][0] %}
-boolean -> "false" {% () => false %} | "true" {% () => true %}
-string -> (dqstring | sqstring) {% (d) => d[0][0] %}
-_ -> [\s]:* {% () => null %}
+primitive -> (%boolean | number | %string) {% (d) => d[0][0].value %}
+number -> (%float | %integer) {% (d) => d[0][0] %}
+_ -> %whitespace:? {% () => null %}
