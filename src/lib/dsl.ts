@@ -16,8 +16,8 @@ const detect_nullable_names = (grammar: Grammar): string[] => {
   const visit = (y: any) => typeof y === 'string' && nullable.has(y);
   while (nullable.size > last_size) {
     last_size = nullable.size;
-    grammar.ParserRules.filter(x => x.symbols.every(visit))
-                       .forEach(x => nullable.add(x.name));
+    grammar.ParserRules.filter((x) => x.symbols.every(visit))
+                       .forEach((x) => nullable.add(x.name));
   }
   return Array.from(nullable).sort();
 }
@@ -28,8 +28,8 @@ const detect_reachable_names = (grammar: Grammar): string[] => {
   const visit = (y: any) => typeof y === 'string' ? reachable.add(y) : 0;
   while (reachable.size > last_size) {
     last_size = reachable.size;
-    grammar.ParserRules.filter(x => reachable.has(x.name))
-                       .forEach(x => x.symbols.forEach(visit));
+    grammar.ParserRules.filter((x) => reachable.has(x.name))
+                       .forEach((x) => x.symbols.forEach(visit));
   }
   return Array.from(reachable);
 }

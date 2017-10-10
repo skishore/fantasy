@@ -32,9 +32,7 @@ interface MooRule {
   value?: (x: string) => Object,
 }
 
-interface MooRules extends Array<MooRule> {};
-
-type MooConfig = MooRule | MooRules | MooRule['match'];
+type MooConfig = MooRule | MooRule[] | MooRule['match'];
 
 class MooLexer implements Lexer {
   private lexer: any;
@@ -44,10 +42,11 @@ class MooLexer implements Lexer {
   iterable(input: string) {
     const result: Token[] = [];
     this.lexer.reset(input);
-    let token: {text: string, type: string, value: Object} | void;
-    while (token = this.lexer.next()) {
+    let token: {text: string, type: string, value: Object} = this.lexer.next();
+    while (!!token) {
       const match: Match = {score: 0, value: token.value};
       result.push({text: {[token.text]: match}, type: {[token.type]: match}});
+      token = this.lexer.next();
     }
     return result;
   }

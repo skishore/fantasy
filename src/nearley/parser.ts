@@ -120,7 +120,9 @@ const fill_column = (column: Column) => {
   const max_index = column.grammar.max_index;
   const states = column.states;
 
+  /* tslint:disable:prefer-for-of */
   for (let i = 0; i < states.length; i++) {
+  /* tslint:enable:prefer-for-of */
     const state = states[i];
     if (state.cursor === state.rule.rhs.length) {
       // Handle completed states, while keeping track of nullable ones.
