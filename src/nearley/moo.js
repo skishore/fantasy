@@ -147,10 +147,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       obj = { match: obj }
     }
 
-    // nb. error implies lineBreaks
     var options = assign({
       tokenType: name,
-      lineBreaks: !!obj.error,
       pop: false,
       next: null,
       push: null,
@@ -208,11 +206,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       }
       if (!hasStates && (options.pop || options.push || options.next)) {
         throw new Error("State-switching options are not allowed in stateless lexers (for token '" + options.tokenType + "')")
-      }
-
-      // try and detect rules matching newlines
-      if (!options.lineBreaks && regexp.test('\n')) {
-        throw new Error('Rule should declare lineBreaks: ' + regexp)
       }
 
       // store regex
@@ -309,16 +302,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   Lexer.prototype.reset = function(data, info) {
     this.buffer = data || ''
     this.index = 0
-    this.line = info ? info.line : 1
-    this.col = info ? info.col : 1
     this.setState(info ? info.state : this.startState)
     return this
   }
 
   Lexer.prototype.save = function() {
     return {
-      line: this.line,
-      col: this.col,
       state: this.state,
     }
   }
@@ -328,7 +317,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     this.state = state
     var info = this.states[state]
     this.groups = info.groups
-    this.error = info.error || {lineBreaks: true, shouldThrow: true}
+    this.error = info.error || {shouldThrow: true}
     this.re = info.regexp
   }
 
@@ -394,38 +383,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
       group = this.groups[i]
     }
 
-    // count line breaks
-    var lineBreaks = 0
-    if (group.lineBreaks) {
-      var matchNL = /\n/g
-      var nl = 1
-      if (text === '\n') {
-        lineBreaks = 1
-      } else {
-        while (matchNL.exec(text)) { lineBreaks++; nl = matchNL.lastIndex }
-      }
-    }
-
     var token = {
       type: (group.getType && group.getType(text)) || group.tokenType,
       value: group.value ? group.value(text) : text,
       text: text,
       toString: tokenToString,
       offset: index,
-      lineBreaks: lineBreaks,
-      line: this.line,
-      col: this.col,
     }
     // nb. adding more props to token object will make V8 sad!
 
     var size = text.length
     this.index += size
-    this.line += lineBreaks
-    if (lineBreaks !== 0) {
-      this.col = size - nl + 1
-    } else {
-      this.col += size
-    }
     // throw, if no rule with {error: true}
     if (group.shouldThrow) {
       throw new Error(this.formatError(token, "invalid syntax"))
@@ -457,13 +425,15 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   }
 
   Lexer.prototype.formatError = function(token, message) {
-    var start = Math.max(0, token.offset - token.col + 1);
+    var start = this.buffer.lastIndexOf('\n', token.offset - 1) + 1;
     var end = this.buffer.indexOf('\n', start);
+    var line = this.buffer.slice(0, token.offset).split('\n').length;
+    var column = token.offset - start + 1;
     if (end < 0) end = this.buffer.length;
     var firstLine = this.buffer.substring(start, end);
-    message += " at line " + token.line + " col " + token.col + ":\n\n"
+    message += " at line " + line + " column " + column + ":\n\n"
     message += "  " + firstLine + "\n"
-    message += "  " + Array(token.col).join(" ") + "^"
+    message += "  " + Array(column).join(" ") + "^"
     return message
   }
 
