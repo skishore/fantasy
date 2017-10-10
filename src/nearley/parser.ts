@@ -43,7 +43,7 @@ type Rule = {
 
 type Term = string | {literal: string} | RegExp;
 
-type Transform = (xs: Object[]) => Object;
+type Transform = (xs: any[]) => any;
 
 const print_rule = (rule: Rule, cursor?: number): string => {
   const print_term = (term: Term) =>
@@ -59,7 +59,7 @@ const print_rule = (rule: Rule, cursor?: number): string => {
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
 
-type Next = {data: Object, terminal: true} | {state: State, terminal: false};
+type Next = {data: any, terminal: true} | {state: State, terminal: false};
 
 interface State {
   cursor: number,
@@ -71,7 +71,7 @@ interface State {
   wanted_by: State[],
 }
 
-const fill_state = (state: State): Object => {
+const fill_state = (state: State): any => {
   const data = [];
   let current: State = state;
   for (let i = current.cursor; i--;) {
@@ -249,7 +249,7 @@ class Parser {
     this.column = next_column(this.column, token);
     this.maybe_throw(`Unexpected token: ${token}`);
   }
-  result(): Object | null {
+  result(): any {
     const start = this.grammar.start;
     const match = (x: State) => x.cursor === x.rule.rhs.length &&
                                 x.rule.lhs === start && x.start === 0;

@@ -11,13 +11,13 @@ const swap_quotes = (x) => x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
 const lexer = moo.compile({
   boolean: {match: /(?:false|true)\b/, value: (x) => x === 'true'},
   float: {match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/, value: (x) => parseFloat(x, 10)},
-  identifier: /[a-zA-Z_][a-zA-Z_$0-9]*/,
+  identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
   integer: {match: /-?(?:[0-9]|[1-9][0-9]+)\b/, value: (x) => parseInt(x, 10)},
   string: [
     {match: /"[^"]*"/, value: (x) => JSON.parse(x)},
     {match: /'[^']*'/, value: (x) => JSON.parse(swap_quotes(x))},
   ],
-  whitespace: {match: /\s+/, lineBreaks: true},
+  whitespace: {match: /\s+/, value: () => null},
   _: /./,
 });
 
