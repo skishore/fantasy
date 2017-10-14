@@ -17,7 +17,7 @@ type TermNode =
 
 interface Grammar {
   blocks: string[];
-  lexer: string;
+  lexer?: string;
   rules: Rule[];
   start?: string;
 }
@@ -25,7 +25,7 @@ interface Grammar {
 interface Rule {
   lhs: string;
   rhs: Term[];
-  transform: string | undefined,
+  transform?: string,
 }
 
 type Term = string | {text: string} | {type: string};
@@ -65,9 +65,9 @@ const build_macro = (lhs: string, args: RuleNode[], name: string,
   const bindings = Object.assign({}, env.bindings);
   const child = Object.assign({}, env, {bindings});
   for (let i = 0; i < n; i++) {
-    const argument = add_symbol(symbol, 'argument', env);
-    args.forEach((x) => add_rules(argument, x, env));
-    child.bindings[macro.args[i]] = argument;
+    const arg = add_symbol(symbol, 'arg', env);
+    add_rules(arg, args[i], env);
+    child.bindings[macro.args[i]] = arg;
   }
   macro.rules.forEach((x) => add_rules(symbol, x, child));
   return symbol;
@@ -112,9 +112,7 @@ const build_term = (lhs: string, term: TermNode, env: Environment): Term => {
 }
 
 const evaluate = (items: ItemNode[]): Grammar => {
-  const blocks = [`var lexer = require('../src/nearley/lexer');`];
-  const lexer = 'new lexer.CharacterLexer()';
-  const result = {blocks, lexer, rules: []};
+  const result = {blocks: [], rules: []};
   const env = {bindings: {}, counts: {}, macros: {}, result};
   items.forEach((x) => evaluate_item(x, env));
   return result;
@@ -128,9 +126,51 @@ const evaluate_item = (item: ItemNode, env: Environment): void => {
   } else if (item.type === 'macro') {
     env.macros[item.name] = {args: item.args, rules: item.rules};
   } else if (item.type === 'rules') {
-    if (env.result.start === '') env.result.start = item.name;
+    if (!env.result.start) env.result.start = item.name;
     item.rules.forEach((x) => add_rules(item.name, x, env));
   }
+}
+
+const generate = (grammar: Grammar): string => {
+  grammar = JSON.parse(JSON.stringify(grammar));
+  if (!grammar.start) throw Error(`No grammar start term!`);
+  if (!grammar.lexer) {
+    grammar.blocks.unshift(`const lexer = require('../src/nearley/lexer');`);
+    grammar.lexer = 'new lexer.CharacterLexer()';
+  }
+  return `
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+
+${grammar.blocks.map((x) => x.trim()).join('\n')}
+
+exports = {
+  lexer: ${grammar.lexer},
+  grammar: {
+    rules: [
+      ${grammar.rules.map(generate_rule).join(',\n      ')},
+    ],
+    start: ${JSON.stringify(grammar.start)},
+  },
+};`.trim();
+}
+
+const generate_rule = (rule: Rule): string => {
+  const rhs = `[${rule.rhs.map(generate_term).join(', ')}]`;
+  const transform = rule.transform ? `, transform: ${rule.transform}` : '';
+  return `{lhs: ${JSON.stringify(rule.lhs)}, rhs: ${rhs}${transform}}`;
+}
+
+const generate_term = (term: Term): string => {
+  if (typeof term === 'string') {
+    return JSON.stringify(term);
+  } else if ((<any>term).text) {
+    return `{text: ${JSON.stringify((<any>term).text)}}`;
+  } else if ((<any>term).type) {
+    return `{type: ${JSON.stringify((<any>term).type)}}`;
+  }
+  throw Error(`Unexpected term: ${term}`);
 }
 
 // A quick test of the compiler.
@@ -141,6 +181,6 @@ const util = require('util');
 const config = {colors: true, depth: null};
 const debug = (x: any) => util.inspect(x, config);
 fs.readFile('output.val', {encoding: 'utf8'}, (error: Error, data: string) => {
-  const output: ItemNode[] = eval(data);
-  console.log(debug(evaluate(output)));
+  const input: ItemNode[] = eval(data);
+  console.log(generate(evaluate(input)));
 });
