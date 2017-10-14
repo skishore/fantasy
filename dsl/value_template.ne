@@ -4,19 +4,14 @@
 
 @{%
 
-const moo = require('../src/nearley/moo');
+const lexers = require('../target/nearley/lexer');
 
-const swap_quotes = (x) => x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
-
-const lexer = moo.compile({
+const lexer = new lexers.MooLexer({
   boolean: {match: /(?:false|true)\b/, value: (x) => x === 'true'},
   float: {match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/, value: (x) => parseFloat(x, 10)},
   identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
   integer: {match: /-?(?:[0-9]|[1-9][0-9]+)\b/, value: (x) => parseInt(x, 10)},
-  string: [
-    {match: /"[^"]*"/, value: (x) => JSON.parse(x)},
-    {match: /'[^']*'/, value: (x) => JSON.parse(swap_quotes(x))},
-  ],
+  string: lexers.MooLexer.string,
   whitespace: {match: /\s+/, value: () => null},
   _: /./,
 });
@@ -42,14 +37,14 @@ join -> "(" _ commas[dict_or_variable] _ ")" {% (d) => create_join(d[2]) %}
       | "(" _ ")" {% () => [] %}
 list -> "[" _ commas[template] _ "]" {% (d) => d[2].map((x) => ['_', x]) %}
       | "[" _ "]" {% () => [] %}
-variable -> "$" %integer {% (d) => ({index: d[1].value}) %}
+variable -> "$" %integer {% (d) => ({index: d[1]}) %}
 
-item -> %identifier _ ":" _ template {% (d) => [d[0].value, d[4]] %}
+item -> %identifier _ ":" _ template {% (d) => [d[0], d[4]] %}
 dict_or_variable -> (dict | variable) {% (d) => d[0][0] %}
 list_or_variable -> (list | variable) {% (d) => d[0][0] %}
 
 # Primitives and whitespace.
 
-primitive -> (%boolean | number | %string) {% (d) => d[0][0].value %}
+primitive -> (%boolean | number | %string) {% (d) => d[0][0] %}
 number -> (%float | %integer) {% (d) => d[0][0] %}
 _ -> %whitespace:? {% () => null %}

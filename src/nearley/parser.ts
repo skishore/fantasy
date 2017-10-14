@@ -1,3 +1,5 @@
+import {Lexer, Match, Token} from './lexer';
+
 // A Grammar is a list of rules along with an index to access them.
 
 interface RuleSpec {
@@ -41,15 +43,15 @@ type Rule = {
   transform?: Transform,
 }
 
-type Term = string | {literal: string} | RegExp;
+type Term = string | {text: string} | {type: string};
 
 type Transform = (xs: any[]) => any;
 
 const print_rule = (rule: Rule, cursor?: number): string => {
   const print_term = (term: Term) =>
       typeof term === 'string' ? term :
-             term instanceof RegExp ? term.toString() :
-             JSON.stringify(term.literal);
+             (<any>term).type ? `%${(<any>term).type}` :
+             JSON.stringify((<any>term).text);
   const terms = rule.rhs.map(print_term);
   if (cursor != null) terms.splice(cursor, 0, '●');
   return `${rule.lhs} -> ${terms.join(' ')}`;
@@ -59,7 +61,7 @@ const print_rule = (rule: Rule, cursor?: number): string => {
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
 
-type Next = {data: any, terminal: true} | {state: State, terminal: false};
+type Next = {match: Match, token: true} | {state: State, token: false};
 
 interface State {
   cursor: number,
@@ -76,7 +78,7 @@ const fill_state = (state: State): any => {
   let current: State = state;
   for (let i = current.cursor; i--;) {
     const next = current.next![0];
-    data.push(next.terminal ? next.data : fill_state(next.state));
+    data.push(next.token ? next.match.value : fill_state(next.state));
     current = current.prev!;
   }
   data.reverse();
@@ -126,12 +128,12 @@ const fill_column = (column: Column) => {
     const state = states[i];
     if (state.cursor === state.rule.rhs.length) {
       // Handle completed states, while keeping track of nullable ones.
-      const next: Next = {state, terminal: false};
+      const next: Next = {state, token: false};
       const wanted_by = state.wanted_by;
       for (let j = wanted_by.length; j--;) {
         advance_state(map, max_index, wanted_by[j], states).push(next);
       }
-      if (state.cursor === 0) {
+      if (state.start === column.index) {
         const lhs = state.rule.lhs;
         (completed[lhs] = completed[lhs] || []).push(state);
       }
@@ -149,7 +151,7 @@ const fill_column = (column: Column) => {
         if (nulls.length > 0) {
           const next = advance_state(map, max_index, state, states);
           for (let j = nulls.length; j--;) {
-            next.push({state: nulls[j], terminal: false});
+            next.push({state: nulls[j], token: false});
           }
         }
       } else {
@@ -192,17 +194,17 @@ const make_column = (grammar: Grammar, index: number): Column => {
   return fill_column(column);
 }
 
-const next_column = (prev: Column, token: string): Column => {
+const next_column = (prev: Column, token: Token): Column => {
   const column = make_column(prev.grammar, prev.index + 1);
   const map = column.structures.map;
   const max_index = column.grammar.max_index;
-  const next: Next = {data: token, terminal: true};
   const scannable = prev.structures.scannable;
   for (let i = scannable.length; i--;) {
     const state = scannable[i];
-    const term = state.rule.rhs[state.cursor];
-    if (typeof term !== 'string' &&
-        (term instanceof RegExp ? term.test(token) : term.literal === token)) {
+    const term: any = state.rule.rhs[state.cursor];
+    const match = !!term.text ? token.text[term.text] : token.type[term.type];
+    if (!!match) {
+      const next: Next = {match, token: true};
       advance_state(map, max_index, state, column.states).push(next);
     }
   }
@@ -217,7 +219,7 @@ const score_state = (state: State): number => {
   let best_score = -Infinity;
   for (let i = next.length; i--;) {
     const nexti = next[i];
-    const score = nexti.terminal ? 0 : score_state(nexti.state);
+    const score = nexti.token ? nexti.match.score : score_state(nexti.state);
     if (score > best_score) {
       best_nexti = nexti;
       best_score = score;
@@ -245,9 +247,9 @@ class Parser {
     column.states.forEach((x, i) => lines.push(`${i}: ${print_state(x)}`));
     return lines.join('\n');
   }
-  feed(token: string) {
+  feed(token: Token) {
     this.column = next_column(this.column, token);
-    this.maybe_throw(`Unexpected token: ${token}`);
+    this.maybe_throw(`Unexpected token: ${JSON.stringify(token)}`);
   }
   result(): any {
     const start = this.grammar.start;
@@ -272,23 +274,22 @@ const util = require('util');
 const config = {breakLength: Infinity, colors: true, depth: null};
 const debug = (x: any) => util.inspect(x, config);
 
-const make_nearley_grammar = (path: string) => {
-  const nearley = require(path);
+const load_grammar = (path: string): [Grammar, Lexer] => {
   const builder = new GrammarBuilder();
-  nearley.ParserRules.forEach((x: any) => builder.add(
-      {lhs: x.name, rhs: x.symbols, transform: x.postprocess}));
-  return builder.build(nearley.ParserStart);
+  const {grammar, lexer} = require(path);
+  grammar.rules.forEach((x: any) => builder.add(x));
+  return [builder.build(grammar.start), lexer];
 }
 
-const path = '../../node_modules/nearley/lib/nearley-language-bootstrapped';
-const grammar = make_nearley_grammar(path);
+const path = '../../dsl/nearley';
+const [grammar, lexer] = load_grammar(path);
 
-const name = 'node_modules/nearley/lib/nearley-language-bootstrapped.ne';
+const name = 'dsl/nearley.ne';
 fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
   const lines: string[] = [];
   const start = Date.now();
   const parser = new Parser(grammar);
-  for (const token of Array.from(data)) {
+  for (const token of lexer.iterable(data)) {
     parser.feed(token);
     lines.push(parser.debug());
   }

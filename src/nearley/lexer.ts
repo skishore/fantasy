@@ -33,6 +33,9 @@ interface MooRule {
 
 type MooConfig = MooRule | MooRule[] | MooRule['match'];
 
+const swap_quotes = (x: string) =>
+    x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
+
 class MooLexer implements Lexer {
   private lexer: any;
   constructor(config: {[cls: string]: MooConfig}) {
@@ -49,49 +52,10 @@ class MooLexer implements Lexer {
     }
     return result;
   }
+  static string: MooConfig = [
+    {match: /"[^"]*"/, value: (x) => JSON.parse(x)},
+    {match: /'[^']*'/, value: (x) => JSON.parse(swap_quotes(x))},
+  ];
 }
 
-export {CharacterLexer, Lexer, MooLexer};
-
-// A quick test of the lexer behavior.
-
-const swap_quotes = (x: string) => x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
-
-//const lexer = new MooLexer({
-//  boolean: {match: /(?:false|true)\b/, value: (x: string) => x === 'true'},
-//  float: {match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/, value: (x: string) => parseFloat(x)},
-//  identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
-//  integer: {match: /-?(?:[0-9]|[1-9][0-9]+)\b/, value: (x: string) => parseInt(x, 10)},
-//  string: [
-//    {match: /"[^"]*"/, value: (x: string) => JSON.parse(x)},
-//    {match: /'[^']*'/, value: (x: string) => JSON.parse(swap_quotes(x))},
-//  ],
-//  whitespace: {match: /\s+/},
-//  _: /./,
-//});
-//
-//const util = require('util');
-//const config = {colors: true, depth: null};
-//const debug = (x: any) => util.inspect(x, config);
-//console.log(debug(lexer.iterable('[false, 0.5, 1]')));
-
-const lexer = new MooLexer({
-  block: {match: /{%[^]*?%}/, value: (x: string) => x.slice(2, -2).trim()},
-  comment: {match: /#.*$/, value: (x: string) => null},
-  identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
-  string: [
-    {match: /"[^"]*"/, value: (x: string) => JSON.parse(x)},
-    {match: /'[^']*'/, value: (x: string) => JSON.parse(swap_quotes(x))},
-  ],
-  whitespace: {match: /\s+/, value: () => null},
-  _: /./,
-});
-
-const fs = require('fs');
-const util = require('util');
-const config = {colors: true, depth: null};
-const debug = (x: any) => util.inspect(x, config);
-const name = 'dsl/value_template.ne';
-fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
-  console.log(debug(lexer.iterable(data)));
-});
+export {CharacterLexer, Lexer, Match, MooLexer, Token};

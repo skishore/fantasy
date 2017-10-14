@@ -145,15 +145,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 ${grammar.blocks.map((x) => x.trim()).join('\n')}
 
-exports = {
-  lexer: ${grammar.lexer},
-  grammar: {
-    rules: [
-      ${grammar.rules.map(generate_rule).join(',\n      ')},
-    ],
-    start: ${JSON.stringify(grammar.start)},
-  },
-};`.trim();
+exports.grammar = {
+  rules: [
+    ${grammar.rules.map(generate_rule).join(',\n    ')},
+  ],
+  start: ${JSON.stringify(grammar.start)},
+};
+exports.lexer = ${grammar.lexer};`.trim();
 }
 
 const generate_rule = (rule: Rule): string => {
