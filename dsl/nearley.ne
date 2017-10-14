@@ -11,6 +11,7 @@ const swap_quotes = (x) => x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
 const lexer = moo.compile({
   block: {match: /{%[^]*?[%]}/, value: (x) => x.slice(2, -2).trim()},
   comment: {match: /#.*$/, value: (x) => null},
+  keyword: {match: 'null', value: () => null},
   identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
   string: [
     {match: /"[^"]*"/, value: (x) => JSON.parse(x)},
@@ -43,6 +44,7 @@ rule -> terms {% (d) => ({terms: d[0]}) %}
       | terms  _ %block {% (d) => ({terms: d[0], transform: d[2].value}) %}
 
 terms -> list_whitespace[term] {% (d) => d[0] %}
+       | %keyword {% (d) => [] %}
 
 term -> "$" word {% (d) => ({type: 'binding', name: d[1]}) %}
       | word "[" args "]" {% (d) => ({type: 'macro', name: d[0], args: d[2]}) %}
