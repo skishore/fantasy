@@ -1,6 +1,6 @@
 # A grammar describing "templates", JSON-like expressions with variables.
 
-@{% const lexer = require('../target/nearley/lexer'); %}
+@{% const lexer = require('../../target/nearley/lexer'); %}
 
 @lexer {% new lexer.MooLexer({
   boolean: {match: /(?:false|true)\b/, value: (x) => x === 'true'},

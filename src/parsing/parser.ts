@@ -1,61 +1,5 @@
+import {Grammar, Rule} from './grammar';
 import {Lexer, Match, Token} from './lexer';
-
-// A Grammar is a list of rules along with an index to access them.
-
-interface RuleSpec {
-  lhs: string,
-  rhs: Term[],
-  score?: number,
-  transform?: Transform,
-}
-
-class GrammarBuilder {
-  private index: number = 0;
-  private names: Set<string> = new Set();
-  private rules: Rule[] = [];
-  add(rule: RuleSpec) {
-    this.rules.push({...rule, index: this.index, score: rule.score || 0});
-    this.index += rule.rhs.length + 1;
-  }
-  build(start?: string): Grammar {
-    const rules = this.rules;
-    const max_index = this.index;
-    const by_name: {[name: string]: Rule[]} = {};
-    rules.forEach((x) => (by_name[x.lhs] = by_name[x.lhs] || []).push(x));
-    return {by_name, max_index, rules, start: start || rules[0].lhs};
-  }
-}
-
-interface Grammar {
-  by_name: {[name: string]: Rule[]},
-  max_index: number,
-  rules: Rule[],
-  start: string,
-}
-
-// A Rule is a single production option in a grammar.
-
-type Rule = {
-  index: number,
-  lhs: string,
-  rhs: Term[],
-  score: number,
-  transform?: Transform,
-}
-
-type Term = string | {text: string} | {type: string};
-
-type Transform = (xs: any[]) => any;
-
-const print_rule = (rule: Rule, cursor?: number): string => {
-  const print_term = (term: Term) =>
-      typeof term === 'string' ? term :
-             (<any>term).type ? `%${(<any>term).type}` :
-             JSON.stringify((<any>term).text);
-  const terms = rule.rhs.map(print_term);
-  if (cursor != null) terms.splice(cursor, 0, '●');
-  return `${rule.lhs} -> ${terms.join(' ')}`;
-}
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
 // cursor is the position in the rule up to which we have a match and the
@@ -90,7 +34,7 @@ const make_state = (rule: Rule, start: number, wanted_by: State[]): State =>
     ({cursor: 0, rule, start, wanted_by});
 
 const print_state = (state: State): string =>
-    `{${print_rule(state.rule, state.cursor)}}, from: ${state.start}`;
+    `{${Grammar.print_rule(state.rule, state.cursor)}}, from: ${state.start}`;
 
 // A Column is a list of states all which all end at the same token index.
 
@@ -264,7 +208,7 @@ class Parser {
   }
 }
 
-export {Grammar, Parser, Rule};
+export {Parser};
 
 // Tests of the parser above.
 
@@ -274,17 +218,9 @@ const util = require('util');
 const config = {breakLength: Infinity, colors: true, depth: null};
 const debug = (x: any) => util.inspect(x, config);
 
-const load_grammar = (path: string): [Grammar, Lexer] => {
-  const builder = new GrammarBuilder();
-  const {grammar, lexer} = require(path);
-  grammar.rules.forEach((x: any) => builder.add(x));
-  return [builder.build(grammar.start), lexer];
-}
+const [grammar, lexer] = Grammar.from_file('../js/bootstrapped');
 
-const path = '../../dsl/nearley';
-const [grammar, lexer] = load_grammar(path);
-
-const name = 'dsl/nearley.ne';
+const name = 'src/dsl/nearley.ne';
 fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
   const lines: string[] = [];
   const start = Date.now();

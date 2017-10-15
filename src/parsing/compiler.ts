@@ -1,3 +1,5 @@
+// The output of the bootstrapped grammar is a list of ItemNode values.
+
 type ItemNode =
   {type: 'block', block: string} |
   {type: 'lexer', lexer: string} |
@@ -15,6 +17,16 @@ type TermNode =
   {type: 'token_text', token_text: string} |
   {type: 'token_type', token_type: string};
 
+// This compiler converts those items into the Grammar format, using an
+// Environment to keep track of assigned symbols and bound variables.
+
+interface Environment {
+  bindings: {[name: string]: string};
+  counts: {[name: string]: number};
+  macros: {[name: string]: {args: string[], rules: RuleNode[]}};
+  result: Grammar;
+}
+
 interface Grammar {
   blocks: string[];
   lexer?: string;
@@ -30,12 +42,7 @@ interface Rule {
 
 type Term = string | {text: string} | {type: string};
 
-interface Environment {
-  bindings: {[name: string]: string};
-  counts: {[name: string]: number};
-  macros: {[name: string]: {args: string[], rules: RuleNode[]}};
-  result: Grammar;
-}
+// The implementation of the compiler, a series of transformations.
 
 const add_rules = (lhs: string, rule: RuleNode, env: Environment): void => {
   const rhs = rule.terms.map((x) => build_term(lhs, x, env));
@@ -170,6 +177,8 @@ const generate_term = (term: Term): string => {
   }
   throw Error(`Unexpected term: ${term}`);
 }
+
+// The compiler interface.
 
 // A quick test of the compiler.
 
