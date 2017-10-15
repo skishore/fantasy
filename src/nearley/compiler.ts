@@ -119,15 +119,13 @@ const evaluate = (items: ItemNode[]): Grammar => {
 }
 
 const evaluate_item = (item: ItemNode, env: Environment): void => {
-  if (item.type === 'block') {
-    env.result.blocks.push(item.block);
-  } else if (item.type === 'lexer') {
-    env.result.lexer = item.lexer;
-  } else if (item.type === 'macro') {
-    env.macros[item.name] = {args: item.args, rules: item.rules};
-  } else if (item.type === 'rules') {
-    if (!env.result.start) env.result.start = item.name;
-    item.rules.forEach((x) => add_rules(item.name, x, env));
+  switch (item.type) {
+    case 'block': env.result.blocks.push(item.block); break;
+    case 'lexer': env.result.lexer = item.lexer; break;
+    case 'macro': env.macros[item.name] = item; break;
+    case 'rules':
+      if (!env.result.start) env.result.start = item.name;
+      item.rules.forEach((x) => add_rules(item.name, x, env));
   }
 }
 
@@ -143,7 +141,7 @@ const generate = (grammar: Grammar): string => {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 
-${grammar.blocks.map((x) => x.trim()).join('\n')}
+${grammar.blocks.map((x) => x.trim()).join('\n\n')}
 
 exports.grammar = {
   rules: [
@@ -151,7 +149,9 @@ exports.grammar = {
   ],
   start: ${JSON.stringify(grammar.start)},
 };
-exports.lexer = ${grammar.lexer};`.trim();
+
+exports.lexer = ${grammar.lexer.trim()};
+  `.trim();
 }
 
 const generate_rule = (rule: Rule): string => {

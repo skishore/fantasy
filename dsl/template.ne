@@ -1,30 +1,26 @@
-# A lexer and a macro used to create comma-separated lists of terms.
+# A grammar describing "templates", JSON-like expressions with variables.
 
-@lexer lexer
+@{% const lexer = require('../target/nearley/lexer'); %}
 
-@{%
-
-const lexers = require('../target/nearley/lexer');
-
-const lexer = new lexers.MooLexer({
+@lexer {% new lexer.MooLexer({
   boolean: {match: /(?:false|true)\b/, value: (x) => x === 'true'},
   float: {match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/, value: (x) => parseFloat(x, 10)},
   identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
   integer: {match: /-?(?:[0-9]|[1-9][0-9]+)\b/, value: (x) => parseInt(x, 10)},
-  string: lexers.MooLexer.string,
+  string: lexer.MooLexer.string,
   whitespace: {match: /\s+/, value: () => null},
   _: /./,
-});
+}) %}
+
+@{%
 
 const create_list = (d) => d[0].concat(d[1].map((x) => x[3][0]));
 
-const create_join = (d) =>
-    [].concat.apply([], d.map((x) => x instanceof Array ? x : [x]))
+const create_join = (d) => [].concat.apply([], d.map((x) => x instanceof Array ? x : [x]));
 
 %}
 
-commas[X] -> $X (_ "," _ $X):+ {% create_list %}
-           | $X {% (d) => d[0] %}
+commas[X] -> $X (_ "," _ $X):* {% create_list %}
 
 # The body of our grammar.
 

@@ -1,22 +1,16 @@
 # Self-hosted grammar describing grammar files.
 
-@lexer lexer
+@{% const lexer = require('../target/nearley/lexer'); %}
 
-@{%
-
-const lexers = require('../target/nearley/lexer');
-
-const lexer = new lexers.MooLexer({
+@lexer {% new lexer.MooLexer({
   block: {match: /{%[^]*?[%]}/, value: (x) => x.slice(2, -2).trim()},
   comment: {match: /#.*$/, value: (x) => null},
   keyword: {match: 'null', value: () => null},
   identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
-  string: lexers.MooLexer.string,
+  string: lexer.MooLexer.string,
   whitespace: {match: /\s+/, value: () => null},
   _: /./,
-});
-
-%}
+}) %}
 
 list_whitespace[X] -> $X (_ $X):* {% (d) => d[0].concat(d[1].map((x) => x[1][0])) %}
 
@@ -29,7 +23,7 @@ main -> _ items _  {% (d) => d[1] %}
 items -> list_whitespace[item] {% (d) => d[0] %}
 
 item -> "@" _ %block {% (d) => ({type: 'block', block: d[2]}) %}
-      | "@" "lexer" _ word {% (d) => ({type: 'lexer', lexer: d[3]}) %}
+      | "@" "lexer" _ %block {% (d) => ({type: 'lexer', lexer: d[3]}) %}
       | word "[" words "]" _ "-" ">" _ rules {% (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]}) %}
       | word _ "-" ">" _ rules  {% (d) => ({type: 'rules', name: d[0], rules: d[5]}) %}
 

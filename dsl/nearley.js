@@ -2,17 +2,7 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 
-const lexers = require('../target/nearley/lexer');
-
-const lexer = new lexers.MooLexer({
-  block: {match: /{%[^]*?[%]}/, value: (x) => x.slice(2, -2).trim()},
-  comment: {match: /#.*$/, value: (x) => null},
-  keyword: {match: 'null', value: () => null},
-  identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
-  string: lexers.MooLexer.string,
-  whitespace: {match: /\s+/, value: () => null},
-  _: /./,
-});
+const lexer = require('../target/nearley/lexer');
 
 exports.grammar = {
   rules: [
@@ -24,7 +14,7 @@ exports.grammar = {
     {lhs: "items$macro$1", rhs: ["items$macro$1$arg$1", "items$macro$1$modifier$1"], transform: (d) => d[0].concat(d[1].map((x) => x[1][0]))},
     {lhs: "items", rhs: ["items$macro$1"], transform: (d) => d[0]},
     {lhs: "item", rhs: [{text: "@"}, "_", {type: "block"}], transform: (d) => ({type: 'block', block: d[2]})},
-    {lhs: "item", rhs: [{text: "@"}, {text: "lexer"}, "_", "word"], transform: (d) => ({type: 'lexer', lexer: d[3]})},
+    {lhs: "item", rhs: [{text: "@"}, {text: "lexer"}, "_", {type: "block"}], transform: (d) => ({type: 'lexer', lexer: d[3]})},
     {lhs: "item", rhs: ["word", {text: "["}, "words", {text: "]"}, "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]})},
     {lhs: "item", rhs: ["word", "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'rules', name: d[0], rules: d[5]})},
     {lhs: "rules$macro$1$arg$1", rhs: ["rule"]},
@@ -76,4 +66,13 @@ exports.grammar = {
   ],
   start: "main",
 };
-exports.lexer = lexer;
+
+exports.lexer = new lexer.MooLexer({
+  block: {match: /{%[^]*?[%]}/, value: (x) => x.slice(2, -2).trim()},
+  comment: {match: /#.*$/, value: (x) => null},
+  keyword: {match: 'null', value: () => null},
+  identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
+  string: lexer.MooLexer.string,
+  whitespace: {match: /\s+/, value: () => null},
+  _: /./,
+});
