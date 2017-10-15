@@ -1,6 +1,6 @@
 # Self-hosted grammar describing grammar files.
 
-@{% const lexer = require('../../target/nearley/lexer'); %}
+@{% const lexer = require('../../target/parsing/lexer.js'); %}
 
 @lexer {% new lexer.MooLexer({
   block: {match: /{%[^]*?[%]}/, value: (x) => x.slice(2, -2).trim()},

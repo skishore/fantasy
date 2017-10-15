@@ -1,17 +1,16 @@
 {
   "compilerOptions": {
-    "allowJs": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "lib": ["dom", "es2017"],
     "module": "commonjs",
     "moduleResolution": "node",
-    "outDir": "target/",
+    "outDir": "target",
+    "rootDir": "src",
     "sourceMap": true,
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,
     "target": "es2017"
   },
-  "compileOnSave": true,
-  "include": ["./src/**/*"]
+  "compileOnSave": true
 }

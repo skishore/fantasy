@@ -209,27 +209,3 @@ class Parser {
 }
 
 export {Parser};
-
-// Tests of the parser above.
-
-declare const require: any;
-const fs = require('fs');
-const util = require('util');
-const config = {breakLength: Infinity, colors: true, depth: null};
-const debug = (x: any) => util.inspect(x, config);
-
-const [grammar, lexer] = Grammar.from_file('../js/bootstrapped');
-
-const name = 'src/dsl/nearley.ne';
-fs.readFile(name, {encoding: 'utf8'}, (error: Error, data: string) => {
-  const lines: string[] = [];
-  const start = Date.now();
-  const parser = new Parser(grammar);
-  for (const token of lexer.iterable(data)) {
-    parser.feed(token);
-    lines.push(parser.debug());
-  }
-  const total = Date.now() - start;
-  lines.push(debug(parser.result()));
-  console.log(`${lines.join('\n\n')}\n\nTotal time: ${total}ms`);
-});

@@ -1,5 +1,5 @@
 declare const require: any;
-const moo = require('../js/moo');
+const moo = require('../../src/external/moo.js');
 
 // The Lexer interface allows literal- and type-based token matching.
 

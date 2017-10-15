@@ -1,4 +1,10 @@
+import {Grammar} from './grammar';
+import {Lexer} from './lexer';
+import {Parser} from './parser';
+
 // The output of the bootstrapped grammar is a list of ItemNode values.
+
+type AST = ItemNode[];
 
 type ItemNode =
   {type: 'block', block: string} |
@@ -17,27 +23,27 @@ type TermNode =
   {type: 'token_text', token_text: string} |
   {type: 'token_type', token_type: string};
 
-// This compiler converts those items into the Grammar format, using an
-// Environment to keep track of assigned symbols and bound variables.
+// This compiler converts those items into the CompiledGrammar output format,
+// using an Environment to keep track of assigned symbols and bound variables.
+
+interface CompiledGrammar {
+  blocks: string[];
+  lexer?: string;
+  rules: CompiledRule[];
+  start?: string;
+}
+
+interface CompiledRule {
+  lhs: string;
+  rhs: Term[];
+  transform?: string,
+}
 
 interface Environment {
   bindings: {[name: string]: string};
   counts: {[name: string]: number};
   macros: {[name: string]: {args: string[], rules: RuleNode[]}};
-  result: Grammar;
-}
-
-interface Grammar {
-  blocks: string[];
-  lexer?: string;
-  rules: Rule[];
-  start?: string;
-}
-
-interface Rule {
-  lhs: string;
-  rhs: Term[];
-  transform?: string,
+  result: CompiledGrammar;
 }
 
 type Term = string | {text: string} | {type: string};
@@ -118,10 +124,10 @@ const build_term = (lhs: string, term: TermNode, env: Environment): Term => {
   }
 }
 
-const evaluate = (items: ItemNode[]): Grammar => {
+const evaluate = (ast: AST): CompiledGrammar => {
   const result = {blocks: [], rules: []};
   const env = {bindings: {}, counts: {}, macros: {}, result};
-  items.forEach((x) => evaluate_item(x, env));
+  ast.forEach((x) => evaluate_item(x, env));
   return result;
 }
 
@@ -136,7 +142,7 @@ const evaluate_item = (item: ItemNode, env: Environment): void => {
   }
 }
 
-const generate = (grammar: Grammar): string => {
+const generate = (grammar: CompiledGrammar): string => {
   grammar = JSON.parse(JSON.stringify(grammar));
   if (!grammar.start) throw Error(`No grammar start term!`);
   if (!grammar.lexer) {
@@ -158,10 +164,10 @@ exports.grammar = {
 };
 
 exports.lexer = ${grammar.lexer.trim()};
-  `.trim();
+  `.trim() + '\n';
 }
 
-const generate_rule = (rule: Rule): string => {
+const generate_rule = (rule: CompiledRule): string => {
   const rhs = `[${rule.rhs.map(generate_term).join(', ')}]`;
   const transform = rule.transform ? `, transform: ${rule.transform}` : '';
   return `{lhs: ${JSON.stringify(rule.lhs)}, rhs: ${rhs}${transform}}`;
@@ -178,16 +184,25 @@ const generate_term = (term: Term): string => {
   throw Error(`Unexpected term: ${term}`);
 }
 
-// The compiler interface.
+// The public compiler interface. We wrap the functionality from above in a
+// class because we can load the grammar once to compile multiple files.
 
-// A quick test of the compiler.
+class Compiler {
+  private grammar: Grammar;
+  private lexer: Lexer;
+  constructor() {
+    const filename = '../../src/js/bootstrapped.js';
+    [this.grammar, this.lexer] = Grammar.from_file(filename);
+  }
+  compile(input: string): string {
+    const parser = new Parser(this.grammar);
+    for (const token of this.lexer.iterable(input)) {
+      parser.feed(token);
+    }
+    const ast = parser.result();
+    if (!ast) throw new Error('Unexpected end of input:');
+    return generate(evaluate(ast));
+  }
+}
 
-declare const require: any;
-const fs = require('fs');
-const util = require('util');
-const config = {colors: true, depth: null};
-const debug = (x: any) => util.inspect(x, config);
-fs.readFile('output.val', {encoding: 'utf8'}, (error: Error, data: string) => {
-  const input: ItemNode[] = eval(data);
-  console.log(generate(evaluate(input)));
-});
+export {Compiler};
