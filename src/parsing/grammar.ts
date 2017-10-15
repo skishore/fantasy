@@ -41,7 +41,9 @@ interface RuleSpec {
 declare const require: any;
 
 const from_code = (code: string): [Grammar, Lexer] => {
+  /* tslint:disable:no-eval */
   const {grammar, lexer} = ((x) => eval(x))(code);
+  /* tslint:enable:no-eval */
   return [from_spec(grammar), lexer]
 }
 
