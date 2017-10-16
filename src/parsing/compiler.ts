@@ -30,7 +30,7 @@ interface CompiledGrammar {
   blocks: string[];
   lexer?: string;
   rules: CompiledRule[];
-  start?: string;
+  start: string;
 }
 
 interface CompiledRule {
@@ -125,10 +125,10 @@ const build_term = (lhs: string, term: TermNode, env: Environment): Term => {
 }
 
 const evaluate = (ast: AST): CompiledGrammar => {
-  const result = {blocks: [], rules: []};
+  const result = {blocks: [], rules: [], start: ''};
   const env = {bindings: {}, counts: {}, macros: {}, result};
   ast.forEach((x) => evaluate_item(x, env));
-  return result;
+  return validate(result);
 }
 
 const evaluate_item = (item: ItemNode, env: Environment): void => {
@@ -144,7 +144,6 @@ const evaluate_item = (item: ItemNode, env: Environment): void => {
 
 const generate = (grammar: CompiledGrammar): string => {
   grammar = JSON.parse(JSON.stringify(grammar));
-  if (!grammar.start) throw Error(`No grammar start term!`);
   if (!grammar.lexer) {
     grammar.blocks.unshift(`const lexer = require('../src/nearley/lexer');`);
     grammar.lexer = 'new lexer.CharacterLexer()';
@@ -182,6 +181,24 @@ const generate_term = (term: Term): string => {
     return `{type: ${JSON.stringify((<any>term).type)}}`;
   }
   throw Error(`Unexpected term: ${term}`);
+}
+
+const validate = (grammar: CompiledGrammar): CompiledGrammar => {
+  if (!grammar.start) throw Error(`No grammar start term!`);
+  const lhs = new Set<string>();
+  const rhs = new Set<string>([grammar.start]);
+  grammar.rules.forEach((x) => {
+    lhs.add(x.lhs);
+    x.rhs.forEach((y) => { if (typeof y === 'string') rhs.add(y); });
+  });
+  const dead_end = Array.from(rhs).filter((x) => !lhs.has(x)).sort();
+  const unreachable = Array.from(lhs).filter((x) => !rhs.has(x)).sort();
+  if (dead_end.length > 0) {
+    throw Error(`Found dead-end symbols: ${dead_end.join(', ')}`);
+  } else if (unreachable.length > 0) {
+    throw Error(`Found unreachable symbols: ${unreachable.join(', ')}`);
+  }
+  return grammar;
 }
 
 // The public compiler interface. We wrap the functionality from above in a
