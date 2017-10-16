@@ -146,7 +146,8 @@ const next_column = (prev: Column, token: Token): Column => {
   for (let i = scannable.length; i--;) {
     const state = scannable[i];
     const term: any = state.rule.rhs[state.cursor];
-    const match = !!term.text ? token.text[term.text] : token.type[term.type];
+    const match = !!term.text ? token.text_matches[term.text] :
+                                token.type_matches[term.type];
     if (!!match) {
       const next: Next = {match, token: true};
       advance_state(map, max_index, state, column.states).push(next);
@@ -183,7 +184,7 @@ class Parser {
   constructor(grammar: Grammar) {
     this.column = make_column(grammar, 0);
     this.grammar = grammar;
-    this.maybe_throw(`No rules for initial state: ${grammar.start}`);
+    this.maybe_throw(() => `No rules for initial state: ${grammar.start}`);
   }
   debug(): string {
     const column = this.column;
@@ -192,8 +193,14 @@ class Parser {
     return lines.join('\n');
   }
   feed(token: Token) {
+    const last_column = this.column;
     this.column = next_column(this.column, token);
-    this.maybe_throw(`Unexpected token: ${JSON.stringify(token)}`);
+    this.maybe_throw(() => {
+      const terms = last_column.structures.scannable.map(
+          (x) => Grammar.print_term(x.rule.rhs[x.cursor]));
+      const unique = terms.sort().filter((x, i) => terms.indexOf(x) === i);
+      return Lexer.format_error(token, `Expected: ${unique.join(' | ')}:`);
+    });
   }
   result(): any {
     const start = this.grammar.start;
@@ -203,8 +210,8 @@ class Parser {
         (x, y) => y.score! - x.score!);
     return states.length === 0 ? null : fill_state(states[0]);
   }
-  private maybe_throw(message: string) {
-    if (this.column.states.length === 0) throw Error(message);
+  private maybe_throw(message: () => string) {
+    if (this.column.states.length === 0) throw Error(message());
   }
 }
 

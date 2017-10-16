@@ -13,16 +13,47 @@ interface Match {
 }
 
 interface Token {
-  text: {[text: string]: Match},
-  type: {[type: string]: Match},
+  index: number,
+  input: string,
+  text: string,
+  text_matches: {[text: string]: Match},
+  type_matches: {[type: string]: Match},
 }
+
+// Helper methods common to multiple lexers.
+
+const format_error = (token: Token, message: string): string => {
+  const start = token.input.lastIndexOf('\n', token.index - 1) + 1;
+  const maybe_end = token.input.indexOf('\n', start);
+  const end = maybe_end < 0 ? token.input.length : maybe_end;
+  const line = token.input.slice(0, token.index).split('\n').length;
+  const column = token.index - start + 1;
+  const highlight = token.input.substring(start, end);
+  return `
+${message} at line ${line}, column ${column}:
+
+  ${highlight}
+  ${Array(column).join(' ')}^
+  `.trim();
+}
+
+const swap_quotes = (x: string) =>
+    x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
+
+const Lexer = {format_error, swap_quotes};
 
 // Some simple implementations of lexers.
 
 class CharacterLexer implements Lexer {
   iterable(input: string) {
     const match = (x: string): Match => ({score: 0, value: x});
-    return Array.from(input).map((x) => ({text: {[x]: match(x)}, type: {}}));
+    return Array.from(input).map((x, i) => ({
+      index: i,
+      input,
+      text: x,
+      text_matches: {[x]: match(x)},
+      type_matches: {},
+    }));
   }
 }
 
@@ -33,8 +64,12 @@ interface MooRule {
 
 type MooConfig = MooRule | MooRule[] | MooRule['match'];
 
-const swap_quotes = (x: string) =>
-    x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
+interface MooToken {
+  offset: number,
+  text: string,
+  type: string,
+  value: any,
+}
 
 class MooLexer implements Lexer {
   private lexer: any;
@@ -44,10 +79,16 @@ class MooLexer implements Lexer {
   iterable(input: string) {
     const result: Token[] = [];
     this.lexer.reset(input);
-    let token: {text: string, type: string, value: any} = this.lexer.next();
+    let token: MooToken | null = this.lexer.next();
     while (!!token) {
       const match: Match = {score: 0, value: token.value};
-      result.push({text: {[token.text]: match}, type: {[token.type]: match}});
+      result.push({
+        index: token.offset,
+        input,
+        text: token.text,
+        text_matches: {[token.text]: match},
+        type_matches: {[token.type]: match},
+      });
       token = this.lexer.next();
     }
     return result;

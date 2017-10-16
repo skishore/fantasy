@@ -65,15 +65,16 @@ const from_spec = (spec: GrammarSpec): Grammar => {
 }
 
 const print_rule = (rule: Rule, cursor?: number): string => {
-  const print_term = (term: Term) =>
-      typeof term === 'string' ? term :
-             (<any>term).type ? `%${(<any>term).type}` :
-             JSON.stringify((<any>term).text);
   const terms = rule.rhs.map(print_term);
   if (cursor != null) terms.splice(cursor, 0, '●');
   return `${rule.lhs} -> ${terms.join(' ')}`;
 }
 
-const Grammar = {from_code, from_file, print_rule};
+const print_term = (term: Term): string =>
+    typeof term === 'string' ? term :
+           (<any>term).type ? `%${(<any>term).type}` :
+           JSON.stringify((<any>term).text);
+
+const Grammar = {from_code, from_file, print_rule, print_term};
 
 export {Grammar, Rule};

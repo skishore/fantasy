@@ -326,26 +326,21 @@ const template: Test = {
     Test.assert_eq(new Template(pattern, required(3)).generate(value), []);
   },
   parse_fails_on_unquoted_string_literal: () => {
-    Test.assert_error(() => new Template('failed'),
-                      'Invalid template literal: failed');
+    Test.assert_error(() => new Template('failed'), 'at line 1, column 1');
   },
   parse_fails_on_malformatted_dict: () => {
-    Test.assert_error(() => new Template('{num 42}'),
-                      'Expected: :; got: 42');
+    Test.assert_error(() => new Template('{num 42}'), 'at line 1, column 6');
   },
   parse_fails_on_malformatted_list: () => {
-    Test.assert_error(() => new Template('["a" "b"]'),
-                      'Expected: ,; got: b');
+    Test.assert_error(() => new Template('["a" "b"]'), 'at line 1, column 6');
   },
   parse_fails_on_merge_with_primitive: () => {
-    const pattern = '($0, false, $1)';
-    Test.assert_error(() => new Template(pattern, optional(2)),
-                      'Invalid template item: false');
+    Test.assert_error(() => new Template('($0, false, $1)', optional(2)),
+                      'at line 1, column 6');
   },
   parse_fails_on_mixed_dict_and_list_keys: () => {
     const pattern = '({num: 42}, ["is"])';
-    Test.assert_error(() => new Template(pattern),
-                      'Failed to merge dict and list.');
+    Test.assert_error(() => new Template(pattern), 'at line 1, column 13');
   },
   parse_fails_when_variable_is_out_of_bounds: () => {
     const pattern = '$0';

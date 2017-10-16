@@ -422,19 +422,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
   }
 
-  Lexer.prototype.formatError = function(token, message) {
-    var start = this.buffer.lastIndexOf('\n', token.offset - 1) + 1;
-    var end = this.buffer.indexOf('\n', start);
-    var line = this.buffer.slice(0, token.offset).split('\n').length;
-    var column = token.offset - start + 1;
-    if (end < 0) end = this.buffer.length;
-    var firstLine = this.buffer.substring(start, end);
-    message += " at line " + line + " column " + column + ":\n\n"
-    message += "  " + firstLine + "\n"
-    message += "  " + Array(column).join(" ") + "^"
-    return message
-  }
-
   Lexer.prototype.clone = function() {
     return new Lexer(this.states, this.state)
   }
@@ -452,7 +439,6 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
     }
     return false
   }
-
 
   return {
     compile: compile,
