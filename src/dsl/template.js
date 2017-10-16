@@ -2,7 +2,7 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 
-const lexer = require('../../target/parsing/lexer.js');
+const lexer = require('../parsing/lexer');
 
 const create_list = (d) => d[0].concat(d[1].map((x) => x[3][0]));
 

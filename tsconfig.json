@@ -1,12 +1,13 @@
 {
   "compilerOptions": {
+    "allowJs": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "lib": ["dom", "es2017"],
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "target",
-    "rootDir": "src",
+    "rootDirs": ["src", "test"],
     "sourceMap": true,
     "strict": true,
     "suppressImplicitAnyIndexErrors": false,

@@ -233,7 +233,7 @@ const optional = (template: TemplateData): boolean => {
 
 // Load the grammar used to parse template expressions.
 
-const [grammar, lexer] = Grammar.from_file('../../src/dsl/template.js');
+const [grammar, lexer] = Grammar.from_file('../dsl/template');
 
 const validate = (template: TemplateData, optional: boolean[]): void => {
   if (template instanceof Array) {

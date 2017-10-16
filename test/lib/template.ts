@@ -1,4 +1,4 @@
-import {Template} from '../../lib/template';
+import {Template} from '../../src/lib/template';
 import {Test} from '../test';
 
 const optional = (n: number) => Array(n).fill(true);

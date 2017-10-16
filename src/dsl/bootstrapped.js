@@ -2,7 +2,7 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 
-const lexer = require('../../target/parsing/lexer.js');
+const lexer = require('../parsing/lexer');
 
 exports.grammar = {
   rules: [

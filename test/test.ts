@@ -1,5 +1,5 @@
 /* tslint:disable:no-console */
-import {assert, debug} from '../lib/base';
+import {assert, debug} from '../src/lib/base';
 
 interface Test {[name: string]: () => Promise<void> | void};
 

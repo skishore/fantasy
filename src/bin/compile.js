@@ -2,8 +2,8 @@
 
 const fs = require('fs');
 
-const compile = require('../../target/parsing/compiler.js');
-const commander = require('../external/commander.js');
+const commander = require('../external/commander');
+const compile = require('../parsing/compiler');
 
 commander
   .version('0.1.0')

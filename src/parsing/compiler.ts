@@ -191,8 +191,7 @@ class Compiler {
   private grammar: Grammar;
   private lexer: Lexer;
   constructor() {
-    const filename = '../../src/js/bootstrapped.js';
-    [this.grammar, this.lexer] = Grammar.from_file(filename);
+    [this.grammar, this.lexer] = Grammar.from_file('../dsl/bootstrapped');
   }
   compile(input: string): string {
     const parser = new Parser(this.grammar);
