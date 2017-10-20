@@ -39,9 +39,9 @@ term -> "$" word {% (d) => ({type: 'binding', name: d[1]}) %}
       | word "[" args "]" {% (d) => ({type: 'macro', name: d[0], args: d[2]}) %}
       | term _ ":" _ modifier {% (d) => ({type: 'modifier', base: d[0], modifier: d[4]}) %}
       | "(" _ rules _ ")" {% (d) => ({type: 'subexpression', rules: d[2]}) %}
-      | word {% (d) => ({type: 'symbol', symbol: d[0]}) %}
-      | %string {% (d) => ({type: 'token_text', token_text: d[0]}) %}
-      | "%" word {% (d) => ({type: 'token_type', token_type: d[1]}) %}
+      | word {% (d) => ({type: 'term', term: d[0]}) %}
+      | %string {% (d) => ({type: 'term', term: {text: d[0]}}) %}
+      | "%" word {% (d) => ({type: 'term', term: {type: d[1]}}) %}
 
 args -> list[rule, ","] {% (d) => d[0] %}
 

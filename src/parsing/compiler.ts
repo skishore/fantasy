@@ -19,9 +19,7 @@ type TermNode =
   {type: 'macro', name: string, args: RuleNode[]} |
   {type: 'modifier', base: TermNode, modifier: '?' | '*' | '+'} |
   {type: 'subexpression', rules: RuleNode[]} |
-  {type: 'symbol', symbol: string} |
-  {type: 'token_text', token_text: string} |
-  {type: 'token_type', token_type: string};
+  {type: 'term', term: Term};
 
 // This compiler converts those items into the CompiledGrammar output format,
 // using an Environment to keep track of assigned symbols and bound variables.
@@ -96,10 +94,10 @@ const build_modifier = (lhs: string, modifier: '?' | '*' | '+',
     rules.push({terms: [term], transform: '(d) => d[0]'});
   } else if (modifier === '*') {
     rules.push({terms: []});
-    rules.push({terms: [{type: 'symbol', symbol}, term], transform});
+    rules.push({terms: [{type: 'term', term: symbol}, term], transform});
   } else if (modifier === '+') {
     rules.push({terms: [term]});
-    rules.push({terms: [{type: 'symbol', symbol}, term], transform});
+    rules.push({terms: [{type: 'term', term: symbol}, term], transform});
   }
   rules.forEach((x) => add_rules(symbol, x, env));
   return symbol;
@@ -118,9 +116,7 @@ const build_term = (lhs: string, term: TermNode, env: Environment): Term => {
     case 'macro': return build_macro(lhs, term.args, term.name, env);
     case 'modifier': return build_modifier(lhs, term.modifier, term.base, env);
     case 'subexpression': return build_subexpression(lhs, term.rules, env);
-    case 'symbol': return term.symbol;
-    case 'token_text': return {text: term.token_text};
-    case 'token_type': return {type: term.token_type};
+    case 'term': return term.term;
   }
 }
 
