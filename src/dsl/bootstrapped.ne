@@ -12,9 +12,9 @@
   _: /./,
 }) %}
 
-list_whitespace[X] -> $X (_ $X):* {% (d) => d[0].concat(d[1].map((x) => x[1][0])) %}
+list_whitespace[X] -> $X (_ $X):* {% (d) => [d[0]].concat(d[1].map((x) => x[1])) %}
 
-list[X, Y] -> $X (_ $Y _ $X):* {% (d) => d[0].concat(d[1].map((x) => x[3][0])) %}
+list[X, Y] -> $X (_ $Y _ $X):* {% (d) => [d[0]].concat(d[1].map((x) => x[3])) %}
 
 # The main body of the grammar.
 
@@ -29,21 +29,21 @@ item -> "@" _ %block {% (d) => ({type: 'block', block: d[2]}) %}
 
 rules -> list[rule, "|"] {% (d) => d[0] %}
 
-rule -> terms {% (d) => ({terms: d[0]}) %}
-      | terms  _ %block {% (d) => ({terms: d[0], transform: d[2]}) %}
+rule -> exprs {% (d) => ({exprs: d[0]}) %}
+      | exprs _ %block {% (d) => ({exprs: d[0], transform: d[2]}) %}
 
-terms -> list_whitespace[term] {% (d) => d[0] %}
+exprs -> list_whitespace[expr] {% (d) => d[0] %}
        | %keyword {% (d) => [] %}
 
-term -> "$" word {% (d) => ({type: 'binding', name: d[1]}) %}
-      | word "[" args "]" {% (d) => ({type: 'macro', name: d[0], args: d[2]}) %}
-      | term _ ":" _ modifier {% (d) => ({type: 'modifier', base: d[0], modifier: d[4]}) %}
+expr -> "$" word {% (d) => ({type: 'binding', name: d[1]}) %}
+      | word "[" list[term, ","] "]" {% (d) => ({type: 'macro', name: d[0], terms: d[2]}) %}
+      | expr _ ":" _ modifier {% (d) => ({type: 'modifier', base: d[0], modifier: d[4]}) %}
       | "(" _ rules _ ")" {% (d) => ({type: 'subexpression', rules: d[2]}) %}
-      | word {% (d) => ({type: 'term', term: d[0]}) %}
-      | %string {% (d) => ({type: 'term', term: {text: d[0]}}) %}
-      | "%" word {% (d) => ({type: 'term', term: {type: d[1]}}) %}
+      | term {% (d) => ({type: 'term', term: d[0]}) %}
 
-args -> list[rule, ","] {% (d) => d[0] %}
+term -> word {% (d) => d[0] %}
+      | %string {% (d) => ({text: d[0]}) %}
+      | "%" word {% (d) => ({type: d[1]}) %}
 
 modifier -> ("?" | "*" | "+") {% (d) => d[0][0] %}
 

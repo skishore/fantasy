@@ -4,8 +4,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 const lexer = require('../parsing/lexer');
 
-const create_list = (d) => d[0].concat(d[1].map((x) => x[3][0]));
-
 const create_join = (d) => [].concat.apply([], d.map((x) => x instanceof Array ? x : [x]));
 
 exports.grammar = {
@@ -17,31 +15,27 @@ exports.grammar = {
     {lhs: "template$subexpression$1", rhs: ["primitive"]},
     {lhs: "template$subexpression$1", rhs: ["variable"]},
     {lhs: "template", rhs: ["template$subexpression$1"], transform: (d) => d[0][0]},
-    {lhs: "dict$macro$1$arg$1", rhs: ["item"]},
     {lhs: "dict$macro$1$modifier$1", rhs: []},
-    {lhs: "dict$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "dict$macro$1$arg$1"]},
+    {lhs: "dict$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "item"]},
     {lhs: "dict$macro$1$modifier$1", rhs: ["dict$macro$1$modifier$1", "dict$macro$1$modifier$1$subexpression$1"], transform: (d) => d[0].concat([d[1]])},
-    {lhs: "dict$macro$1", rhs: ["dict$macro$1$arg$1", "dict$macro$1$modifier$1"], transform: create_list},
+    {lhs: "dict$macro$1", rhs: ["item", "dict$macro$1$modifier$1"], transform: (d) => [d[0]].concat(d[1].map((x) => x[3]))},
     {lhs: "dict", rhs: [{text: "{"}, "_", "dict$macro$1", "_", {text: "}"}], transform: (d) => d[2]},
     {lhs: "dict", rhs: [{text: "{"}, "_", {text: "}"}], transform: () => []},
-    {lhs: "join$macro$1$arg$1", rhs: ["dict_or_variable"]},
     {lhs: "join$macro$1$modifier$1", rhs: []},
-    {lhs: "join$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "join$macro$1$arg$1"]},
+    {lhs: "join$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "dict_or_variable"]},
     {lhs: "join$macro$1$modifier$1", rhs: ["join$macro$1$modifier$1", "join$macro$1$modifier$1$subexpression$1"], transform: (d) => d[0].concat([d[1]])},
-    {lhs: "join$macro$1", rhs: ["join$macro$1$arg$1", "join$macro$1$modifier$1"], transform: create_list},
+    {lhs: "join$macro$1", rhs: ["dict_or_variable", "join$macro$1$modifier$1"], transform: (d) => [d[0]].concat(d[1].map((x) => x[3]))},
     {lhs: "join", rhs: [{text: "("}, "_", "join$macro$1", "_", {text: ")"}], transform: (d) => create_join(d[2])},
-    {lhs: "join$macro$2$arg$1", rhs: ["list_or_variable"]},
     {lhs: "join$macro$2$modifier$1", rhs: []},
-    {lhs: "join$macro$2$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "join$macro$2$arg$1"]},
+    {lhs: "join$macro$2$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "list_or_variable"]},
     {lhs: "join$macro$2$modifier$1", rhs: ["join$macro$2$modifier$1", "join$macro$2$modifier$1$subexpression$1"], transform: (d) => d[0].concat([d[1]])},
-    {lhs: "join$macro$2", rhs: ["join$macro$2$arg$1", "join$macro$2$modifier$1"], transform: create_list},
+    {lhs: "join$macro$2", rhs: ["list_or_variable", "join$macro$2$modifier$1"], transform: (d) => [d[0]].concat(d[1].map((x) => x[3]))},
     {lhs: "join", rhs: [{text: "("}, "_", "join$macro$2", "_", {text: ")"}], transform: (d) => create_join(d[2])},
     {lhs: "join", rhs: [{text: "("}, "_", {text: ")"}], transform: () => []},
-    {lhs: "list$macro$1$arg$1", rhs: ["template"]},
     {lhs: "list$macro$1$modifier$1", rhs: []},
-    {lhs: "list$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "list$macro$1$arg$1"]},
+    {lhs: "list$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: ","}, "_", "template"]},
     {lhs: "list$macro$1$modifier$1", rhs: ["list$macro$1$modifier$1", "list$macro$1$modifier$1$subexpression$1"], transform: (d) => d[0].concat([d[1]])},
-    {lhs: "list$macro$1", rhs: ["list$macro$1$arg$1", "list$macro$1$modifier$1"], transform: create_list},
+    {lhs: "list$macro$1", rhs: ["template", "list$macro$1$modifier$1"], transform: (d) => [d[0]].concat(d[1].map((x) => x[3]))},
     {lhs: "list", rhs: [{text: "["}, "_", "list$macro$1", "_", {text: "]"}], transform: (d) => d[2].map((x) => ['_', x])},
     {lhs: "list", rhs: [{text: "["}, "_", {text: "]"}], transform: () => []},
     {lhs: "variable", rhs: [{text: "$"}, {type: "integer"}], transform: (d) => ({index: d[1]})},

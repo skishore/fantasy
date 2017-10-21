@@ -12,12 +12,12 @@ type ItemNode =
   {type: 'macro', name: string, rules: RuleNode[], args: string[]} |
   {type: 'rules', name: string, rules: RuleNode[]};
 
-type RuleNode = {terms: TermNode[], transform?: string};
+type RuleNode = {exprs: ExprNode[], transform?: string};
 
-type TermNode =
+type ExprNode =
   {type: 'binding', name: string} |
-  {type: 'macro', name: string, args: RuleNode[]} |
-  {type: 'modifier', base: TermNode, modifier: '?' | '*' | '+'} |
+  {type: 'macro', name: string, terms: Term[]} |
+  {type: 'modifier', base: ExprNode, modifier: '?' | '*' | '+'} |
   {type: 'subexpression', rules: RuleNode[]} |
   {type: 'term', term: Term};
 
@@ -38,7 +38,7 @@ interface CompiledRule {
 }
 
 interface Environment {
-  bindings: {[name: string]: string};
+  bindings: {[name: string]: Term};
   counts: {[name: string]: number};
   macros: {[name: string]: {args: string[], rules: RuleNode[]}};
   result: CompiledGrammar;
@@ -49,7 +49,7 @@ type Term = string | {text: string} | {type: string};
 // The implementation of the compiler, a series of transformations.
 
 const add_rules = (lhs: string, rule: RuleNode, env: Environment): void => {
-  const rhs = rule.terms.map((x) => build_term(lhs, x, env));
+  const rhs = rule.exprs.map((x) => build_term(lhs, x, env));
   env.result.rules.push({lhs, rhs, transform: rule.transform});
 }
 
@@ -64,40 +64,38 @@ const build_binding = (name: string, env: Environment): Term => {
   return env.bindings[name];
 }
 
-const build_macro = (lhs: string, args: RuleNode[], name: string,
+const build_macro = (lhs: string, name: string, terms: Term[],
                      env: Environment): Term => {
   const symbol = add_symbol(lhs, 'macro', env);
   const macro = env.macros[name];
   if (!macro) throw new Error(`Unbound macro: ${name}`);
   const n = macro.args.length;
-  if (args.length !== n) {
-    throw new Error(`${name} got ${args.length} argments; expected: ${n}`);
+  if (terms.length !== n) {
+    throw new Error(`${name} got ${terms.length} argments; expected: ${n}`);
   }
   const bindings = Object.assign({}, env.bindings);
   const child = Object.assign({}, env, {bindings});
   for (let i = 0; i < n; i++) {
-    const arg = add_symbol(symbol, 'arg', env);
-    add_rules(arg, args[i], env);
-    child.bindings[macro.args[i]] = arg;
+    child.bindings[macro.args[i]] = terms[i];
   }
   macro.rules.forEach((x) => add_rules(symbol, x, child));
   return symbol;
 }
 
 const build_modifier = (lhs: string, modifier: '?' | '*' | '+',
-                        term: TermNode, env: Environment): Term => {
+                        expr: ExprNode, env: Environment): Term => {
   const rules: RuleNode[] = [];
   const symbol = add_symbol(lhs, 'modifier', env);
   const transform = '(d) => d[0].concat([d[1]])';
   if (modifier === '?') {
-    rules.push({terms: [], transform: '(d) => null'});
-    rules.push({terms: [term], transform: '(d) => d[0]'});
+    rules.push({exprs: [], transform: '(d) => null'});
+    rules.push({exprs: [expr], transform: '(d) => d[0]'});
   } else if (modifier === '*') {
-    rules.push({terms: []});
-    rules.push({terms: [{type: 'term', term: symbol}, term], transform});
+    rules.push({exprs: []});
+    rules.push({exprs: [{type: 'term', term: symbol}, expr], transform});
   } else if (modifier === '+') {
-    rules.push({terms: [term]});
-    rules.push({terms: [{type: 'term', term: symbol}, term], transform});
+    rules.push({exprs: [expr]});
+    rules.push({exprs: [{type: 'term', term: symbol}, expr], transform});
   }
   rules.forEach((x) => add_rules(symbol, x, env));
   return symbol;
@@ -110,13 +108,13 @@ const build_subexpression = (lhs: string, rules: RuleNode[],
   return symbol;
 }
 
-const build_term = (lhs: string, term: TermNode, env: Environment): Term => {
-  switch (term.type) {
-    case 'binding': return build_binding(term.name, env);
-    case 'macro': return build_macro(lhs, term.args, term.name, env);
-    case 'modifier': return build_modifier(lhs, term.modifier, term.base, env);
-    case 'subexpression': return build_subexpression(lhs, term.rules, env);
-    case 'term': return term.term;
+const build_term = (lhs: string, expr: ExprNode, env: Environment): Term => {
+  switch (expr.type) {
+    case 'binding': return build_binding(expr.name, env);
+    case 'macro': return build_macro(lhs, expr.name, expr.terms, env);
+    case 'modifier': return build_modifier(lhs, expr.modifier, expr.base, env);
+    case 'subexpression': return build_subexpression(lhs, expr.rules, env);
+    case 'term': return expr.term;
   }
 }
 

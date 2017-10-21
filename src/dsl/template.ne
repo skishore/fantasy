@@ -12,15 +12,9 @@
   _: /./,
 }) %}
 
-@{%
+@{% const create_join = (d) => [].concat.apply([], d.map((x) => x instanceof Array ? x : [x])); %}
 
-const create_list = (d) => d[0].concat(d[1].map((x) => x[3][0]));
-
-const create_join = (d) => [].concat.apply([], d.map((x) => x instanceof Array ? x : [x]));
-
-%}
-
-commas[X] -> $X (_ "," _ $X):* {% create_list %}
+commas[X] -> $X (_ "," _ $X):* {% (d) => [d[0]].concat(d[1].map((x) => x[3])) %}
 
 # The body of our grammar.
 
