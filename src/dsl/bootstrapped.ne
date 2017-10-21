@@ -26,11 +26,12 @@ item -> "@" _ %block {% (d) => ({type: 'block', block: d[2]}) %}
       | "@" "lexer" _ %block {% (d) => ({type: 'lexer', lexer: d[3]}) %}
       | word "[" words "]" _ "-" ">" _ rules {% (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]}) %}
       | word _ "-" ">" _ rules  {% (d) => ({type: 'rules', name: d[0], rules: d[5]}) %}
+      | "@" "enable_generation" {% (d) => ({type: 'setting', setting: 'enable_generation'}) %}
 
 rules -> list[rule, "|"] {% (d) => d[0] %}
 
 rule -> exprs {% (d) => ({exprs: d[0]}) %}
-      | exprs _ %block {% (d) => ({exprs: d[0], transform: d[2]}) %}
+      | exprs _ %block {% (d) => ({exprs: d[0], metadata: d[2]}) %}
 
 exprs -> list_whitespace[expr] {% (d) => d[0] %}
        | %keyword {% (d) => [] %}

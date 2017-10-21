@@ -254,13 +254,13 @@ class Template {
     this.size = optional.length;
     validate(this.data, optional);
   }
-  apply(subs: Value[]): Value {
+  merge(subs: Value[]): Value {
     if (subs.length !== this.size) {
       throw new Error(`Expected: ${this.size} subs; got: ${subs.length}`);
     }
     return apply(this.data, subs);
   }
-  generate(value: Value): Assignment[] {
+  split(value: Value): Assignment[] {
     return generate(this.data, value);
   }
 };

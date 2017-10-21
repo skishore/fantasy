@@ -25,9 +25,7 @@ const fill_state = (state: State): any => {
     data.push(next.token ? next.match.value : fill_state(next.state));
     current = current.prev!;
   }
-  data.reverse();
-  const transform = state.rule.transform;
-  return transform ? transform(data) : data;
+  return state.rule.transform.merge(data.reverse());
 }
 
 const make_state = (rule: Rule, start: number, wanted_by: State[]): State =>
@@ -48,6 +46,7 @@ interface Column {
     scannable: State[],
     wanted: {[name: string]: State[]},
   },
+  token?: Token,
 }
 
 const advance_state = (map: Map<number,Next[]>, max_index: number,
@@ -153,6 +152,7 @@ const next_column = (prev: Column, token: Token): Column => {
       advance_state(map, max_index, state, column.states).push(next);
     }
   }
+  column.token = token;
   return fill_column(column);
 }
 
@@ -188,7 +188,8 @@ class Parser {
   }
   debug(): string {
     const column = this.column;
-    const lines = [`Column: ${column.index}`];
+    const text = column.token ? `: ${JSON.stringify(column.token.text)}`: '';
+    const lines = [`Column ${column.index}${text}`];
     column.states.forEach((x, i) => lines.push(`${i}: ${print_state(x)}`));
     return lines.join('\n');
   }

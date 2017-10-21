@@ -2,6 +2,17 @@
 
 Object.defineProperty(exports, "__esModule", { value: true });
 
+const builtin_base_cases = {
+  '?': (d) => null,
+  '*': (d) => d,
+  '+': (d) => d,
+};
+const builtin_recursives = {
+  '?': (d) => d[0],
+  '*': (d) => d[0].concat([d[1]]),
+  '+': (d) => d[0].concat([d[1]]),
+};
+
 const lexer = require('../parsing/lexer');
 
 exports.grammar = {
@@ -16,13 +27,14 @@ exports.grammar = {
     {lhs: "item", rhs: [{text: "@"}, {text: "lexer"}, "_", {type: "block"}], transform: (d) => ({type: 'lexer', lexer: d[3]})},
     {lhs: "item", rhs: ["word", {text: "["}, "words", {text: "]"}, "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]})},
     {lhs: "item", rhs: ["word", "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'rules', name: d[0], rules: d[5]})},
+    {lhs: "item", rhs: [{text: "@"}, {text: "enable_generation"}], transform: (d) => ({type: 'setting', setting: 'enable_generation'})},
     {lhs: "rules$macro$1$modifier$1", rhs: []},
     {lhs: "rules$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: "|"}, "_", "rule"]},
     {lhs: "rules$macro$1$modifier$1", rhs: ["rules$macro$1$modifier$1", "rules$macro$1$modifier$1$subexpression$1"], transform: (d) => d[0].concat([d[1]])},
     {lhs: "rules$macro$1", rhs: ["rule", "rules$macro$1$modifier$1"], transform: (d) => [d[0]].concat(d[1].map((x) => x[3]))},
     {lhs: "rules", rhs: ["rules$macro$1"], transform: (d) => d[0]},
     {lhs: "rule", rhs: ["exprs"], transform: (d) => ({exprs: d[0]})},
-    {lhs: "rule", rhs: ["exprs", "_", {type: "block"}], transform: (d) => ({exprs: d[0], transform: d[2]})},
+    {lhs: "rule", rhs: ["exprs", "_", {type: "block"}], transform: (d) => ({exprs: d[0], metadata: d[2]})},
     {lhs: "exprs$macro$1$modifier$1", rhs: []},
     {lhs: "exprs$macro$1$modifier$1$subexpression$1", rhs: ["_", "expr"]},
     {lhs: "exprs$macro$1$modifier$1", rhs: ["exprs$macro$1$modifier$1", "exprs$macro$1$modifier$1$subexpression$1"], transform: (d) => d[0].concat([d[1]])},

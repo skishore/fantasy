@@ -14,27 +14,32 @@
 
 @{% const create_join = (d) => [].concat.apply([], d.map((x) => x instanceof Array ? x : [x])); %}
 
-commas[X] -> $X (_ "," _ $X):* {% (d) => [d[0]].concat(d[1].map((x) => x[3])) %}
+commas[X] -> $X (_ ',' _ $X):* {% (d) => [d[0]].concat(d[1].map((x) => x[3])) %}
 
 # The body of our grammar.
 
 main -> _ template _ {% (d) => d[1] %}
-template -> (dict | join | list | primitive | variable) {% (d) => d[0][0] %}
-dict -> "{" _ commas[item] _ "}" {% (d) => d[2] %}
-      | "{" _ "}" {% () => [] %}
-join -> "(" _ commas[dict_or_variable] _ ")" {% (d) => create_join(d[2]) %}
-      | "(" _ commas[list_or_variable] _ ")" {% (d) => create_join(d[2]) %}
-      | "(" _ ")" {% () => [] %}
-list -> "[" _ commas[template] _ "]" {% (d) => d[2].map((x) => ['_', x]) %}
-      | "[" _ "]" {% () => [] %}
-variable -> "$" %integer {% (d) => ({index: d[1]}) %}
 
-item -> %identifier _ ":" _ template {% (d) => [d[0], d[4]] %}
-dict_or_variable -> (dict | variable) {% (d) => d[0][0] %}
-list_or_variable -> (list | variable) {% (d) => d[0][0] %}
+template -> (dict | list | primitive | variable) {% (d) => d[0][0] %}
+
+dict -> '{' _ commas[dict_item] _ '}' {% (d) => d[2] %}
+      | '{' _ '}' {% () => [] %}
+
+dict_item -> %identifier ':' _ template {% (d) => [d[0], d[3]] %}
+           | '.' '.' '.' variable {% (d) => d[3] %}
+
+list -> '[' _ commas[list_item] _ ']' {% (d) => d[2] %}
+      | '[' _ ']' {% () => [] %}
+
+list_item -> template {% (d) => ['_', d[0]] %}
+           | '.' '.' '.' variable {% (d) => d[3] %}
+
+variable -> '$' %integer {% (d) => ({index: d[1]}) %}
 
 # Primitives and whitespace.
 
 primitive -> (%boolean | number | %string) {% (d) => d[0][0] %}
+
 number -> (%float | %integer) {% (d) => d[0][0] %}
+
 _ -> %whitespace:? {% () => null %}
