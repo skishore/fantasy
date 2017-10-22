@@ -4,6 +4,7 @@ import {Lexer} from './lexer';
 
 interface Grammar {
   by_name: {[name: string]: Rule[]},
+  lexer: Lexer,
   max_index: number,
   rules: Rule[],
   start: string,
@@ -40,27 +41,37 @@ interface RuleSpec {
 
 declare const require: any;
 
-const from_code = (code: string): [Grammar, Lexer] => {
+const cached = <T>(fn: (x: string) => T): ((x: string) => T) => {
+  const cache: {[x: string]: T} = {};
+  return (x: string) => cache[x] || (cache[x] = fn(x));
+}
+
+const from_code = cached((code: string): Grammar => {
   /* tslint:disable:no-eval */
   const {grammar, lexer} = ((x) => eval(x))(code);
   /* tslint:enable:no-eval */
-  return [from_spec(grammar), lexer]
-}
+  return from_spec(grammar, lexer);
+});
 
-const from_file = (filename: string): [Grammar, Lexer] => {
+const from_file = cached((filename: string): Grammar => {
   const {grammar, lexer} = require(filename);
-  return [from_spec(grammar), lexer]
-}
+  return from_spec(grammar, lexer);
+});
 
-const from_spec = (spec: GrammarSpec): Grammar => {
-  const result: Grammar = {by_name: {}, max_index: 0, rules: [], start: ''};
-  spec.rules.forEach((x) => {
+const from_spec = (grammar: GrammarSpec, lexer: Lexer): Grammar => {
+  const result: Grammar = {
+    by_name: {},
+    lexer,
+    max_index: 0,
+    rules: [],
+    start: grammar.start,
+  };
+  grammar.rules.forEach((x) => {
     const rule: Rule = {...x, index: result.max_index, score: x.score || 0};
     (result.by_name[x.lhs] = result.by_name[x.lhs] || []).push(rule);
     result.max_index += x.rhs.length + 1;
     result.rules.push(rule);
   });
-  result.start = spec.start;
   return result;
 }
 

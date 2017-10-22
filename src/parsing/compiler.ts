@@ -1,5 +1,4 @@
 import {Grammar} from './grammar';
-import {Lexer} from './lexer';
 import {Parser} from './parser';
 
 // The output of the bootstrapped grammar is a list of ItemNode values.
@@ -195,22 +194,12 @@ const validate = (grammar: CompiledGrammar): CompiledGrammar => {
   return grammar;
 }
 
-// The public compiler interface. We wrap the functionality from above in a
-// class because we can load the grammar once to compile multiple files.
+// The public compiler interface - for now, a single pure function.
 
 class Compiler {
-  private grammar: Grammar;
-  private lexer: Lexer;
-  constructor() {
-    [this.grammar, this.lexer] = Grammar.from_file('../dsl/bootstrapped');
-  }
-  compile(input: string): string {
-    const parser = new Parser(this.grammar);
-    for (const token of this.lexer.iterable(input)) {
-      parser.feed(token);
-    }
-    const ast = parser.result();
-    if (!ast) throw new Error('Unexpected end of input:');
+  static compile(input: string): string {
+    const grammar = Grammar.from_file('../dsl/bootstrapped');
+    const ast = Parser.parse(grammar, input);
     return generate(evaluate(ast));
   }
 }

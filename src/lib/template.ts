@@ -1,6 +1,5 @@
 import {assert} from './base';
 import {Grammar} from '../parsing/grammar';
-import {Lexer} from '../parsing/lexer';
 import {Parser} from '../parsing/parser';
 
 interface Assignment {[index: number]: Value};
@@ -233,8 +232,6 @@ const optional = (template: TemplateData): boolean => {
 
 // Load the grammar used to parse template expressions.
 
-const [grammar, lexer] = Grammar.from_file('../dsl/template');
-
 const validate = (template: TemplateData, optional: boolean[]): void => {
   if (template instanceof Array) {
     return template.forEach((x) => x instanceof Array ?
@@ -252,9 +249,8 @@ class Template {
   private size: number;
   constructor(input: string, optional?: boolean[]) {
     optional = optional || [];
-    const parser = new Parser(grammar);
-    Array.from(lexer.iterable(input)).forEach((x) => parser.feed(x));
-    this.data = parser.result();
+    const grammar = Grammar.from_file('../dsl/template');
+    this.data = Parser.parse(grammar, input);
     this.size = optional.length;
     validate(this.data, optional);
   }

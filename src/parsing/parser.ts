@@ -208,7 +208,13 @@ class Parser {
                                 x.rule.lhs === start && x.start === 0;
     const states = this.column.states.filter(match).sort(
         (x, y) => y.score! - x.score!);
-    return states.length === 0 ? null : fill_state(states[0]);
+    if (states.length === 0) throw Error('Unexpected end of input!');
+    return fill_state(states[0]);
+  }
+  static parse(grammar: Grammar, input: string): any {
+    const parser = new Parser(grammar);
+    grammar.lexer.iterable(input).forEach((x) => parser.feed(x));
+    return parser.result();
   }
   private maybe_throw(message: () => string) {
     if (this.column.states.length === 0) throw Error(message());

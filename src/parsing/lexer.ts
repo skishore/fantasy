@@ -4,7 +4,7 @@ const moo = require('../../src/external/moo.js');
 // The Lexer interface allows literal- and type-based token matching.
 
 interface Lexer {
-  iterable: (input: string) => Iterable<Token>,
+  iterable: (input: string) => Token[],
 }
 
 interface Match {

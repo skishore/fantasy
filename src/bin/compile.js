@@ -3,7 +3,7 @@
 const fs = require('fs');
 
 const commander = require('../external/commander');
-const compile = require('../parsing/compiler');
+const compiler = require('../parsing/compiler');
 
 commander
   .version('0.1.0')
@@ -11,7 +11,6 @@ commander
   .option('-o, --output [filename]', 'Write compiled grammar to <filename>')
   .parse(process.argv);
 
-const compiler = new compile.Compiler();
 const input = commander.input ?
   fs.createReadStream(commander.input) : process.stdin;
 const output = commander.output ?
@@ -27,6 +26,6 @@ const readEntireStream = (stream) => {
 }
 
 readEntireStream(input)
-  .then((data) => compiler.compile(data))
+  .then((data) => compiler.Compiler.compile(data))
   .then((data) => output.write(data))
   .catch((error) => console.error(error.stack));
