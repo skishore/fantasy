@@ -92,18 +92,15 @@ const build_macro = (lhs: string, name: string, terms: Term[],
 const build_modifier = (lhs: string, base: ExprNode, modifier: Modifier,
                         score: number, env: Environment): Term => {
   const metadata = '(d) => d[0].concat([d[1]])';
-  const rules: RuleNode[] = [];
   const symbol = add_symbol(lhs, 'modifier', env);
-  if (modifier === '?') {
-    rules.push({exprs: [], metadata: '(d) => null'});
-    rules.push({exprs: [base], metadata: '(d) => d[0]'});
-  } else if (modifier === '*') {
-    rules.push({exprs: []});
-    rules.push({exprs: [{type: 'term', term: symbol}, base], metadata});
-  } else if (modifier === '+') {
-    rules.push({exprs: [base]});
-    rules.push({exprs: [{type: 'term', term: symbol}, base], metadata});
-  }
+  const term: ExprNode = {type: 'term', term: symbol};
+  const rules: RuleNode[] =
+      modifier === '?' ? [{exprs: []}, {exprs: [base]}] :
+      modifier === '*' ? [{exprs: []}, {exprs: [term, base]}] :
+      modifier === '+' ? [{exprs: [base]}, {exprs: [term, base]}] : [];
+  assert(rules.length === 2, () => `Invalid modifier: ${modifier}`);
+  rules[0].metadata = Metadata.build_base_case(modifier, score, env.settings);
+  rules[1].metadata = Metadata.build_recursive(modifier, score, env.settings);
   rules.forEach((x) => add_rules(symbol, x, env));
   return symbol;
 }

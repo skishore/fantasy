@@ -37,7 +37,7 @@ interface RuleSpec {
   lhs: string,
   rhs: Term[],
   score?: number,
-  transform?: Transform,
+  transform?: Transform | Transform['merge'],
 }
 
 // Finally, we implement some helpers for making use of grammars.
@@ -49,14 +49,20 @@ const cached = <T>(fn: (x: string) => T): ((x: string) => T) => {
   return (x: string) => cache[x] || (cache[x] = fn(x));
 }
 
+const coerce_transform = (
+    input: RuleSpec['transform'] | void, size: number): Transform => {
+  if (!input) return default_transform(size);
+  const transform = <Transform>input;
+  if (transform.merge && transform.split) return transform;
+  return {
+    merge: <Transform['merge']>input,
+    split: () => { throw new Error('split is unimplemented!'); },
+  };
+}
+
 const default_transform = (size: number): Transform => ({
   merge: (d) => d,
   split: (d) => d instanceof Array && d.length === size ? [d] : [],
-});
-
-const failing_transform = (): Transform => ({
-  merge: (d) => { throw new Error(`merge is unimplemented!`) },
-  split: (d) => { throw new Error(`split is unimplemented!`) },
 });
 
 const from_code = cached((code: string): Grammar => {
@@ -85,10 +91,7 @@ const from_spec = (grammar: GrammarSpec, lexer: Lexer): Grammar => {
   };
   grammar.rules.forEach((x) => {
     const score = x.score || 0;
-    // TODO(skishore): Read from spec.transform after the compiler is fixed.
-    const partial = (<any>x).transform ? {merge: (<any>x).transform} :
-                    default_transform(x.rhs.length);
-    const transform = Object.assign(failing_transform(), partial);
+    const transform = coerce_transform(x.transform, x.rhs.length);
     const rule: Rule = {...x, index: result.max_index, score, transform};
     (result.by_name[x.lhs] = result.by_name[x.lhs] || []).push(rule);
     result.max_index += x.rhs.length + 1;

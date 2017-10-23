@@ -93,7 +93,7 @@ const parse_template = (input: string, modifiers: Modifier[]): string => {
   if (input.startsWith('builtin_')) return `, transform: ${input}`;
   const optional = modifiers.map((x) => x === '?' || x === '*');
   new Template(input, optional); // Check the template's syntax.
-  const args = [input, optional].map((x) => JSON.stringify(x)).join(', ');
+  const args = JSON.stringify([input, optional]).slice(1, -1);
   return `, transform: new template.Template(${args})`;
 }
 
