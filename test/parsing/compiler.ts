@@ -11,13 +11,6 @@ const read = (filename: string): Promise<string> => {
 }
 
 const compiler: Test = {
-  bootstrapped_grammar_compiles: () => {
-    const input = read('src/dsl/bootstrapped.ne');
-    const output = read('src/dsl/bootstrapped.js');
-    return Promise.all([input, output]).then(([input, output]) => {
-      Test.assert_eq(Compiler.compile(input), output);
-    });
-  },
   error_on_dead_end_symbols: () => {
     const input = `
       main -> determiner:? adjective:* noun
@@ -38,5 +31,15 @@ const compiler: Test = {
                       'Found unreachable symbols: verb');
   },
 };
+
+['bootstrapped', 'metadata', 'template'].forEach((x) => {
+  compiler[`${x}_grammar_compiles`] = () => {
+    const input = read(`src/dsl/${x}.ne`);
+    const output = read(`src/dsl/${x}.js`);
+    return Promise.all([input, output]).then(([input, output]) => {
+      Test.assert_eq(Compiler.compile(input), output);
+    });
+  }
+});
 
 export {compiler};
