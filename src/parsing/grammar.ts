@@ -29,6 +29,7 @@ type Transform = {
 // index fields like by_name or max_index.
 
 interface GrammarSpec {
+  lexer: Lexer,
   rules: RuleSpec[];
   start: string;
 }
@@ -66,25 +67,23 @@ const default_transform = (size: number): Transform => ({
 });
 
 const from_code = cached((code: string): Grammar => {
-  /* tslint:disable:no-eval */
-  const {grammar, lexer} = <any>((x) => {
+  return from_spec(<GrammarSpec>((x) => {
     const exports = {};
+    /* tslint:disable:no-eval */
     eval(x);
+    /* tslint:enable:no-eval */
     return exports;
-  })(code);
-  /* tslint:enable:no-eval */
-  return from_spec(grammar, lexer);
+  })(code));
 });
 
 const from_file = cached((filename: string): Grammar => {
-  const {grammar, lexer} = require(filename);
-  return from_spec(grammar, lexer);
+  return from_spec(require(filename));
 });
 
-const from_spec = (grammar: GrammarSpec, lexer: Lexer): Grammar => {
+const from_spec = (grammar: GrammarSpec): Grammar => {
   const result: Grammar = {
     by_name: {},
-    lexer,
+    lexer: grammar.lexer,
     max_index: 0,
     rules: [],
     start: grammar.start,

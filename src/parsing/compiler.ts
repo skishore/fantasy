@@ -158,14 +158,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 
 ${grammar.blocks.map((x) => x.trim()).join('\n\n')}
 
-exports.grammar = {
-  rules: [
-    ${grammar.rules.map(generate_rule).join(',\n    ')},
-  ],
-  start: ${JSON.stringify(grammar.start)},
-};
-
 exports.lexer = ${grammar.lexer.trim()};
+
+exports.rules = [
+  ${grammar.rules.map(generate_rule).join(',\n  ')},
+];
+
+exports.start = ${JSON.stringify(grammar.start)};
   `.trim() + '\n';
 }
 
