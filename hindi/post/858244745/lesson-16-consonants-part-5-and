@@ -1,0 +1,419 @@
+<!DOCTYPE html><script>var __pbpa = true;</script><script>var translated_warning_string = 'Warning: Never enter your Tumblr password unless \u201chttps://www.tumblr.com/login\u201d\x0ais the address in your web browser.\x0a\x0aYou should also see a green \u201cTumblr, Inc.\u201d identification in the address bar.\x0a\x0aSpammers and other bad guys use fake forms to steal passwords.\x0a\x0aTumblr will never ask you to log in from a user\u2019s blog.\x0a\x0aAre you absolutely sure you want to continue?';</script><script type="text/javascript" language="javascript" src="http://assets.tumblr.com/assets/scripts/pre_tumblelog.js?_v=7e0654d636b56bfe6a0970b99e23e0f7"></script><!DOCTYPE html><!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"></html><![endif]--><!--[if IE 7]><html class="no-js lt-ie9 lt-ie8"></html><![endif]--><!--[if IE 8]><html class="no-js lt-ie9"></html><![endif]--><!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]--><!--
+  ==========================================================================
+   ____                     ___       __  __
+  /\  _`\  __              /\_ \     /\ \/\ \          __
+  \ \ \L\ \\_\  __  _    __\//\ \    \ \ \ \ \    ___ /\_\    ___    ___
+   \ \ ,__//\ \/\ \/'\ /'__`\\ \ \    \ \ \ \ \ /' _ `\/\ \  / __`\/' _ `\
+    \ \ \/ \ \ \/>  <//\  __/ \_\ \_   \ \ \_\ \/\ \/\ \ \ \/\ \L\ \\ \/\ \
+     \ \_\  \ \_\\_/\_\ \____\/\____\   \ \_____\ \_\ \_\ \_\ \____/ \_\ \_\
+      \/_/   \/_///\/_/\/____/\/____/    \/_____/\/_/\/_/\/_/\/___/ \/_/\/_/
+  ==========================================================================
+     Provenance v3.4.0
+     Updated: May 07, 2013
+     Website: http://pixelunion.net
+     Themes: http:tumblr.com/themes/by/pixelunion
+  ==========================================================================
+--><head><meta charset="utf-8" /><meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible" /><meta content="" name="description" /><meta content="width=1000px" name="viewport" /><meta name="text:Facebook API ID" content="" /><meta name="text:Facebook Username" content="" /><meta name="text:GA Property ID" content="" /><meta name="text:Tag Collections" content="" /><meta name="text:Tag Collections Menu" content="Galleries" /><meta name="text:Instagram Access Token" content="" /><meta name="text:Flickr ID" content="" /><meta name="text:Sticky Post ID" content="" /><meta name="text:Header Color Opacity" content="0.7" /><meta name="text:Disqus Shortname" content="" /><meta name="text:Social Links Title" content="Connect with me" /><meta name="text:Copyright Text" content="" /><meta name="if:Disqus Comments" content="" /><meta name="if:Facebook Comments" content="0" /><meta name="if:Infinite Scroll" content="1" /><meta name="if:Sidebar" content="1" /><meta name="if:Alternate Header Layout" content="0" /><meta name="if:Show Latest Tweet" content="1" /><meta name="if:Show Random Archive RSS" content="1" /><meta name="if:Show Title in Header" content="1" /><meta name="if:Show Description in Header" content="1" /><meta name="if:Show Description in Footer" content="1" /><meta name="if:Show Header Gradient" content="1" /><meta name="if:Fixed Sidebar" content="0" /><meta name="if:Nav on Top" content="0" /><meta name="image:Header Avatar" content="http://static.tumblr.com/7szwxy7/pWSmlvib3/default_portrait.jpeg" /><meta name="image:Header Background" content="http://static.tumblr.com/7szwxy7/zR2mlvibf/default_header.jpeg" /><meta name="image:Sidebar Avatar" content="" /><meta name="color:Header Color" content="#2a2d35" /><meta name="color:Secondary Background" content="#162024" /><meta name="color:Secondary Text" content="#76919c" /><meta name="color:Header Text" content="#aec7d1" /><meta name="color:Header Title" content="#ffffff" /><meta name="color:Accent" content="#eb5e29" /><meta name="color:Main Background" content="#e8e8e8" /><meta name="text:Behance URL" content="" /><meta name="text:Delicious URL" content="" /><meta name="text:DeviantArt URL" content="" /><meta name="text:Digg URL" content="" /><meta name="text:Dribbble URL" content="" /><meta name="text:Email Address" content="" /><meta name="text:Flickr URL" content="" /><meta name="text:Foursquare URL" content="" /><meta name="text:Github URL" content="" /><meta name="text:Google Plus URL" content="" /><meta name="text:Instagram URL" content="" /><meta name="text:Lastfm URL" content="" /><meta name="text:Linkedin URL" content="" /><meta name="text:MySpace URL" content="" /><meta name="text:Pinboard URL" content="" /><meta name="text:Pinterest URL" content="" /><meta name="text:Rdio URL" content="" /><meta name="text:Skype Username" content="" /><meta name="text:Soundcloud URL" content="" /><meta name="text:Spotify URL" content="" /><meta name="text:Stumbleupon URL" content="" /><meta name="text:Svpply URL" content="" /><meta name="text:Vimeo URL" content="" /><meta name="text:Youtube URL" content="" /><style type="text/css">body {
+      background-color: #e8e8e8;
+    } 
+     
+    header #nav .galleries .menu > li a:hover,
+    header #nav ul > li .label:hover, #sidebar > ul li .label:hover, #sidebar > ul li.galleries .menu a:hover,
+    .post .post-footer .bottom .share.button .share-box .url.hover,
+    header #nav .right a:hover, #sidebar .bottom a:hover,
+    .post h1:hover a,
+    .search-results span,
+    a {
+      color: #4ea3d0;
+    } #sidebar > ul li.galleries .label:hover:after,
+    header #nav ul > li .label:hover:after {
+      border-top-color: #4ea3d0;
+    } #pagination .previous, #pagination .next, #pagination .previous, #pagination .previous,
+    .post .post-footer .bottom .share.button .share-box .button:hover, #infinite-scroll .button,
+    .type-audio .audio-wrap .custom-player-wrap .custom-player .bar .inner-bar {
+      background-color: #4ea3d0;
+    } #tabber .photostream .photo .border, #tabber .photostream .permalink .border {
+      border-color: #4ea3d0;
+    } 
+    header .underlay.one {
+      background-image: url(http://static.tumblr.com/6a7a25b2b3976283c5dd29c7b0a5327a/yk90tr7/RDomnglw5/tumblr_static_cropandshade3.jpg);
+    } 
+    header .underlay.three {
+      background-color: #2a2d35;
+      opacity: 0.30;
+    } 
+    header #nav,
+    header #nav .galleries .menu, #sidebar,
+    footer {
+      background-color: #162024;
+    } 
+    footer,
+    .bottom a,
+    footer #twitter .twitter-info a,
+    footer #twitter .twitter-info a:link,
+    footer #twitter .twitter-info a:visited,
+    footer .back-to-top,
+    .copyright a, #nav .right #search, #tabber .photostream .permalink div, #twitter .tweet .permalink, #nav .right a {
+      color: #76919c;
+    } 
+    header {
+      color: #fdfdfd;
+    } 
+    header h1 a {
+      color: #ffffff;
+    }</style><script>var options = {facebook_api_id:false,
+  facebook_username:true,
+  ga_property_id:true,
+  tag_collections:true,
+  tag_collections_menu:true,
+  instagram_access_token:false,
+  flickr_id:false,
+  sticky_post_id:false,
+  header_color_opacity:true,
+  disqus_shortname:true,
+  social_links_title:true,
+  copyright_text:true,
+  disqus_comments:true,
+  facebook_comments:false,
+  infinite_scroll:false,
+  sidebar:true,
+  alternate_header_layout:true,
+  show_latest_tweet:true,
+  show_random_archive_rss:false,
+  show_title_in_header:true,
+  show_description_in_header:true,
+  show_description_in_footer:false,
+  show_header_gradient:true,
+  fixed_sidebar:true,
+  nav_on_top:false,
+  header_avatar: 'http://assets.tumblr.com/images/x.gif?v=1',
+  header_background: 'http://static.tumblr.com/6a7a25b2b3976283c5dd29c7b0a5327a/yk90tr7/RDomnglw5/tumblr_static_cropandshade3.jpg',
+  sidebar_avatar: 'http://assets.tumblr.com/images/x.gif?v=1',
+  header_color: '#2a2d35',
+  secondary_background: '#162024',
+  secondary_text: '#76919c',
+  header_text: '#fdfdfd',
+  header_title: '#ffffff',
+  accent: '#4ea3d0',
+  main_background: '#e8e8e8'};</script><script type="text/javascript">
+    
+    
+      options.disqus_shortname = "learninghindi";
+    
+    
+    
+   
+     /* 
+      options.galleries = "1,2,3"; */
+      
+    
+    
+      options.twitterName = 'learning_hindi';
+    
+    
+    
+    
+    </script><meta content="LearningHindi" property="fb:admins" /><meta content="Learning Hindi!" property="og:site_name" /><meta content="http://www.learning-hindi.com/post/858244745/lesson-16-consonants-part-5-प-pa-फ-pha-ब-ba" property="og:url" /><meta content="article" property="og:type" /><meta content="We&rsquo;ve learnt a whole bunch of Hindi consonants now, can you remember them all? Head on back to the Consonants Section if you&rsquo;ve forgot anything. We&rsquo;ve only got a few more groups of letters left to learn, so do you think you&rsquo;re ready to get going? Well here they are&hellip;
+
+
+
+
+
+ Think they look confusing? Keep reading then and I promise by the end of this lesson they&rsquo;ll all make sense! This group of consonants is known as the labials. Ready to get to the first letter? Great!&nbsp;
+
+
+ pa &nbsp; &nbsp; 
+
+
+
+
+ This is the letter &#2346; pa. We pronounce this just like the English p - but be careful, this letter is not aspirated. It is like the &ldquo;p&rdquo; in the word &ldquo;spit&rdquo;. Put your hand in front of your mouth and make sure no air is leaving as you say it. Click play above to hear it pronounced! This letter looks just like an English &lsquo;p&rsquo; too, just back to front. What a easy letter hey!
+
+
+
+
+
+ In Hindi the word 'bed&rsquo; is &#2346;&#2354;&#2306;&#2327; palang. Can you see our new letter &#2346; pa at the start here? &#2309;&#2330;&#2381;&#2331;&#2366; acchaa - good! Ready for letter number two? Here goes,
+
+
+&nbsp; pha &nbsp; &nbsp; 
+
+
+
+
+ This is the letter &#2347; pha. Of course you know by now that this is the aspirated version of the letter &#2346; pa! So how do we pronounce it? Well just say 'pa&rsquo; while breathing out, check by putting your hand over your mouth! Don&rsquo;t forget to listen to the letter above. This letter can look a little like our very first consonant &#2325; ka - so be extra careful to not get them confused.
+
+
+
+
+
+ One of my favourite Hindi words is the word &#2347;&#2369;&#2360;&#2347;&#2369;&#2360;&#2366;&#2344;&#2366; phusphusaanaa - it means 'to whisper&rsquo;. I like it so much because it&rsquo;s so fun to say, and it sounds like whispering!
+
+
+ Be careful here, the letter &#2347; pha is not pronounced like an English 'f&rsquo; sound, like the ph in 'philosophy&rsquo;, it&rsquo;s a very easy mistake to make! (Hindi does actually have a separate letter 'f&rsquo;, it&rsquo;s this letter with an extra dot and you can learn about it here).&nbsp;
+
+
+ Ok, ready for the next letter for today?&nbsp;
+
+
+&nbsp; ba &nbsp; &nbsp; 
+
+
+
+
+ This is the letter &#2348; ba. The pronunciation of this letter is also really easy, it&rsquo;s just like the normal English 'b&rsquo;, like in the words 'bin&rsquo; or 'bat&rsquo;. It also looks a bit like a backwards b too, with a little line through the loop yeah? Another super easy letter!&nbsp;
+
+
+
+
+
+ A word for villain or rogue in Hindi is &#2348;&#2342;&#2350;&#2366;&#2358; badmaash - can you spot our new letter at the start here? Excellent! Ready for letter number four?
+
+
+&nbsp; bha &nbsp; &nbsp;
+
+
+
+
+ This is the letter &#2349; bha. I&rsquo;m sure you know what I&rsquo;m going to tell you next! This is the aspirated version of the letter &#2348; ba, which means to&nbsp; pronounce it you should make the normal 'b&rsquo; sound with lots and lots of air leaving your mouth! Of course don&rsquo;t forget to keep listening to the letter- &nbsp;practicing saying this letter as you hear it.&nbsp;
+
+
+
+
+
+ This is a word you might need to know, 'India&rsquo; in Hindi is &#2349;&#2366;&#2352;&#2340; bhaarat! As a bit of a side note, the word &#2311;&#2306;&#2337;&#2367;&#2351;&#2366; indeeya is also used to mean India - so you should be aware of both! Do you think you&rsquo;re ready for the last letter of this group? &#2309;&#2330;&#2381;&#2331;&#2366; acchaa - great!
+
+
+&nbsp; ma &nbsp; &nbsp; 
+
+
+
+
+ This is the letter &#2350; ma. This is another easy letter because it&rsquo;s pronounced just like a normal English &rsquo;m&rsquo;, like in the word 'man&rsquo; or 'mouse&rsquo;. Unlike the final letter of some of the groups we&rsquo;ve learnt already, this letter is really common so be sure to know it!
+
+
+
+
+
+ &#2310;&#2350; aam is the Hindi word for 'mango&rsquo; (if you couldn&rsquo;t figure it out that is a picture of a mango!). Mangoes are loved in India, they&rsquo;re a lot more common than in some other countries. In fact they&rsquo;re so common that the word &#2310;&#2350; aam also means 'common&rsquo; and 'ordinary&rsquo;!
+
+
+ Phew wow! Well done for reaching the end of the lesson! That&rsquo;s five more letter we&rsquo;ve learnt. Be sure to keep practicing them - and all the letters you&rsquo;ve already learnt! We only have two more groups of consonants left now!
+
+
+ Click to go back to the Consonants Section.&nbsp;" property="og:description" /><meta content="Lesson #16: Consonants Part 5; प pa, फ pha, ब ba, भ bha and म ma" property="og:title" /><style type="text/css">p.center { text-align: center; }
+
+img {vertical-align:middle; } 
+
+.tumblr-notes { display: none !important; }
+
+/* tumblr_controls{ background: none !important; border: none !important; box-shadow: none !important; } */</style><title> Lesson #16: Consonants Part 5; प pa, फ pha, ब ba,... |   Learning Hindi!  </title><style>figure{margin:0}.tmblr-iframe{position:absolute}.tmblr-iframe.hide{display:none}.tmblr-iframe--amp-cta-button{visibility:hidden;position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:100}.tmblr-iframe--amp-cta-button.tmblr-iframe--loaded{visibility:visible;animation:iframe-app-cta-transition .2s ease-out}</style><link href="http://78.media.tumblr.com/avatar_2afd6f55f15f_128.png" rel="shortcut icon" /><link href="../../rss" rel="alternate" type="application/rss+xml" /><link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900,200italic,300italic,400italic,600italic,700italic,900italic" media="screen" rel="stylesheet" type="text/css" /><link href="http://static.tumblr.com/yk90tr7/Iexode5dt/style.css" media="screen" rel="stylesheet" type="text/css" /><script src="http://static.tumblr.com/hugxd2w/gPam0w5o1/modernizr-2.5.3.min.js"></script><link rel="alternate" href="android-app://com.tumblr/tumblr/x-callback-url/blog?blogName=learninghindi%26postID=858244745" /><link rel="alternate" href="ios-app://305343404/tumblr/x-callback-url/blog?blogName=learninghindi&postID=858244745" /><link rel="alternate" type="application/json+oembed" href="https://www.tumblr.com/oembed/1.0?url=http://www.learning-hindi.com/post/858244745/lesson-16-consonants-part-5-प-pa-फ-pha-ब-ba" title="Lesson #16: Consonants Part 5; प pa, फ pha, ब ba, भ bha and म ma
+We&rsquo;ve learnt a whole bunch of Hindi consonants now, can you remember them all? Head on back to the Consonants Section if you&rsquo;ve forgot anything. We&rsquo;ve only got a few more groups of..."/><link rel="amphtml" href=http://www.learning-hindi.com/post/858244745/lesson-16-consonants-part-5-प-pa-फ-pha-ब-ba/amp /><script src="http://assets.tumblr.com/assets/scripts/tumblelog_post_message_queue.js?_v=a8938c0e77cf8b1347c2e8acd1ee607c"></script><link rel="stylesheet" type="text/css" href="http://assets.tumblr.com/fonts/gibson/stylesheet.css?v=3"><meta name="keywords" content="consonants,pa,pha,ba,bha" /><!-- GOOGLE CAROUSEL --><script type="application/ld+json">
+	{"@type":"SocialMediaPosting","url":"http:\/\/www.learning-hindi.com\/post\/858244745\/lesson-16-consonants-part-5-\u092a-pa-\u092b-pha-\u092c-ba","mainEntityOfPage":true,"datePublished":"2010-07-26T05:15:00-04:00","author":"learninghindi","image":{"@list":["http:\/\/78.media.tumblr.com\/beed7321452f05b5475e63fc02bee104\/tumblr_inline_mh958zBnYB1qz4rgp.png","http:\/\/78.media.tumblr.com\/da1a61a08948d1d3585ba9ba4de19fe9\/tumblr_inline_mh95exJyBZ1qz4rgp.png","http:\/\/78.media.tumblr.com\/464630b809f8b8ad3889a33976189fff\/tumblr_inline_mh95q0RZN71qz4rgp.png","http:\/\/78.media.tumblr.com\/bb8cd3b7e9015ef6ca2c2d71c062e8a1\/tumblr_inline_mh95qyLgcw1qz4rgp.png","http:\/\/78.media.tumblr.com\/8cde09e0366164693dc205aee50d0704\/tumblr_inline_mh96fcaxhY1qz4rgp.png","http:\/\/78.media.tumblr.com\/1aff8b6c59550b625133055930cec0f7\/tumblr_inline_mh96p5dbf01qz4rgp.png","http:\/\/78.media.tumblr.com\/9748a8be9d324bd2c7c8466a94203eb8\/tumblr_inline_mhag2uTcQE1qz4rgp.png","http:\/\/78.media.tumblr.com\/30c70358e89b18a46acd46f185b30adf\/tumblr_inline_mhag76oVAl1qz4rgp.png","http:\/\/78.media.tumblr.com\/4eb826ecede77facd290b5191b8a6fe8\/tumblr_inline_mhagal9U1u1qz4rgp.png","http:\/\/78.media.tumblr.com\/143856425d802cac507715bb9bb0120d\/tumblr_inline_mhagfcGD7G1qz4rgp.png","http:\/\/78.media.tumblr.com\/bda6bd5dd1d6516bbd3337816fc6dade\/tumblr_inline_mhagk72Cz61qz4rgp.png"]},"headline":"Lesson #16: Consonants Part 5; \u092a pa, \u092b pha, \u092c ba, \u092d bha and \u092e ma","articleBody":"We\u2019ve learnt a whole bunch of Hindi consonants now, can you remember them all? Head on back to the Consonants Section if you\u2019ve forgot anything. We\u2019ve only got a few more groups of letters left to learn, so do you think you\u2019re ready to get going? Well here they are\u2026\nThink they look confusing? Keep...","@context":"http:\/\/schema.org"}</script><link rel="canonical" href="lesson-16-consonants-part-5-and" /></head><body class="permalink-page   has-sidebar  "><div id="page-wrap"><header class="header-2  no-avatar-image"><div class="underlay one"></div><div class="underlay two"></div><div class="underlay three"></div><!--  --><div class="inner clearfix"><div class="wrap"><a class="avatar-link" href="../../index.html"></a><h1><a href="../../index.html">Learning Hindi!</a></h1><div id="blog-description">नमस्ते namaste and welcome to Learning Hindi! We teach the beautiful language of Hindi in short, easy and fun lessons. Best of all, everything is completely free!</div></div></div><div align="right"> Image by <a href="https://www.facebook.com/Lilsunshinephotography"><FONT COLOR="#fdfdfd">LilSunshinePhotography</a> </FONT></div><div  id="nav"><div class="inner clearfix"><ul class="nav-list wider"><li><a class="label" href="../../index.html">Home</a> </li><li><a class="label" href="../../about">About</a></li><!-- 
+                              <li><a class="label" href="/about">About</a></li><li><a class="label" href="/intro">An Introduction to Hindi</a></li><li><a class="label" href="/vowels">Hindi Vowels</a></li><li><a class="label" href="/consonants">Hindi Consonants </a></li><li><a class="label" href="/beginner">Beginner's Grammar Lessons</a></li><li><a class="label" href="/intermediate">Intermediate Grammar!</a></li><li><a class="label" href="/convo">Conversational Phrases!</a></li><li><a class="label" href="/urdu">Urdu!</a></li><li><a class="label" href="/all">All Lessons</a></li><li><a class="label" href="/legal">Legal</a></li> --><!--     <li><a class="label" href="/ask" id="ask">Ask me anything!</a></li> --><li class="galleries"><div class="label">Lessons</div><div class="menu-wrap"><ul class="menu"><li><a href="../../intro">Introduction</a></li><li><a href="../../vowels">Vowels</a></li><li><a href="../../consonants">Consonants</a></li><li><a href="../../convo">Conversational</a></li><li><a href="../../beginner">Beginner's Grammar</a></li><li><a href="../../intermediate">Intermediate</a></li><li><a href="../../numbers">Numbers</a></li><li><a href="../../urdu">Urdu</a></li><li><a href="../../all">All Lessons</a></li></ul></div></li><li><a class="label" href="../../legal">Legal</a> </li><li><a class="label" href="../../links">Links</a> </li>  
+                              </ul><div class="right"><div id="search"><div class="search-icon"></div><div class="form-wrap"><div class="close-icon"></div><form action="http://www.learning-hindi.com/search" id="search-form" method="get"><input id="search-field" name="q" onblur="if (this.value == '') {this.value = 'Search tags';}" onfocus="if (this.value == 'Search tags') {this.value = '';}" type="text" value="Search tags" /></form></div></div></div></div></div></header><section id="content"><div class="inner clearfix"><div class="fixed" id="sidebar"><ul><li><a class="label" href="../../index.html">Home</a> </li><li><a class="label" href="../../about">About</a></li><!--   
+                    <li><a class="label" href="/about">About</a></li><li><a class="label" href="/intro">An Introduction to Hindi</a></li><li><a class="label" href="/vowels">Hindi Vowels</a></li><li><a class="label" href="/consonants">Hindi Consonants </a></li><li><a class="label" href="/beginner">Beginner's Grammar Lessons</a></li><li><a class="label" href="/intermediate">Intermediate Grammar!</a></li><li><a class="label" href="/convo">Conversational Phrases!</a></li><li><a class="label" href="/urdu">Urdu!</a></li><li><a class="label" href="/all">All Lessons</a></li><li><a class="label" href="/legal">Legal</a></li>
+                   
+                   
+                    
+                     --><!-- <li><a class="label" href="/ask" id="ask">Ask me anything!</a></li> --><li><a class="label" href="../../intro"><small> - Introduction</small></a></li><li><a class="label" href="../../vowels"><small>- Vowels</small></a></li><li><a class="label" href="../../consonants"><small>- Consonants</small></a></li><li><a class="label" href="../../convo"><small>- Conversational</small></a></li><li><a class="label" href="../../beginner"><small> - Beginner's</small></a></li><li><a class="label" href="../../intermediate"><small> - Intermediate</small></a></li><li><a class="label" href="../../numbers"><small> - Numbers</small></a></li><li><a class="label" href="../../urdu"><small> - Urdu</small></a></li><li><a class="label" href="../../all"><small> - All Lessons</small></a></li><!--  <li class="galleries"><div class="label">Lessons</div><div class="menu-wrap"><ul class="menu"><li><a href="http://www.learning-hindi.com/intro">Introduction</a></li><li><a href="http://www.learning-hindi.com/vowels">Vowels</a></li><li><a href="http://www.learning-hindi.com/consonants">Consonants</a></li><li><a href="http://www.learning-hindi.com/convo">Conversational</a></li><li><a href="http://www.learning-hindi.com/beginner">Beginner's Grammar</a></li><li><a href="http://www.learning-hindi.com/intermediate">Intermediate</a></li><li><a href="http://www.learning-hindi.com/numbers">Numbers</a></li><li><a href="http://www.learning-hindi.com/urdu">Urdu</a></li><li><a href="http://www.learning-hindi.com/all">All Lessons</a></li></ul></div></li><li id="search"><div class="label">Search<div class="icon"></div></div><div class="form-wrap"><div class="icon"></div><form action="/search" id="search-form" method="get"><input id="search-field" name="q" onblur="if (this.value == '') {this.value = 'Search tags';}" onfocus="if (this.value == 'Search tags') {this.value = '';}" type="text" value="Search tags" /></form></div></li> --><li><a class="label" href="../../legal">Legal</a> </li><li><a class="label" href="../../links">Links</a> </li> 
+
+          </ul></div><div id="posts"><article class="post type-text" id="858244745"><aside class="metadata not-custom-page"><a class="timestamp" href="lesson-16-consonants-part-5-and">July 26th, 2010</a><!--  
+                               <a class="note-count" href="http://www.learning-hindi.com/post/858244745/lesson-16-consonants-part-5-प-pa-फ-pha-ब-ba#notes">5 notes</a> --><a class="comment-count" href="lesson-16-consonants-part-5-and#disqus_thread"></a><script type="text/javascript">
+    var disqus_shortname = 'learninghindi';
+
+    (function () {
+        var s = document.createElement('script'); s.async = true;
+        s.type = 'text/javascript';
+        s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+    }());
+</script></aside><h2><a href="lesson-16-consonants-part-5-and">Lesson #16: Consonants Part 5; प pa, फ pha, ब ba, भ bha and म ma</a></h2><div class="caption clearfix rte"><p>We&rsquo;ve learnt a whole bunch of Hindi consonants now, can you remember them all? Head on back to the <a href="../../consonants">Consonants Section</a> if you&rsquo;ve forgot anything. We&rsquo;ve only got a few more groups of letters left to learn, so do you think you&rsquo;re ready to get going? Well here they are&hellip;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/beed7321452f05b5475e63fc02bee104/tumblr_inline_mh958zBnYB1qz4rgp.png"></p><p>Think they look confusing? Keep reading then and I promise by the end of this lesson they&rsquo;ll all make sense! This group of consonants is known as the labials. Ready to get to the first letter? Great!&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/da1a61a08948d1d3585ba9ba4de19fe9/tumblr_inline_mh95exJyBZ1qz4rgp.png"><em> pa</em> &nbsp; &nbsp; <iframe align="middle" frameborder="no" height="70" scrolling="no" src="http://w.soundcloud.com/player/?url=http%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F77981720&amp;%20%20auto_play=false&amp;show_artwork=false&amp;color=000000&amp;show_user=false&amp;%20%20show_playcount=false&amp;sharing=false&amp;show_comments=false" width="26%"></iframe></p><p>This is the letter <big><big>&#2346;</big></big> <em>pa</em>. We pronounce this just like the English p - but be careful, this letter is not aspirated. It is like the &ldquo;p&rdquo; in the word &ldquo;spit&rdquo;. Put your hand in front of your mouth and make sure no air is leaving as you say it. Click play above to hear it pronounced! This letter looks just like an English &lsquo;p&rsquo; too, just back to front. What a easy letter hey!</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/464630b809f8b8ad3889a33976189fff/tumblr_inline_mh95q0RZN71qz4rgp.png"></p><p>In Hindi the word 'bed&rsquo; is <big><big>&#2346;&#2354;&#2306;&#2327;</big></big> <em>palang</em>. Can you see our new letter <big><big>&#2346;</big></big> <em>pa </em>at the start here? <big><big>&#2309;&#2330;&#2381;&#2331;&#2366;</big></big> <em>acchaa</em> - good! Ready for letter number two? Here goes,</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/bb8cd3b7e9015ef6ca2c2d71c062e8a1/tumblr_inline_mh95qyLgcw1qz4rgp.png">&nbsp; pha &nbsp; &nbsp; <iframe align="middle" frameborder="no" height="70" scrolling="no" src="http://w.soundcloud.com/player/?url=http%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F77982472&amp;%20%20auto_play=false&amp;show_artwork=false&amp;color=000000&amp;show_user=false&amp;%20%20show_playcount=false&amp;sharing=false&amp;show_comments=false" width="26%"></iframe></p><p>This is the letter <big><big>&#2347;</big></big> <em>pha. </em>Of course you know by now that this is the aspirated version of the letter <big><big>&#2346;</big></big> <em>pa</em>! So how do we pronounce it? Well just say 'pa&rsquo; while breathing out, check by putting your hand over your mouth! Don&rsquo;t forget to listen to the letter above. This letter can look a little like our very first consonant <big><big>&#2325;</big></big> <em>ka</em> - so be extra careful to not get them confused.</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/8cde09e0366164693dc205aee50d0704/tumblr_inline_mh96fcaxhY1qz4rgp.png"></p><p>One of my favourite Hindi words is the word <big><big>&#2347;&#2369;&#2360;&#2347;&#2369;&#2360;&#2366;&#2344;&#2366;</big></big> <em>phusphusaanaa - </em>it means 'to whisper&rsquo;. I like it so much because it&rsquo;s so fun to say, and it sounds like whispering!</p><p>Be careful here, the letter <big><big>&#2347;</big></big> <em>pha</em> is <strong>not</strong> pronounced like an English 'f&rsquo; sound, like the ph in 'philosophy&rsquo;, it&rsquo;s a very easy mistake to make! (Hindi does actually have a separate letter 'f&rsquo;, it&rsquo;s this letter with an extra dot and you can learn about it <a href="../1187496443/lesson-54-dotted-consonants">here</a>).&nbsp;</p><p>Ok, ready for the next letter for today?&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/1aff8b6c59550b625133055930cec0f7/tumblr_inline_mh96p5dbf01qz4rgp.png"><em>&nbsp; ba</em> &nbsp; &nbsp; <iframe align="middle" frameborder="no" height="70" scrolling="no" src="http://w.soundcloud.com/player/?url=http%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F77982802&amp;%20%20auto_play=false&amp;show_artwork=false&amp;color=000000&amp;show_user=false&amp;%20%20show_playcount=false&amp;sharing=false&amp;show_comments=false" width="26%"></iframe></p><p>This is the letter <big><big>&#2348;</big></big> <em>ba. </em>The pronunciation of this letter is also really easy, it&rsquo;s just like the normal English 'b&rsquo;, like in the words 'bin&rsquo; or 'bat&rsquo;. It also looks a bit like a backwards b too, with a little line through the loop yeah? Another super easy letter!&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/9748a8be9d324bd2c7c8466a94203eb8/tumblr_inline_mhag2uTcQE1qz4rgp.png"></p><p>A word for villain or rogue in Hindi is <big><big>&#2348;&#2342;&#2350;&#2366;&#2358;</big></big> <em>badmaash</em> - can you spot our new letter at the start here? Excellent! Ready for letter number four?</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/30c70358e89b18a46acd46f185b30adf/tumblr_inline_mhag76oVAl1qz4rgp.png">&nbsp; <em>bha</em> &nbsp; &nbsp;<iframe align="middle" frameborder="no" height="70" scrolling="no" src="http://w.soundcloud.com/player/?url=http%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F77983435&amp;%20%20auto_play=false&amp;show_artwork=false&amp;color=000000&amp;show_user=false&amp;%20%20show_playcount=false&amp;sharing=false&amp;show_comments=false" width="26%"></iframe></p><p>This is the letter <big><big>&#2349;</big></big> <em>bha. </em>I&rsquo;m sure you know what I&rsquo;m going to tell you next! This is the aspirated version of the letter <big><big>&#2348;</big></big> <em>ba,</em> which means to&nbsp; pronounce it you should make the normal 'b&rsquo; sound with lots and lots of air leaving your mouth! Of course don&rsquo;t forget to keep listening to the letter- &nbsp;practicing saying this letter as you hear it.&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/4eb826ecede77facd290b5191b8a6fe8/tumblr_inline_mhagal9U1u1qz4rgp.png"></p><p>This is a word you might need to know, 'India&rsquo; in Hindi is <big><big>&#2349;&#2366;&#2352;&#2340;</big></big> <em>bhaarat</em>! As a bit of a side note, the word <big><big>&#2311;&#2306;&#2337;&#2367;&#2351;&#2366;</big></big> <em>indeeya</em> is also used to mean India - so you should be aware of both! Do you think you&rsquo;re ready for the last letter of this group? <big><big>&#2309;&#2330;&#2381;&#2331;&#2366;</big></big> <em>acchaa</em> - great!</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/143856425d802cac507715bb9bb0120d/tumblr_inline_mhagfcGD7G1qz4rgp.png">&nbsp; <em>ma</em> &nbsp; &nbsp; <iframe align="middle" frameborder="no" height="70" scrolling="no" src="http://w.soundcloud.com/player/?url=http%3A%2F%2Fapi.soundcloud.com%2Ftracks%2F77983773&amp;%20%20auto_play=false&amp;show_artwork=false&amp;color=000000&amp;show_user=false&amp;%20%20show_playcount=false&amp;sharing=false&amp;show_comments=false" width="26%"></iframe></p><p>This is the letter <big><big>&#2350;</big></big> <em>ma. </em>This is another easy letter because it&rsquo;s pronounced just like a normal English &rsquo;m&rsquo;, like in the word 'man&rsquo; or 'mouse&rsquo;. Unlike the final letter of some of the groups we&rsquo;ve learnt already, this letter is really common so be sure to know it!</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/bda6bd5dd1d6516bbd3337816fc6dade/tumblr_inline_mhagk72Cz61qz4rgp.png"></p><p><big><big>&#2310;&#2350;</big></big><em> aam </em><span>is the Hindi word for 'mango&rsquo; (if you couldn&rsquo;t figure it out that is a picture of a mango!). Mangoes are loved in India, they&rsquo;re a lot more common than in some other countries. In fact they&rsquo;re so common that the word </span><big><big>&#2310;&#2350;</big></big><em> aam </em><span>also means 'common&rsquo; and 'ordinary&rsquo;!</span></p><p>Phew wow! Well done for reaching the end of the lesson! That&rsquo;s five more letter we&rsquo;ve learnt. Be sure to keep practicing them - and all the letters you&rsquo;ve already learnt! We only have two more groups of consonants left now!</p><p><a href="../../consonants">Click to go back to the Consonants Section</a>.&nbsp;</p></div><aside class="post-footer"><div class="tags"><span>Tags:</span><a href="http://www.learning-hindi.com/tagged/consonants">consonants</a> <a href="http://www.learning-hindi.com/tagged/pa">pa</a> <a href="http://www.learning-hindi.com/tagged/pha">pha</a> <a href="http://www.learning-hindi.com/tagged/ba">ba</a> <a href="http://www.learning-hindi.com/tagged/bha">bha</a> <a href="http://www.learning-hindi.com/tagged/ma">ma</a> <a href="http://www.learning-hindi.com/tagged/letters">letters</a> <a href="http://www.learning-hindi.com/tagged/devanagari">devanagari</a> <a href="http://www.learning-hindi.com/tagged/july2010">july2010</a> </div><div class="bottom"><div class="like_button" data-post-id="858244745" data-blog-name="learninghindi" id="like_button_858244745"><iframe id="like_iframe_858244745" src="http://assets.tumblr.com/assets/html/like_iframe.html?_v=5716f9145cbbcc5e21aa13229de5d4ed#name=learninghindi&amp;post_id=858244745&amp;color=grey&amp;rk=NQgAP2JF" scrolling="no" width="16" height="16" frameborder="0" class="like_toggle" allowTransparency="true" name="like_iframe_858244745"></iframe></div><a href="https://www.tumblr.com/reblog/858244745/NQgAP2JF" class="reblog_button"style="display: block;width:16px;height:16px;"><svg width="100%" height="100%" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#ccc"><path d="M5.01092527,5.99908429 L16.0088498,5.99908429 L16.136,9.508 L20.836,4.752 L16.136,0.083 L16.1360004,3.01110845 L2.09985349,3.01110845 C1.50585349,3.01110845 0.979248041,3.44726568 0.979248041,4.45007306 L0.979248041,10.9999998 L3.98376463,8.30993634 L3.98376463,6.89801007 C3.98376463,6.20867902 4.71892527,5.99908429 5.01092527,5.99908429 Z"></path><path d="M17.1420002,13.2800293 C17.1420002,13.5720293 17.022957,14.0490723 16.730957,14.0490723 L4.92919922,14.0490723 L4.92919922,11 L0.5,15.806 L4.92919922,20.5103758 L5.00469971,16.9990234 L18.9700928,16.9990234 C19.5640928,16.9990234 19.9453125,16.4010001 19.9453125,15.8060001 L19.9453125,9.5324707 L17.142,12.203"></path></svg></a><div class="share button">Share<div class="share-box"><div class="label">Share this:</div><a class="twitter button" href="https://twitter.com/intent/tweet?url=http://www.learning-hindi.com/post/858244745/lesson-16-consonants-part-5-प-pa-फ-pha-ब-ba" target="_blank">Twitter</a><a class="pinterest button" target="_blank">Pinterest</a><a class="facebook button" href="https://www.facebook.com/sharer.php?u=http://www.learning-hindi.com/post/858244745/lesson-16-consonants-part-5-प-pa-फ-pha-ब-ba" target="_blank">Facebook</a><a class="google-plus button" href="https://plus.google.com/share?url=http://www.learning-hindi.com/post/858244745/lesson-16-consonants-part-5-प-pa-फ-pha-ब-ba" target="_blank">Google+</a><div class="url" data-clipboard-text="https://tmblr.co/ZJelGyp9yQ9">https://tmblr.co/ZJelGyp9yQ9</div></div></div></div></aside></article><!--       <div class="comments"><div id="disqus_thread"></div><script type="text/javascript">var disqus_shortname = 'learninghindi';
+                      (function() {
+                      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                      dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                      })();</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a class="dsq-brlink" href="http://disqus.com">comments powered by <span class="logo-disqus">Disqus</span></a></div> --> 
+                  
+                  
+                  
+      <div class="tumblr-notes"><h1>Notes</h1><ol class="notes"><!-- START NOTES --><li class="note like tumblelog_alaskafascination without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://alaskafascination.tumblr.com/" title="I feel infinite " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_7e91fe04865e_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://alaskafascination.tumblr.com/" title="I feel infinite" rel="nofollow">alaskafascination</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_annacecy without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://annacecy.tumblr.com/" title="Love like you&#039;ll never be hurt " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_b0c580357d13_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://annacecy.tumblr.com/" title="Love like you&#039;ll never be hurt" rel="nofollow">annacecy</a> liked this                                    </span><div class="clear"></div></li><li class="note reblog tumblelog_learninghindi original_post without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="../../index.html" title="Learning Hindi!"><img src="http://78.media.tumblr.com/avatar_2afd6f55f15f_64.png" class="avatar " alt="" /></a><span class="action" data-post-url="http://www.learning-hindi.com/post/858244745"><a rel="nofollow" href="../../index.html" class="tumblelog" title="Learning Hindi!">learninghindi</a> posted this                                                                        </span><div class="clear"></div></li><!-- END NOTES --></ol></div> 
+                                           
+                                          
+                                                                                                                  
+                                                                                     <div class="comments"><div id="disqus_thread"></div><script type="text/javascript">var disqus_shortname = 'learninghindi';
+                      (function() {
+                      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                      dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                      })();</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a class="dsq-brlink" href="http://disqus.com">comments powered by <span class="logo-disqus">Disqus</span></a></div>    
+                                          
+                                          
+                                          
+
+
+                                           
+                                          
+                                       
+                                          
+                                          
+                                          
+                    
+                    
+                                      
+
+                                      
+                                      
+                                      
+                                  </div>                                                                    
+      </div></section><footer class="has-twitter"><div class="inner clearfix"><div class="box" id="twitter"><h1>Latest Tweet</h1></div><div class="box" id="social"><h1 class="social-links-title">Connect</h1><div class="social-icons clearfix"><a class="email" href="mailto:george.learninghindi@gmail.com">Email</a><a class="facebook" href="http://www.facebook.com/LearningHindi">Facebook</a><a class="twitter" href="http://twitter.com/learning_hindi">Twitter</a><a class="soundcloud" href="https://soundcloud.com/learninghindi">Soundcloud</a><!-- 
+              
+              
+              
+              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ --> 
+    
+</div></div><div class="box" id="tabber"><ul class="controls"></ul><div class="tabs"><div class="tab photostream" id="instagram"></div><div class="tab photostream" id="flickr"></div></div></div><div class="box copyright">The contents of this website are, unless otherwise mentioned, licenced under a <a href='../../legal'>CC-BY-NC 3.0 unported licence</a>.<br /><a href="http://provenance-theme.tumblr.com">Provenance Theme</a> by <a href="http://pixelunion.net">Pixel Union</a>. Powered by <a href="http://tumblr.com">Tumblr</a>.</div><div class="back-to-top">Back To Top</div></div></footer></div><script type="text/javascript">function recent_tweets(data){window.tweet_data=data;}</script><script src="http://learninghindi.tumblr.com/tweets.js" type="text/javascript"></script><script src="http://static.tumblr.com/7szwxy7/T9jmmer60/script.js" type="text/javascript"></script><script type="text/javascript">(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+       fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script><script type="text/javascript">var _gaq=[['_setAccount','UA-18265204-1'],['_trackPageview']];
+      (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+      g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g,s)}(document,'script'));</script><script type="text/javascript">var themeTitle = "Provenance Theme";
+    var url = "http://provenance-theme.tumblr.com";
+    (function() {
+      var pxu = document.createElement('script'); pxu.type = 'text/javascript'; pxu.async = true; pxu.src = 'http://cdn.pixelunion.net/customize/pxucm.js';
+      var isCustomize = (window.location.href.indexOf('/customize_preview_receiver.html') >= 0);
+      var isDemo = (window.location.href.indexOf(url) >= 0);
+      (isCustomize || isDemo) && ((document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(pxu));
+    })();</script><iframe scrolling="no" width="1" height="1" frameborder="0" style="background-color:transparent; overflow:hidden; position:absolute; top:0; left:0; z-index:9999;" id="ga_target"></iframe><script type="text/javascript">
+    (function(){
+        var analytics_frame = document.getElementById('ga_target');
+        var analytics_iframe_loaded;
+        var user_logged_in;
+        var blog_is_nsfw = 'No';
+        var addthis_enabled = false;
+
+        var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+        var eventer = window[eventMethod];
+        var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+        eventer(messageEvent,function(e) {
+            var message = (e.data && e.data.split) ? e.data.split(';') : '';
+            switch (message[0]) {
+                case 'analytics_iframe_loaded':
+                    analytics_iframe_loaded = true;
+                    postCSMessage();
+                    postGAMessage();
+                    postATMessage();
+                    postRapidMessage();
+                    break;
+                case 'user_logged_in':
+                    user_logged_in = message[1];
+                    postGAMessage();
+                    postATMessage();
+                    break;
+            }
+        }, false);
+
+        analytics_frame.src = "https://assets.tumblr.com/analytics.html?e545bd2397476017430227533432638a#" +
+                              "http://www.learning-hindi.com";
+        function postGAMessage() {
+            if (analytics_iframe_loaded && user_logged_in) {
+                var is_ajax = false;
+                analytics_frame.contentWindow.postMessage(['tick_google_analytics', is_ajax, user_logged_in, blog_is_nsfw, '/post/858244745/lesson-16-consonants-part-5-%E0%A4%AA-pa-%E0%A4%AB-pha-%E0%A4%AC-ba?route=%2Fpost%2F%3Aid%2F%3Asummary'].join(';'), analytics_frame.src.split('/analytics.html')[0]);
+            }
+        }
+        function postCSMessage() {
+            COMSCORE = true;
+            analytics_frame.contentWindow.postMessage('enable_comscore;' + window.location, analytics_frame.src.split('/analytics.html')[0]);
+        }
+        function postATMessage() {
+            if (addthis_enabled && analytics_iframe_loaded) {
+                analytics_frame.contentWindow.postMessage('enable_addthis', analytics_frame.src.split('/analytics.html')[0]);
+            }
+        }
+        function postRapidMessage() {
+                            if (analytics_iframe_loaded) {
+                    var is_ajax = '';
+                    var route = '/post/:id/:summary';
+                    var tumblelog_id = '5556009';
+                    var yahoo_space_id = '1197719230';
+                    var rapid_client_only = '1';
+                    var apv = '1';
+                    var rapid_ex = '';
+
+                    analytics_frame.contentWindow.postMessage(
+                        [
+                            'tick_rapid', is_ajax, route, user_logged_in, tumblelog_id,
+                            yahoo_space_id, rapid_client_only, apv, rapid_ex
+                        ].join(';'),
+                        analytics_frame.src.split('/analytics.html')[0]
+                    );
+                }
+                    }
+    })();
+</script><script type="text/javascript">!function(s){s.src='https://px.srvcs.tumblr.com/impixu?T=1509422403&J=eyJ0eXBlIjoidXJsIiwidXJsIjoiaHR0cDpcL1wvd3d3LmxlYXJuaW5nLWhpbmRpLmNvbVwvcG9zdFwvODU4MjQ0NzQ1XC9sZXNzb24tMTYtY29uc29uYW50cy1wYXJ0LTUtJUUwJUE0JUFBLXBhLSVFMCVBNCVBQi1waGEtJUUwJUE0JUFDLWJhIiwicmVxdHlwZSI6MCwicm91dGUiOiJcL3Bvc3RcLzppZFwvOnN1bW1hcnkifQ==&U=OEMJLJCLNC&K=2b4dc14178aa1307a3fa37665dc5e42fb4239e3ae51a1ec58426dd4b777e74b9&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall'.replace(/&R=[^&$]*/,'').concat('&R='+escape(document.referrer)).slice(0,2000).replace(/%.?.?$/,'');}(new Image());</script><noscript><img style="position:absolute;z-index:-3334;top:0px;left:0px;visibility:hidden;" src="https://px.srvcs.tumblr.com/impixu?T=1509422403&J=eyJ0eXBlIjoidXJsIiwidXJsIjoiaHR0cDpcL1wvd3d3LmxlYXJuaW5nLWhpbmRpLmNvbVwvcG9zdFwvODU4MjQ0NzQ1XC9sZXNzb24tMTYtY29uc29uYW50cy1wYXJ0LTUtJUUwJUE0JUFBLXBhLSVFMCVBNCVBQi1waGEtJUUwJUE0JUFDLWJhIiwicmVxdHlwZSI6MCwicm91dGUiOiJcL3Bvc3RcLzppZFwvOnN1bW1hcnkiLCJub3NjcmlwdCI6MX0=&U=OEMJLJCLNC&K=e9156d64a04d41c75ef8ba3b2a92acf1021404e7e3efc9d52e99c3053f7fd458&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall"></noscript><script >
+        (function (w,d) {
+            'use strict';
+            var l = function(el, type, listener, useCapture) {
+                el.addEventListener ?
+                el.addEventListener(type, listener, !!useCapture) :
+                el.attachEvent && el.attachEvent('on' + type, listener, !!useCapture);
+            };
+            var a = function () {
+                                if (d.getElementById('tumblr-cdx')) {
+                    return;
+                }
+                var s = d.createElement('script');
+                var el = d.getElementsByTagName('script')[0];
+                s.async = true;
+                s.src = 'http://assets.tumblr.com/assets/scripts/vendor/cedexis/1-13960-radar10.min.js?_v=f1579c509dad6daa6d33b4284812ab90';
+                s.type = 'text/javascript';
+                s.id = 'tumblr-cdx';
+                d.body.appendChild(s);
+            };
+            l(w,'load',a);
+        }(window, document));
+</script><script type="text/javascript">!function(s){s.src='https://px.srvcs.tumblr.com/impixu?T=1509422403&J=eyJ0eXBlIjoicG9zdCIsInVybCI6Imh0dHA6XC9cL3d3dy5sZWFybmluZy1oaW5kaS5jb21cL3Bvc3RcLzg1ODI0NDc0NVwvbGVzc29uLTE2LWNvbnNvbmFudHMtcGFydC01LSVFMCVBNCVBQS1wYS0lRTAlQTQlQUItcGhhLSVFMCVBNCVBQy1iYSIsInJlcXR5cGUiOjAsInJvdXRlIjoiXC9wb3N0XC86aWRcLzpzdW1tYXJ5IiwicG9zdHMiOlt7InBvc3RpZCI6Ijg1ODI0NDc0NSIsImJsb2dpZCI6IjU1NTYwMDkiLCJzb3VyY2UiOjMzfV19&U=HLHPMBFMCF&K=32192e34b04450dd5c83dce4487bec505a5237528e5be9aca19850696e295e53&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall'.replace(/&R=[^&$]*/,'').concat('&R='+escape(document.referrer)).slice(0,2000).replace(/%.?.?$/,'');}(new Image());</script><noscript><img style="position:absolute;z-index:-3334;top:0px;left:0px;visibility:hidden;" src="https://px.srvcs.tumblr.com/impixu?T=1509422403&J=eyJ0eXBlIjoicG9zdCIsInVybCI6Imh0dHA6XC9cL3d3dy5sZWFybmluZy1oaW5kaS5jb21cL3Bvc3RcLzg1ODI0NDc0NVwvbGVzc29uLTE2LWNvbnNvbmFudHMtcGFydC01LSVFMCVBNCVBQS1wYS0lRTAlQTQlQUItcGhhLSVFMCVBNCVBQy1iYSIsInJlcXR5cGUiOjAsInJvdXRlIjoiXC9wb3N0XC86aWRcLzpzdW1tYXJ5IiwicG9zdHMiOlt7InBvc3RpZCI6Ijg1ODI0NDc0NSIsImJsb2dpZCI6IjU1NTYwMDkiLCJzb3VyY2UiOjMzfV0sIm5vc2NyaXB0IjoxfQ==&U=HLHPMBFMCF&K=4dd9ea12863d305406db9efa20a0c0839464439a9d8e60b70eb7627f9412df61&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall"></noscript><noscript id="bootloader" data-bootstrap="{&quot;Components&quot;:{&quot;PostActivity&quot;:[],&quot;NotificationPoller&quot;:{&quot;messaging_keys&quot;:[],&quot;token&quot;:&quot;c86f8a500596474a7ef5034081f694bd&quot;,&quot;inbox_unread&quot;:0},&quot;TumblelogIframe&quot;:{&quot;unified&quot;:true,&quot;variant&quot;:null,&quot;isCompact&quot;:true,&quot;tumblelogBundleSrc&quot;:&quot;http:\/\/assets.tumblr.com\/client\/prod\/standalone\/tumblelog\/index.build.js?_v=c41e22c9b4f5b7ebfca85acc96f7b07f&quot;,&quot;tumblelogName&quot;:&quot;learninghindi&quot;,&quot;isLoggedIn&quot;:false,&quot;isFriend&quot;:false,&quot;formKey&quot;:&quot;&quot;,&quot;canSubscribe&quot;:false,&quot;isSubscribed&quot;:false,&quot;tumblelogTitle&quot;:&quot;Learning Hindi!&quot;,&quot;tumblelogAvatar&quot;:&quot;http:\/\/78.media.tumblr.com\/avatar_2afd6f55f15f_40.png&quot;,&quot;tumblelogHost&quot;:&quot;http:\/\/www.learning-hindi.com&quot;,&quot;isOptica&quot;:false,&quot;isCustomTheme&quot;:true,&quot;themeHeaderImage&quot;:&quot;https:\/\/static.tumblr.com\/9066660bc011f6ee206ae5205c0659d5\/yk90tr7\/yDEn5wh73\/tumblr_static_tumblr_static_ah7o3vi9xuokokw0o4sg8k40w_focused_v3.jpg&quot;,&quot;themeBackgroundColor&quot;:&quot;#FAFAFA&quot;,&quot;themeTitleColor&quot;:&quot;#444444&quot;,&quot;themeAccentColor&quot;:&quot;#529ECC&quot;,&quot;brag&quot;:false,&quot;adsEnabled&quot;:false,&quot;canShowAd&quot;:true,&quot;isPremium&quot;:false,&quot;showLrecAds&quot;:false,&quot;showStickyLrecBackfill&quot;:false,&quot;showGeminiAds&quot;:false,&quot;geminiSectionCodeDesktop&quot;:&quot;a10bca9c-0c5d-4a02-ab13-14ab8513d81d&quot;,&quot;geminiSectionCodeMobile&quot;:&quot;ced63809-b609-4aca-96a0-abc099acba6b&quot;,&quot;currentPageType&quot;:&quot;single_post&quot;,&quot;currentPage&quot;:&quot;1&quot;,&quot;searchQuery&quot;:&quot;&quot;,&quot;tag&quot;:&quot;&quot;,&quot;query&quot;:&quot;&quot;,&quot;chrono&quot;:false,&quot;postId&quot;:&quot;858244745&quot;,&quot;src&quot;:&quot;http:\/\/www.learning-hindi.com\/post\/858244745\/lesson-16-consonants-part-5-%E0%A4%AA-pa-%E0%A4%AB-pha-%E0%A4%AC-ba&quot;,&quot;postUrl&quot;:&quot;&quot;,&quot;isBlocked&quot;:null,&quot;isAdmin&quot;:false,&quot;lookupButtonUrl&quot;:&quot;&quot;,&quot;showSpamButton&quot;:false,&quot;showRootPostButton&quot;:false,&quot;rootPostUrl&quot;:&quot;&quot;,&quot;showRadarPostButton&quot;:false,&quot;radarKeys&quot;:&quot;&quot;,&quot;isUniblocked&quot;:false,&quot;isNsfw&quot;:false,&quot;isAdult&quot;:false,&quot;isSpam&quot;:false,&quot;isPrimaryBlog&quot;:false,&quot;canEdit&quot;:false,&quot;canReblogSelf&quot;:false,&quot;showLikeButton&quot;:false,&quot;showReblogButton&quot;:false,&quot;reblogUrl&quot;:&quot;&quot;,&quot;showFanMailButton&quot;:false,&quot;showMessagingButton&quot;:false,&quot;loginCheckIframeSrc&quot;:&quot;http:\/\/assets.tumblr.com\/assets\/html\/iframe\/login_check.html?_v=d92d24a70075d882e6cfd5c8303fbf32&quot;,&quot;appInstallUrls&quot;:{&quot;android&quot;:&quot;https:\/\/play.google.com\/store\/apps\/details?id=com.tumblr\u0026referrer=utm_source%3Dtumblr%26utm_medium%3Diframe%26utm_campaign%3Dblog_network_floating_cta&quot;,&quot;ios&quot;:&quot;https:\/\/itunes.apple.com\/app\/apple-store\/id305343404?pt=9029\u0026ct=blog_network_floating_cta\u0026mt=8&quot;},&quot;appOpenReferrer&quot;:&quot;tumblr_new_iframe&quot;,&quot;isShowSearch&quot;:true,&quot;supplyLogging&quot;:[],&quot;secondsSinceLastActivity&quot;:-1}},&quot;Flags&quot;:{&quot;doods&quot;:&quot;eyJmaWx0ZXJfbnNmdyI6dHJ1ZSwic2FmZV9tb2RlIjp0cnVlLCJzYWZlX21vZGVfZW5hYmxlZCI6dHJ1ZSwia2V5Y29tbWFuZF9hdXRvX3BhZ2luYXRlIjp0cnVlLCJsb2dnZWRfb3V0X3NlYXJjaCI6dHJ1ZSwia3Jha2VuX3dlYl9sb2dnaW5nX2xpYnJhcnkiOnRydWUsInNlY3VyZV9mb3JtX2tleSI6dHJ1ZSwic2VjdXJlX2Zvcm1fa2V5X2Z1bGx5X29uIjp0cnVlLCJ0dW1ibGVsb2dfcG9wb3ZlciI6dHJ1ZSwiY2Fub25pY2FsX3VybF93cml0ZXMiOnRydWUsImVuYWJsZV9jYXB0dXJlX2pzIjp0cnVlLCJwcmltYV9wb3N0X2Zvcm1zIjp0cnVlLCJsb2NrZWRfcmVibG9nX3VpIjp0cnVlLCJ0YWJsZXRfYmFubmVyX2FjdGl2ZSI6dHJ1ZSwibW9iaWxlX2Jhbm5lcl9hY3RpdmUiOnRydWUsImxvZ19zZWFyY2hfYm94Ijp0cnVlLCJ1c2VyX21lbnRpb25zIjp0cnVlLCJodG1sNV9hdWRpb19wbGF5ZXIiOnRydWUsInBvcG92ZXJfcmVjb21tZW5kYXRpb25zIjp0cnVlLCJpbmRhc2hfcmVjb21tZW5kYXRpb25zIjp0cnVlLCJwb3B0aWNhX3R1bWJsZWxvZ19wb3BvdmVycyI6dHJ1ZSwidHVtYmxyX3R2Ijp0cnVlLCJkZXByZWNhdGVfZmVhdHVyZWRfdGFncyI6dHJ1ZSwicmVibG9nX3VpX3JlZnJlc2giOnRydWUsInRhYl9zd2l0Y2hlciI6dHJ1ZSwiZmFzdF9jb21wb3NlIjp0cnVlLCJkYXNoYm9hcmRfcmVmcmVzaCI6dHJ1ZSwibW9iaWxlX3dlYl9waG90b3NldHMiOnRydWUsIm1vYmlsZV93ZWJfZ2F0ZSI6dHJ1ZSwibW9iaWxlX3dlYl9wYWdlX3RpdGxlcyI6dHJ1ZSwibW9iaWxlX3dlYl9hYnVzZV9mb3JtIjp0cnVlLCJkb250X2Nhc3RfanNfZm9sbG93cyI6dHJ1ZSwiYWRzX25ld192ZW5kb3JfYnV0dG9ucyI6dHJ1ZSwicmVhY3RpdmF0aW9uX2Zsb3ciOnRydWUsImd1bHBqc19hZG1pbiI6dHJ1ZSwiZW5hYmxlX2pzX2Vycm9yc19sb2ciOnRydWUsImVuYWJsZV9qc19lcGhlbWVyYWxfbG9nIjp0cnVlLCJsb2dfbGFkeSI6dHJ1ZSwiY3Nsb2dnZXJfanMiOnRydWUsImRpc2NvdmVyeV9odWJfYWNjZXNzIjp0cnVlLCJoZWFkZXJfYWNjb3VudF9tZW51Ijp0cnVlLCJlbmFibGVfc2hhcmVfZW1iZWRfY29kZSI6dHJ1ZSwicmVkZGl0X3NoYXJpbmciOnRydWUsInBvc3RfaXRfZm9yd2FyZCI6dHJ1ZSwicGVlcHJfc2VhcmNoX2FuZF9maWx0ZXIiOnRydWUsImludGVybnNfcGFnZSI6dHJ1ZSwiZm9sbG93ZWRfc2VhcmNoZXNfYmlnX3dlYiI6dHJ1ZSwibGl2ZXBob3Rvc193ZWIiOnRydWUsInNhZmVfbW9kZV9vd25fcG9zdCI6dHJ1ZSwiaGlkZV9kZWZhdWx0X2hlYWRlcnNfYmxvZ19jYXJkcyI6dHJ1ZSwia3Jha2VuX3dlYl9iYmxvZ19hY3RpdmUiOnRydWUsImFyY2hpdmUtcGx1cyI6dHJ1ZSwiZGFybGFfYWRfZmVlZGJhY2siOnRydWUsInN0YXR1c19pbmRpY2F0b3JzX3VpIjp0cnVlLCJkaXNhYmxlX3lhaG9vX2JfY29va2llIjp0cnVlLCJsaXZlcGhvdG9zIjp0cnVlfQ==&quot;},&quot;Context&quot;:{&quot;name&quot;:&quot;default&quot;,&quot;time&quot;:1509422403000,&quot;userinfo&quot;:{&quot;primary&quot;:&quot;&quot;,&quot;name&quot;:&quot;&quot;,&quot;channels&quot;:[]},&quot;hosts&quot;:{&quot;assets_host&quot;:&quot;http:\/\/assets.tumblr.com&quot;,&quot;secure_assets_host&quot;:&quot;https:\/\/assets.tumblr.com&quot;,&quot;www_host&quot;:&quot;http:\/\/www.tumblr.com&quot;,&quot;secure_www_host&quot;:&quot;https:\/\/www.tumblr.com&quot;,&quot;embed_host&quot;:&quot;https:\/\/embed.tumblr.com&quot;,&quot;safe_host&quot;:&quot;http:\/\/safe.txmblr.com&quot;,&quot;platform_host&quot;:&quot;http:\/\/platform.tumblr.com&quot;},&quot;language&quot;:&quot;en_US&quot;,&quot;language_simple&quot;:&quot;en&quot;,&quot;assets&quot;:&quot;http:\/\/assets.tumblr.com\/client\/prod\/&quot;},&quot;Translations&quot;:{&quot;%1$sReport %2$s&#039;s post?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;:&quot;%1$sReport %2$s&#039;s reblog?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;,&quot;%1$sReport %2$s&#039;s reply?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;:&quot;%1$sReport %2$s&#039;s reblog?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;}}"></noscript><script src="http://assets.tumblr.com/client/prod/standalone/tumblelog/index.build.js?_v=c41e22c9b4f5b7ebfca85acc96f7b07f"></script></body></html>

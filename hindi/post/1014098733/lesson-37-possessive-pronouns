@@ -1,0 +1,443 @@
+<!DOCTYPE html><script>var __pbpa = true;</script><script>var translated_warning_string = 'Warning: Never enter your Tumblr password unless \u201chttps://www.tumblr.com/login\u201d\x0ais the address in your web browser.\x0a\x0aYou should also see a green \u201cTumblr, Inc.\u201d identification in the address bar.\x0a\x0aSpammers and other bad guys use fake forms to steal passwords.\x0a\x0aTumblr will never ask you to log in from a user\u2019s blog.\x0a\x0aAre you absolutely sure you want to continue?';</script><script type="text/javascript" language="javascript" src="http://assets.tumblr.com/assets/scripts/pre_tumblelog.js?_v=7e0654d636b56bfe6a0970b99e23e0f7"></script><!DOCTYPE html><!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"></html><![endif]--><!--[if IE 7]><html class="no-js lt-ie9 lt-ie8"></html><![endif]--><!--[if IE 8]><html class="no-js lt-ie9"></html><![endif]--><!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]--><!--
+  ==========================================================================
+   ____                     ___       __  __
+  /\  _`\  __              /\_ \     /\ \/\ \          __
+  \ \ \L\ \\_\  __  _    __\//\ \    \ \ \ \ \    ___ /\_\    ___    ___
+   \ \ ,__//\ \/\ \/'\ /'__`\\ \ \    \ \ \ \ \ /' _ `\/\ \  / __`\/' _ `\
+    \ \ \/ \ \ \/>  <//\  __/ \_\ \_   \ \ \_\ \/\ \/\ \ \ \/\ \L\ \\ \/\ \
+     \ \_\  \ \_\\_/\_\ \____\/\____\   \ \_____\ \_\ \_\ \_\ \____/ \_\ \_\
+      \/_/   \/_///\/_/\/____/\/____/    \/_____/\/_/\/_/\/_/\/___/ \/_/\/_/
+  ==========================================================================
+     Provenance v3.4.0
+     Updated: May 07, 2013
+     Website: http://pixelunion.net
+     Themes: http:tumblr.com/themes/by/pixelunion
+  ==========================================================================
+--><head><meta charset="utf-8" /><meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible" /><meta content="" name="description" /><meta content="width=1000px" name="viewport" /><meta name="text:Facebook API ID" content="" /><meta name="text:Facebook Username" content="" /><meta name="text:GA Property ID" content="" /><meta name="text:Tag Collections" content="" /><meta name="text:Tag Collections Menu" content="Galleries" /><meta name="text:Instagram Access Token" content="" /><meta name="text:Flickr ID" content="" /><meta name="text:Sticky Post ID" content="" /><meta name="text:Header Color Opacity" content="0.7" /><meta name="text:Disqus Shortname" content="" /><meta name="text:Social Links Title" content="Connect with me" /><meta name="text:Copyright Text" content="" /><meta name="if:Disqus Comments" content="" /><meta name="if:Facebook Comments" content="0" /><meta name="if:Infinite Scroll" content="1" /><meta name="if:Sidebar" content="1" /><meta name="if:Alternate Header Layout" content="0" /><meta name="if:Show Latest Tweet" content="1" /><meta name="if:Show Random Archive RSS" content="1" /><meta name="if:Show Title in Header" content="1" /><meta name="if:Show Description in Header" content="1" /><meta name="if:Show Description in Footer" content="1" /><meta name="if:Show Header Gradient" content="1" /><meta name="if:Fixed Sidebar" content="0" /><meta name="if:Nav on Top" content="0" /><meta name="image:Header Avatar" content="http://static.tumblr.com/7szwxy7/pWSmlvib3/default_portrait.jpeg" /><meta name="image:Header Background" content="http://static.tumblr.com/7szwxy7/zR2mlvibf/default_header.jpeg" /><meta name="image:Sidebar Avatar" content="" /><meta name="color:Header Color" content="#2a2d35" /><meta name="color:Secondary Background" content="#162024" /><meta name="color:Secondary Text" content="#76919c" /><meta name="color:Header Text" content="#aec7d1" /><meta name="color:Header Title" content="#ffffff" /><meta name="color:Accent" content="#eb5e29" /><meta name="color:Main Background" content="#e8e8e8" /><meta name="text:Behance URL" content="" /><meta name="text:Delicious URL" content="" /><meta name="text:DeviantArt URL" content="" /><meta name="text:Digg URL" content="" /><meta name="text:Dribbble URL" content="" /><meta name="text:Email Address" content="" /><meta name="text:Flickr URL" content="" /><meta name="text:Foursquare URL" content="" /><meta name="text:Github URL" content="" /><meta name="text:Google Plus URL" content="" /><meta name="text:Instagram URL" content="" /><meta name="text:Lastfm URL" content="" /><meta name="text:Linkedin URL" content="" /><meta name="text:MySpace URL" content="" /><meta name="text:Pinboard URL" content="" /><meta name="text:Pinterest URL" content="" /><meta name="text:Rdio URL" content="" /><meta name="text:Skype Username" content="" /><meta name="text:Soundcloud URL" content="" /><meta name="text:Spotify URL" content="" /><meta name="text:Stumbleupon URL" content="" /><meta name="text:Svpply URL" content="" /><meta name="text:Vimeo URL" content="" /><meta name="text:Youtube URL" content="" /><style type="text/css">body {
+      background-color: #e8e8e8;
+    } 
+     
+    header #nav .galleries .menu > li a:hover,
+    header #nav ul > li .label:hover, #sidebar > ul li .label:hover, #sidebar > ul li.galleries .menu a:hover,
+    .post .post-footer .bottom .share.button .share-box .url.hover,
+    header #nav .right a:hover, #sidebar .bottom a:hover,
+    .post h1:hover a,
+    .search-results span,
+    a {
+      color: #4ea3d0;
+    } #sidebar > ul li.galleries .label:hover:after,
+    header #nav ul > li .label:hover:after {
+      border-top-color: #4ea3d0;
+    } #pagination .previous, #pagination .next, #pagination .previous, #pagination .previous,
+    .post .post-footer .bottom .share.button .share-box .button:hover, #infinite-scroll .button,
+    .type-audio .audio-wrap .custom-player-wrap .custom-player .bar .inner-bar {
+      background-color: #4ea3d0;
+    } #tabber .photostream .photo .border, #tabber .photostream .permalink .border {
+      border-color: #4ea3d0;
+    } 
+    header .underlay.one {
+      background-image: url(http://static.tumblr.com/6a7a25b2b3976283c5dd29c7b0a5327a/yk90tr7/RDomnglw5/tumblr_static_cropandshade3.jpg);
+    } 
+    header .underlay.three {
+      background-color: #2a2d35;
+      opacity: 0.30;
+    } 
+    header #nav,
+    header #nav .galleries .menu, #sidebar,
+    footer {
+      background-color: #162024;
+    } 
+    footer,
+    .bottom a,
+    footer #twitter .twitter-info a,
+    footer #twitter .twitter-info a:link,
+    footer #twitter .twitter-info a:visited,
+    footer .back-to-top,
+    .copyright a, #nav .right #search, #tabber .photostream .permalink div, #twitter .tweet .permalink, #nav .right a {
+      color: #76919c;
+    } 
+    header {
+      color: #fdfdfd;
+    } 
+    header h1 a {
+      color: #ffffff;
+    }</style><script>var options = {facebook_api_id:false,
+  facebook_username:true,
+  ga_property_id:true,
+  tag_collections:true,
+  tag_collections_menu:true,
+  instagram_access_token:false,
+  flickr_id:false,
+  sticky_post_id:false,
+  header_color_opacity:true,
+  disqus_shortname:true,
+  social_links_title:true,
+  copyright_text:true,
+  disqus_comments:true,
+  facebook_comments:false,
+  infinite_scroll:false,
+  sidebar:true,
+  alternate_header_layout:true,
+  show_latest_tweet:true,
+  show_random_archive_rss:false,
+  show_title_in_header:true,
+  show_description_in_header:true,
+  show_description_in_footer:false,
+  show_header_gradient:true,
+  fixed_sidebar:true,
+  nav_on_top:false,
+  header_avatar: 'http://assets.tumblr.com/images/x.gif?v=1',
+  header_background: 'http://static.tumblr.com/6a7a25b2b3976283c5dd29c7b0a5327a/yk90tr7/RDomnglw5/tumblr_static_cropandshade3.jpg',
+  sidebar_avatar: 'http://assets.tumblr.com/images/x.gif?v=1',
+  header_color: '#2a2d35',
+  secondary_background: '#162024',
+  secondary_text: '#76919c',
+  header_text: '#fdfdfd',
+  header_title: '#ffffff',
+  accent: '#4ea3d0',
+  main_background: '#e8e8e8'};</script><script type="text/javascript">
+    
+    
+      options.disqus_shortname = "learninghindi";
+    
+    
+    
+   
+     /* 
+      options.galleries = "1,2,3"; */
+      
+    
+    
+      options.twitterName = 'learning_hindi';
+    
+    
+    
+    
+    </script><meta content="LearningHindi" property="fb:admins" /><meta content="Learning Hindi!" property="og:site_name" /><meta content="http://www.learning-hindi.com/post/1014098733/lesson-37-possessive-pronouns" property="og:url" /><meta content="article" property="og:type" /><meta content="Can you remember back to&nbsp;Lesson #15? In that lesson we learned all about Hindi pronouns. These are words like &lsquo;I&rsquo;, 'He&rsquo;, 'You&rsquo;, 'They&rsquo;, etc etc. If your memory has slipped then feel free to head back to that&nbsp;Lesson #15!&nbsp;
+
+
+ In today&rsquo;s lesson we&rsquo;re going to learn Hindi Possessive Pronouns. These are very similar to Pronouns but they are used to show Possession - to show that someone owns something!In English Possessive Pronouns are words like 'My&rsquo;, 'His&rsquo;, 'Their&rsquo;, 'Your&rsquo;. I&rsquo;m sure your familiar with them! Possessive Pronouns are very common so it&rsquo;s super important to know them!&nbsp;
+
+
+ Unfortunately though, Hindi Possessive Pronouns have a little catch which we&rsquo;ll see next time in Possessive Pronouns Part 2&nbsp;(Don&rsquo;t worry about that for now!).&nbsp;
+
+
+ Let me show you a couple of examples first and then we&rsquo;ll see the whole list of Possessive Pronouns. Just try and absorb each example, they&rsquo;re all very straightforward!&nbsp;So are you ready to go?&nbsp;
+
+
+
+
+
+&#2350;&#2375;&#2352;&#2366; &#2325;&#2350;&#2352;&#2366; meraa kamraa - My Room
+
+
+
+
+
+&#2310;&#2346;&#2325;&#2366; &#2358;&#2348;&#2381;&#2342;&#2325;&#2379;&#2358; aapkaa shabdkosh - Your Dictionary&nbsp;
+
+
+
+
+
+&#2313;&#2360;&#2325;&#2366; &#2342;&#2352;&#2357;&#2366;&#2332;&#2364;&#2366; uskaa darvaazaa - His Door
+
+
+ Can you follow those examples? The Possessive Pronouns work in a very similar way to English ones! So are you ready to see the full list of Hindi Possessive Pronouns? &#2309;&#2330;&#2381;&#2331;&#2366; acchaa - great! Deep breathe in, here goes&hellip;
+
+
+ First Person Singular
+
+
+ &#2350;&#2375;&#2352;&#2366; &nbsp; &nbsp; &nbsp;&nbsp;meraa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;My
+
+
+ First Person Plural
+
+
+ &#2361;&#2350;&#2366;&#2352;&#2366; &nbsp; &nbsp;&nbsp;hamaaraa &nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Our
+
+
+ Second Person Singular&nbsp;
+
+
+ &#2340;&#2375;&#2352;&#2366; &nbsp; &nbsp; &nbsp; &nbsp;teraa &nbsp; &nbsp; &nbsp;&nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Your (Very Informal)
+
+
+ Second Person Plural
+
+
+ &#2310;&#2346;&#2325;&#2366; &nbsp; &nbsp;&nbsp;aapkaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Your (Formal)
+
+
+ &#2340;&#2369;&#2350;&#2381;&#2361;&#2366;&#2352;&#2366; &nbsp; &nbsp;&nbsp;tumhaaraa &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;Your (Informal)
+
+
+ If you don&rsquo;t remember or aren&rsquo;t sure of the differences between the 3 different types of the word 'you&rsquo; in Hindi, then head back to&nbsp;Lesson #15!&nbsp;
+
+
+
+ Third Person Singular
+
+
+ &#2311;&#2360;&#2325;&#2366; &nbsp; &nbsp; &nbsp;iskaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;His / Her / Its &nbsp;(Near)
+
+
+ &#2313;&#2360;&#2325;&#2366; &nbsp; &nbsp; &nbsp;uskaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;His / Her / Its &nbsp;(Far)
+
+
+ Third Person Plural
+
+
+ &#2311;&#2344;&#2325;&#2366; &nbsp; &nbsp; &nbsp;inkaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Their &nbsp;(Near) &nbsp;or His / Her (Formal)
+
+
+ &#2313;&#2344;&#2325;&#2366; &nbsp; &nbsp; &nbsp;unkaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; Their &nbsp;(Far) &nbsp;or His / Her (Formal)
+
+
+ The difference between &#2311;&#2360;&#2325;&#2366;  iskaa and &#2313;&#2360;&#2325;&#2366;  uskaa is exactly the same as the difference between &#2351;&#2361;  yeh and  &#2357;&#2361; voh as we saw in Lesson #15. Similarly the difference between &#2311;&#2344;&#2325;&#2366; inkaa and  &#2313;&#2344;&#2325;&#2366; unkaa is the smae as the difference between &#2351;&#2375; ye and &#2357;&#2375;  ve!
+
+
+ Does that make sense? Leave a comment below if you have any questions! Let&rsquo;s see a few more examples for today then, this time try and understand why we&rsquo;re using the word we do! In our last two examples we&rsquo;re going to put our newly learnt Possessive Pronouns into full sentences (Using some knowledge from Lesson #44)!&nbsp;
+
+
+
+
+
+ &#2313;&#2344;&#2325;&#2366; &#2325;&#2375;&#2354;&#2366;&nbsp;unkaa kelaa&nbsp;- Their Banana&nbsp;
+
+
+
+
+
+ &#2340;&#2369;&#2350;&#2381;&#2361;&#2366;&#2352;&#2366; &#2326;&#2366;&#2344;&#2366; &#2327;&#2352;&#2381;&#2350; &#2361;&#2376;&nbsp;tumhaaraa khaanaa garm hai - Your food is hot
+
+
+
+
+
+&#2361;&#2350;&#2366;&#2352;&#2366; &#2348;&#2327;&#2364;&#2368;&#2330;&#2366; &#2348;&#2337;&#2364;&#2366; &#2361;&#2376;&nbsp;hamaaraa bageecaa baraa hai - Our Garden is big
+
+
+ Don&rsquo;t worry if you&rsquo;re a little confused with the last two, just make sure you can spot the Possessive Pronouns!&nbsp;
+
+
+ Unfortunately though, there&rsquo;s a big catch with these Possessive Pronouns that I haven&rsquo;t told you about yet. This is what makes Possessive Pronouns a little harder than English ones! Have no fear though because we will cover this in Lesson #40 Possessive Pronouns Part 2 so be sure to head there now and learn all about it!&nbsp;
+
+
+ Back to Beginner&rsquo;s Grammar." property="og:description" /><meta content="Lesson #37: Possessive Pronouns" property="og:title" /><style type="text/css">p.center { text-align: center; }
+
+img {vertical-align:middle; } 
+
+.tumblr-notes { display: none !important; }
+
+/* tumblr_controls{ background: none !important; border: none !important; box-shadow: none !important; } */</style><title> Lesson #37: Possessive Pronouns |   Learning Hindi!  </title><style>figure{margin:0}.tmblr-iframe{position:absolute}.tmblr-iframe.hide{display:none}.tmblr-iframe--amp-cta-button{visibility:hidden;position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:100}.tmblr-iframe--amp-cta-button.tmblr-iframe--loaded{visibility:visible;animation:iframe-app-cta-transition .2s ease-out}</style><link href="http://78.media.tumblr.com/avatar_2afd6f55f15f_128.png" rel="shortcut icon" /><link href="../../rss" rel="alternate" type="application/rss+xml" /><link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900,200italic,300italic,400italic,600italic,700italic,900italic" media="screen" rel="stylesheet" type="text/css" /><link href="http://static.tumblr.com/yk90tr7/Iexode5dt/style.css" media="screen" rel="stylesheet" type="text/css" /><script src="http://static.tumblr.com/hugxd2w/gPam0w5o1/modernizr-2.5.3.min.js"></script><link rel="alternate" href="android-app://com.tumblr/tumblr/x-callback-url/blog?blogName=learninghindi%26postID=1014098733" /><link rel="alternate" href="ios-app://305343404/tumblr/x-callback-url/blog?blogName=learninghindi&postID=1014098733" /><link rel="alternate" type="application/json+oembed" href="https://www.tumblr.com/oembed/1.0?url=http://www.learning-hindi.com/post/1014098733/lesson-37-possessive-pronouns" title="Lesson #37: Possessive Pronouns
+Can you remember back to Lesson #15? In that lesson we learned all about Hindi pronouns. These are words like &lsquo;I&rsquo;, &#039;He&rsquo;, &#039;You&rsquo;, &#039;They&rsquo;, etc etc. If your memory has slipped then feel free to head back to that Lesson..."/><link rel="amphtml" href=http://www.learning-hindi.com/post/1014098733/lesson-37-possessive-pronouns/amp /><script src="http://assets.tumblr.com/assets/scripts/tumblelog_post_message_queue.js?_v=a8938c0e77cf8b1347c2e8acd1ee607c"></script><link rel="stylesheet" type="text/css" href="http://assets.tumblr.com/fonts/gibson/stylesheet.css?v=3"><meta name="keywords" content="aug2010,pronouns,beginners" /><!-- GOOGLE CAROUSEL --><script type="application/ld+json">
+	{"@type":"SocialMediaPosting","url":"http:\/\/www.learning-hindi.com\/post\/1014098733\/lesson-37-possessive-pronouns","mainEntityOfPage":true,"datePublished":"2010-08-26T13:34:00-04:00","author":"learninghindi","image":{"@list":["http:\/\/78.media.tumblr.com\/tumblr_lmjbbhTR1i1qzfx8l.png","http:\/\/78.media.tumblr.com\/tumblr_lmjbexrsUq1qzfx8l.jpg","http:\/\/78.media.tumblr.com\/tumblr_lmjbi0RMHe1qzfx8l.jpg","http:\/\/78.media.tumblr.com\/tumblr_lmjcgyb4nb1qzfx8l.jpg","http:\/\/78.media.tumblr.com\/tumblr_lmjchjLxV41qzfx8l.png","http:\/\/78.media.tumblr.com\/tumblr_lmjcg0VGK51qzfx8l.jpg"]},"headline":"Lesson #37: Possessive Pronouns","articleBody":"Can you remember back to Lesson #15? In that lesson we learned all about Hindi pronouns. These are words like \u2018I\u2019, \u0027He\u2019, \u0027You\u2019, \u0027They\u2019, etc etc. If your memory has slipped then feel free to head back to that Lesson #15!\nIn today\u2019s lesson we\u2019re going to learn Hindi Possessive Pronouns. These are very...","@context":"http:\/\/schema.org"}</script><link rel="canonical" href="lesson-37-possessive-pronouns" /></head><body class="permalink-page   has-sidebar  "><div id="page-wrap"><header class="header-2  no-avatar-image"><div class="underlay one"></div><div class="underlay two"></div><div class="underlay three"></div><!--  --><div class="inner clearfix"><div class="wrap"><a class="avatar-link" href="../../index.html"></a><h1><a href="../../index.html">Learning Hindi!</a></h1><div id="blog-description">नमस्ते namaste and welcome to Learning Hindi! We teach the beautiful language of Hindi in short, easy and fun lessons. Best of all, everything is completely free!</div></div></div><div align="right"> Image by <a href="https://www.facebook.com/Lilsunshinephotography"><FONT COLOR="#fdfdfd">LilSunshinePhotography</a> </FONT></div><div  id="nav"><div class="inner clearfix"><ul class="nav-list wider"><li><a class="label" href="../../index.html">Home</a> </li><li><a class="label" href="../../about">About</a></li><!-- 
+                              <li><a class="label" href="/about">About</a></li><li><a class="label" href="/intro">An Introduction to Hindi</a></li><li><a class="label" href="/vowels">Hindi Vowels</a></li><li><a class="label" href="/consonants">Hindi Consonants </a></li><li><a class="label" href="/beginner">Beginner's Grammar Lessons</a></li><li><a class="label" href="/intermediate">Intermediate Grammar!</a></li><li><a class="label" href="/convo">Conversational Phrases!</a></li><li><a class="label" href="/urdu">Urdu!</a></li><li><a class="label" href="/all">All Lessons</a></li><li><a class="label" href="/legal">Legal</a></li> --><!--     <li><a class="label" href="/ask" id="ask">Ask me anything!</a></li> --><li class="galleries"><div class="label">Lessons</div><div class="menu-wrap"><ul class="menu"><li><a href="../../intro">Introduction</a></li><li><a href="../../vowels">Vowels</a></li><li><a href="../../consonants">Consonants</a></li><li><a href="../../convo">Conversational</a></li><li><a href="../../beginner">Beginner's Grammar</a></li><li><a href="../../intermediate">Intermediate</a></li><li><a href="../../numbers">Numbers</a></li><li><a href="../../urdu">Urdu</a></li><li><a href="../../all">All Lessons</a></li></ul></div></li><li><a class="label" href="../../legal">Legal</a> </li><li><a class="label" href="../../links">Links</a> </li>  
+                              </ul><div class="right"><div id="search"><div class="search-icon"></div><div class="form-wrap"><div class="close-icon"></div><form action="http://www.learning-hindi.com/search" id="search-form" method="get"><input id="search-field" name="q" onblur="if (this.value == '') {this.value = 'Search tags';}" onfocus="if (this.value == 'Search tags') {this.value = '';}" type="text" value="Search tags" /></form></div></div></div></div></div></header><section id="content"><div class="inner clearfix"><div class="fixed" id="sidebar"><ul><li><a class="label" href="../../index.html">Home</a> </li><li><a class="label" href="../../about">About</a></li><!--   
+                    <li><a class="label" href="/about">About</a></li><li><a class="label" href="/intro">An Introduction to Hindi</a></li><li><a class="label" href="/vowels">Hindi Vowels</a></li><li><a class="label" href="/consonants">Hindi Consonants </a></li><li><a class="label" href="/beginner">Beginner's Grammar Lessons</a></li><li><a class="label" href="/intermediate">Intermediate Grammar!</a></li><li><a class="label" href="/convo">Conversational Phrases!</a></li><li><a class="label" href="/urdu">Urdu!</a></li><li><a class="label" href="/all">All Lessons</a></li><li><a class="label" href="/legal">Legal</a></li>
+                   
+                   
+                    
+                     --><!-- <li><a class="label" href="/ask" id="ask">Ask me anything!</a></li> --><li><a class="label" href="../../intro"><small> - Introduction</small></a></li><li><a class="label" href="../../vowels"><small>- Vowels</small></a></li><li><a class="label" href="../../consonants"><small>- Consonants</small></a></li><li><a class="label" href="../../convo"><small>- Conversational</small></a></li><li><a class="label" href="../../beginner"><small> - Beginner's</small></a></li><li><a class="label" href="../../intermediate"><small> - Intermediate</small></a></li><li><a class="label" href="../../numbers"><small> - Numbers</small></a></li><li><a class="label" href="../../urdu"><small> - Urdu</small></a></li><li><a class="label" href="../../all"><small> - All Lessons</small></a></li><!--  <li class="galleries"><div class="label">Lessons</div><div class="menu-wrap"><ul class="menu"><li><a href="http://www.learning-hindi.com/intro">Introduction</a></li><li><a href="http://www.learning-hindi.com/vowels">Vowels</a></li><li><a href="http://www.learning-hindi.com/consonants">Consonants</a></li><li><a href="http://www.learning-hindi.com/convo">Conversational</a></li><li><a href="http://www.learning-hindi.com/beginner">Beginner's Grammar</a></li><li><a href="http://www.learning-hindi.com/intermediate">Intermediate</a></li><li><a href="http://www.learning-hindi.com/numbers">Numbers</a></li><li><a href="http://www.learning-hindi.com/urdu">Urdu</a></li><li><a href="http://www.learning-hindi.com/all">All Lessons</a></li></ul></div></li><li id="search"><div class="label">Search<div class="icon"></div></div><div class="form-wrap"><div class="icon"></div><form action="/search" id="search-form" method="get"><input id="search-field" name="q" onblur="if (this.value == '') {this.value = 'Search tags';}" onfocus="if (this.value == 'Search tags') {this.value = '';}" type="text" value="Search tags" /></form></div></li> --><li><a class="label" href="../../legal">Legal</a> </li><li><a class="label" href="../../links">Links</a> </li> 
+
+          </ul></div><div id="posts"><article class="post type-text" id="1014098733"><aside class="metadata not-custom-page"><a class="timestamp" href="lesson-37-possessive-pronouns">August 26th, 2010</a><!--  
+                               <a class="note-count" href="http://www.learning-hindi.com/post/1014098733/lesson-37-possessive-pronouns#notes">13 notes</a> --><a class="comment-count" href="lesson-37-possessive-pronouns#disqus_thread"></a><script type="text/javascript">
+    var disqus_shortname = 'learninghindi';
+
+    (function () {
+        var s = document.createElement('script'); s.async = true;
+        s.type = 'text/javascript';
+        s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+    }());
+</script></aside><h2><a href="lesson-37-possessive-pronouns">Lesson #37: Possessive Pronouns </a></h2><div class="caption clearfix rte"><p>Can you remember back to&nbsp;<a href="../853847321/lesson-15-pronouns">Lesson #15</a>? In that lesson we learned all about Hindi pronouns. These are words like &lsquo;I&rsquo;, 'He&rsquo;, 'You&rsquo;, 'They&rsquo;, etc etc. If your memory has slipped then feel free to head back to that&nbsp;<a href="../853847321/lesson-15-pronouns">Lesson #15</a>!&nbsp;</p><p>In today&rsquo;s lesson we&rsquo;re going to learn Hindi Possessive Pronouns. These are very similar to Pronouns but they are used to show Possession - to show that someone owns something!In English Possessive Pronouns are words like 'My&rsquo;, 'His&rsquo;, 'Their&rsquo;, 'Your&rsquo;. I&rsquo;m sure your familiar with them! Possessive Pronouns are very common so it&rsquo;s super important to know them!&nbsp;</p><p>Unfortunately though, Hindi Possessive Pronouns have a little catch which we&rsquo;ll see next time in <a href="../1047461709/lesson-40-possessive-pronouns-part-2">Possessive Pronouns Part 2</a>&nbsp;(Don&rsquo;t worry about that for now!).&nbsp;</p><p>Let me show you a couple of examples first and then we&rsquo;ll see the whole list of Possessive Pronouns. Just try and absorb each example, they&rsquo;re all very straightforward!&nbsp;So are you ready to go?&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/tumblr_lmjbbhTR1i1qzfx8l.png"></p><p class="center"><big><big>&#2350;&#2375;&#2352;&#2366; &#2325;&#2350;&#2352;&#2366;</big></big> <em>meraa kamraa</em> - My Room</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/tumblr_lmjbexrsUq1qzfx8l.jpg"></p><p class="center"><big><big>&#2310;&#2346;&#2325;&#2366; &#2358;&#2348;&#2381;&#2342;&#2325;&#2379;&#2358;</big></big> <em>aapkaa shabdkosh</em> - Your Dictionary&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/tumblr_lmjbi0RMHe1qzfx8l.jpg"></p><p class="center"><big><big>&#2313;&#2360;&#2325;&#2366; &#2342;&#2352;&#2357;&#2366;&#2332;&#2364;&#2366;</big></big> <em>uskaa darvaazaa</em> - His Door</p><p>Can you follow those examples? The Possessive Pronouns work in a very similar way to English ones! So are you ready to see the full list of Hindi Possessive Pronouns? <big><big>&#2309;&#2330;&#2381;&#2331;&#2366; </big></big><em>acchaa </em>- great! Deep breathe in, here goes&hellip;</p><p><strong>First Person Singular</strong></p><p><big><big><big><big>&#2350;&#2375;&#2352;&#2366; &nbsp; &nbsp; &nbsp;&nbsp;</big></big></big></big><em>meraa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</em>&nbsp;My</p><p><strong>First Person Plural</strong></p><p><big><big><big><big>&#2361;&#2350;&#2366;&#2352;&#2366; &nbsp; &nbsp;&nbsp;</big></big></big></big><em>hamaaraa </em>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Our</p><p><strong>Second Person Singular&nbsp;</strong></p><p><big><big><big><big>&#2340;&#2375;&#2352;&#2366; &nbsp; &nbsp; &nbsp; &nbsp;</big></big></big></big><em>teraa &nbsp; &nbsp; &nbsp;&nbsp;</em>&nbsp;&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;Your (Very Informal)</p><p><strong>Second Person Plural</strong></p><p><big><big><big><big>&#2310;&#2346;&#2325;&#2366; &nbsp; &nbsp;&nbsp;</big></big></big></big><em>aapkaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</em>Your (Formal)</p><p><big><big><big><big>&#2340;&#2369;&#2350;&#2381;&#2361;&#2366;&#2352;&#2366; &nbsp; &nbsp;&nbsp;</big></big></big></big><em>tumhaaraa &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</em>Your (Informal)</p><p>If you don&rsquo;t remember or aren&rsquo;t sure of the differences between the 3 different types of the word 'you&rsquo; in Hindi, then head back to&nbsp;<a href="../853847321/lesson-15-pronouns">Lesson #15</a>!&nbsp;</p><p><strong>Third Person Singular</strong></p><p><big><big><big><big>&#2311;&#2360;&#2325;&#2366; &nbsp; &nbsp; &nbsp;</big></big></big></big><em>iskaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</em>His / Her / Its &nbsp;(Near)</p><p><big><big><big><big>&#2313;&#2360;&#2325;&#2366; &nbsp; &nbsp; &nbsp;</big></big></big></big><em>uskaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</em>His / Her / Its &nbsp;(Far)</p><p><strong>Third Person Plural</strong></p><p><big><big><big><big>&#2311;&#2344;&#2325;&#2366; &nbsp; &nbsp; &nbsp;</big></big></big></big><em>inkaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;</em>Their &nbsp;(Near) &nbsp;or His / Her (Formal)</p><p><big><big><big><big>&#2313;&#2344;&#2325;&#2366; &nbsp; &nbsp; &nbsp;</big></big></big></big><em>unkaa &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; </em>&nbsp; Their &nbsp;(Far) &nbsp;or His / Her (Formal)</p><p>The difference between <big><big>&#2311;&#2360;&#2325;&#2366; </big></big> <em>iskaa</em> and <big><big>&#2313;&#2360;&#2325;&#2366; </big></big> <em>uskaa</em> is exactly the same as the difference between <big><big>&#2351;&#2361; </big></big> <em>yeh</em> and <big><big> &#2357;&#2361; </big></big><em>voh</em> as we saw in <a href="../853847321/lesson-15-pronouns">Lesson #15</a>. Similarly the difference between <big><big>&#2311;&#2344;&#2325;&#2366; </big></big><em>inkaa</em> and <big><big> &#2313;&#2344;&#2325;&#2366; </big></big><em>unkaa</em> is the smae as the difference between <big><big>&#2351;&#2375; </big></big><em>ye</em> and <big><big>&#2357;&#2375; </big></big> <em>ve</em>!</p><p>Does that make sense? Leave a comment below if you have any questions! Let&rsquo;s see a few more examples for today then, this time try and understand why we&rsquo;re using the word we do! In our last two examples we&rsquo;re going to put our newly learnt Possessive Pronouns into full sentences (Using some knowledge from <a href="../1076764983/lesson-44-adjectives">Lesson #44</a>)!&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/tumblr_lmjcgyb4nb1qzfx8l.jpg"></p><p class="center"><big><big> &#2313;&#2344;&#2325;&#2366; &#2325;&#2375;&#2354;&#2366;</big></big>&nbsp;<em>unkaa kelaa</em>&nbsp;- Their Banana&nbsp;</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/tumblr_lmjchjLxV41qzfx8l.png"></p><p class="center"><big><big> &#2340;&#2369;&#2350;&#2381;&#2361;&#2366;&#2352;&#2366; &#2326;&#2366;&#2344;&#2366; &#2327;&#2352;&#2381;&#2350; &#2361;&#2376;</big></big>&nbsp;<em>tumhaaraa khaanaa garm hai</em> - Your food is hot</p><p class="center"><img alt="image" src="http://78.media.tumblr.com/tumblr_lmjcg0VGK51qzfx8l.jpg"></p><p class="center"><big><big>&#2361;&#2350;&#2366;&#2352;&#2366; &#2348;&#2327;&#2364;&#2368;&#2330;&#2366; &#2348;&#2337;&#2364;&#2366; &#2361;&#2376;</big></big>&nbsp;<em>hamaaraa bageecaa baraa hai</em> - Our Garden is big</p><p>Don&rsquo;t worry if you&rsquo;re a little confused with the last two, just make sure you can spot the Possessive Pronouns!&nbsp;</p><p>Unfortunately though, there&rsquo;s a big catch with these Possessive Pronouns that I haven&rsquo;t told you about yet. This is what makes Possessive Pronouns a little harder than English ones! Have no fear though because we will cover this in <a href="../1047461709/lesson-40-possessive-pronouns-part-2">Lesson #40 Possessive Pronouns Part 2</a> so be sure to head there now and learn all about it!&nbsp;</p><p><a href="../../beginner">Back to Beginner&rsquo;s Grammar</a>.</p></div><aside class="post-footer"><div class="tags"><span>Tags:</span><a href="http://www.learning-hindi.com/tagged/aug2010">aug2010</a> <a href="http://www.learning-hindi.com/tagged/pronouns">pronouns</a> <a href="http://www.learning-hindi.com/tagged/beginners">beginners</a> </div><div class="bottom"><div class="like_button" data-post-id="1014098733" data-blog-name="learninghindi" id="like_button_1014098733"><iframe id="like_iframe_1014098733" src="http://assets.tumblr.com/assets/html/like_iframe.html?_v=5716f9145cbbcc5e21aa13229de5d4ed#name=learninghindi&amp;post_id=1014098733&amp;color=grey&amp;rk=nHVkC0Gm" scrolling="no" width="16" height="16" frameborder="0" class="like_toggle" allowTransparency="true" name="like_iframe_1014098733"></iframe></div><a href="https://www.tumblr.com/reblog/1014098733/nHVkC0Gm" class="reblog_button"style="display: block;width:16px;height:16px;"><svg width="100%" height="100%" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#ccc"><path d="M5.01092527,5.99908429 L16.0088498,5.99908429 L16.136,9.508 L20.836,4.752 L16.136,0.083 L16.1360004,3.01110845 L2.09985349,3.01110845 C1.50585349,3.01110845 0.979248041,3.44726568 0.979248041,4.45007306 L0.979248041,10.9999998 L3.98376463,8.30993634 L3.98376463,6.89801007 C3.98376463,6.20867902 4.71892527,5.99908429 5.01092527,5.99908429 Z"></path><path d="M17.1420002,13.2800293 C17.1420002,13.5720293 17.022957,14.0490723 16.730957,14.0490723 L4.92919922,14.0490723 L4.92919922,11 L0.5,15.806 L4.92919922,20.5103758 L5.00469971,16.9990234 L18.9700928,16.9990234 C19.5640928,16.9990234 19.9453125,16.4010001 19.9453125,15.8060001 L19.9453125,9.5324707 L17.142,12.203"></path></svg></a><div class="share button">Share<div class="share-box"><div class="label">Share this:</div><a class="twitter button" href="https://twitter.com/intent/tweet?url=http://www.learning-hindi.com/post/1014098733/lesson-37-possessive-pronouns" target="_blank">Twitter</a><a class="pinterest button" target="_blank">Pinterest</a><a class="facebook button" href="https://www.facebook.com/sharer.php?u=http://www.learning-hindi.com/post/1014098733/lesson-37-possessive-pronouns" target="_blank">Facebook</a><a class="google-plus button" href="https://plus.google.com/share?url=http://www.learning-hindi.com/post/1014098733/lesson-37-possessive-pronouns" target="_blank">Google+</a><div class="url" data-clipboard-text="https://tmblr.co/ZJelGyySUij">https://tmblr.co/ZJelGyySUij</div></div></div></div></aside></article><!--       <div class="comments"><div id="disqus_thread"></div><script type="text/javascript">var disqus_shortname = 'learninghindi';
+                      (function() {
+                      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                      dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                      })();</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a class="dsq-brlink" href="http://disqus.com">comments powered by <span class="logo-disqus">Disqus</span></a></div> --> 
+                  
+                  
+                  
+      <div class="tumblr-notes"><h1>Notes</h1><ol class="notes"><!-- START NOTES --><li class="note like tumblelog_vilexchild without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="https://vilexchild.tumblr.com/" title="Bitter " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_0c428ac9dcdf_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="https://vilexchild.tumblr.com/" title="Bitter" rel="nofollow">vilexchild</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_alia-al-ali-blog without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="https://alia-al-ali-blog.tumblr.com/" title="Untitled " rel="nofollow"><img src="http://assets.tumblr.com/images/default_avatar/cube_closed_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="https://alia-al-ali-blog.tumblr.com/" title="Untitled" rel="nofollow">alia-al-ali-blog</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_theopenveil without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://theopenveil.tumblr.com/" title="The Open Veil " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_e0d2072d4ca8_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://theopenveil.tumblr.com/" title="The Open Veil" rel="nofollow">theopenveil</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_argeliarani-blog without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="https://argeliarani-blog.tumblr.com/" title="Sin t&iacute;tulo " rel="nofollow"><img src="http://assets.tumblr.com/images/default_avatar/octahedron_closed_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="https://argeliarani-blog.tumblr.com/" title="Sin t&iacute;tulo" rel="nofollow">argeliarani-blog</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_annacecy without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://annacecy.tumblr.com/" title="Love like you&#039;ll never be hurt " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_b0c580357d13_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://annacecy.tumblr.com/" title="Love like you&#039;ll never be hurt" rel="nofollow">annacecy</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_smalldarknhandsome without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://smalldarknhandsome.tumblr.com/" title="SmallDarkNHandsome " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_70ff4a1319c1_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://smalldarknhandsome.tumblr.com/" title="SmallDarkNHandsome" rel="nofollow">smalldarknhandsome</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_deafangelasl7 without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://deafangelasl7.tumblr.com/" title=" " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_9aed681123af_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://deafangelasl7.tumblr.com/" title="" rel="nofollow">deafangelasl7</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_tafelschwamm without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://tafelschwamm.tumblr.com/" title="Untitled " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_9a5365dff26c_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://tafelschwamm.tumblr.com/" title="Untitled" rel="nofollow">tafelschwamm</a> liked this                                    </span><div class="clear"></div></li><li class="note like tumblelog_pinkpuff-daydreams without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="http://pinkpuff-daydreams.tumblr.com/" title="This is where my mind wonders from time to time... " rel="nofollow"><img src="http://78.media.tumblr.com/avatar_8818b131b658_64.png" class="avatar " alt="" /></a><span class="action"><a rel="nofollow" href="http://pinkpuff-daydreams.tumblr.com/" title="This is where my mind wonders from time to time..." rel="nofollow">pinkpuff-daydreams</a> liked this                                    </span><div class="clear"></div></li><li class="note reblog tumblelog_learninghindi original_post without_commentary"><a rel="nofollow" class="avatar_frame" target="_blank" href="../../index.html" title="Learning Hindi!"><img src="http://78.media.tumblr.com/avatar_2afd6f55f15f_64.png" class="avatar " alt="" /></a><span class="action" data-post-url="http://www.learning-hindi.com/post/1014098733"><a rel="nofollow" href="../../index.html" class="tumblelog" title="Learning Hindi!">learninghindi</a> posted this                                                                        </span><div class="clear"></div></li><!-- END NOTES --></ol></div> 
+                                           
+                                          
+                                                                                                                  
+                                                                                     <div class="comments"><div id="disqus_thread"></div><script type="text/javascript">var disqus_shortname = 'learninghindi';
+                      (function() {
+                      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                      dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                      })();</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a class="dsq-brlink" href="http://disqus.com">comments powered by <span class="logo-disqus">Disqus</span></a></div>    
+                                          
+                                          
+                                          
+
+
+                                           
+                                          
+                                       
+                                          
+                                          
+                                          
+                    
+                    
+                                      
+
+                                      
+                                      
+                                      
+                                  </div>                                                                    
+      </div></section><footer class="has-twitter"><div class="inner clearfix"><div class="box" id="twitter"><h1>Latest Tweet</h1></div><div class="box" id="social"><h1 class="social-links-title">Connect</h1><div class="social-icons clearfix"><a class="email" href="mailto:george.learninghindi@gmail.com">Email</a><a class="facebook" href="http://www.facebook.com/LearningHindi">Facebook</a><a class="twitter" href="http://twitter.com/learning_hindi">Twitter</a><a class="soundcloud" href="https://soundcloud.com/learninghindi">Soundcloud</a><!-- 
+              
+              
+              
+              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ --> 
+    
+</div></div><div class="box" id="tabber"><ul class="controls"></ul><div class="tabs"><div class="tab photostream" id="instagram"></div><div class="tab photostream" id="flickr"></div></div></div><div class="box copyright">The contents of this website are, unless otherwise mentioned, licenced under a <a href='../../legal'>CC-BY-NC 3.0 unported licence</a>.<br /><a href="http://provenance-theme.tumblr.com">Provenance Theme</a> by <a href="http://pixelunion.net">Pixel Union</a>. Powered by <a href="http://tumblr.com">Tumblr</a>.</div><div class="back-to-top">Back To Top</div></div></footer></div><script type="text/javascript">function recent_tweets(data){window.tweet_data=data;}</script><script src="http://learninghindi.tumblr.com/tweets.js" type="text/javascript"></script><script src="http://static.tumblr.com/7szwxy7/T9jmmer60/script.js" type="text/javascript"></script><script type="text/javascript">(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+       fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script><script type="text/javascript">var _gaq=[['_setAccount','UA-18265204-1'],['_trackPageview']];
+      (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+      g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g,s)}(document,'script'));</script><script type="text/javascript">var themeTitle = "Provenance Theme";
+    var url = "http://provenance-theme.tumblr.com";
+    (function() {
+      var pxu = document.createElement('script'); pxu.type = 'text/javascript'; pxu.async = true; pxu.src = 'http://cdn.pixelunion.net/customize/pxucm.js';
+      var isCustomize = (window.location.href.indexOf('/customize_preview_receiver.html') >= 0);
+      var isDemo = (window.location.href.indexOf(url) >= 0);
+      (isCustomize || isDemo) && ((document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(pxu));
+    })();</script><iframe scrolling="no" width="1" height="1" frameborder="0" style="background-color:transparent; overflow:hidden; position:absolute; top:0; left:0; z-index:9999;" id="ga_target"></iframe><script type="text/javascript">
+    (function(){
+        var analytics_frame = document.getElementById('ga_target');
+        var analytics_iframe_loaded;
+        var user_logged_in;
+        var blog_is_nsfw = 'No';
+        var addthis_enabled = true;
+
+        var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+        var eventer = window[eventMethod];
+        var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+        eventer(messageEvent,function(e) {
+            var message = (e.data && e.data.split) ? e.data.split(';') : '';
+            switch (message[0]) {
+                case 'analytics_iframe_loaded':
+                    analytics_iframe_loaded = true;
+                    postCSMessage();
+                    postGAMessage();
+                    postATMessage();
+                    postRapidMessage();
+                    break;
+                case 'user_logged_in':
+                    user_logged_in = message[1];
+                    postGAMessage();
+                    postATMessage();
+                    break;
+            }
+        }, false);
+
+        analytics_frame.src = "https://assets.tumblr.com/analytics.html?e545bd2397476017430227533432638a#" +
+                              "http://www.learning-hindi.com";
+        function postGAMessage() {
+            if (analytics_iframe_loaded && user_logged_in) {
+                var is_ajax = false;
+                analytics_frame.contentWindow.postMessage(['tick_google_analytics', is_ajax, user_logged_in, blog_is_nsfw, '/post/1014098733/lesson-37-possessive-pronouns?route=%2Fpost%2F%3Aid%2F%3Asummary'].join(';'), analytics_frame.src.split('/analytics.html')[0]);
+            }
+        }
+        function postCSMessage() {
+            COMSCORE = true;
+            analytics_frame.contentWindow.postMessage('enable_comscore;' + window.location, analytics_frame.src.split('/analytics.html')[0]);
+        }
+        function postATMessage() {
+            if (addthis_enabled && analytics_iframe_loaded) {
+                analytics_frame.contentWindow.postMessage('enable_addthis', analytics_frame.src.split('/analytics.html')[0]);
+            }
+        }
+        function postRapidMessage() {
+                            if (analytics_iframe_loaded) {
+                    var is_ajax = '';
+                    var route = '/post/:id/:summary';
+                    var tumblelog_id = '5556009';
+                    var yahoo_space_id = '1197719230';
+                    var rapid_client_only = '1';
+                    var apv = '1';
+                    var rapid_ex = '';
+
+                    analytics_frame.contentWindow.postMessage(
+                        [
+                            'tick_rapid', is_ajax, route, user_logged_in, tumblelog_id,
+                            yahoo_space_id, rapid_client_only, apv, rapid_ex
+                        ].join(';'),
+                        analytics_frame.src.split('/analytics.html')[0]
+                    );
+                }
+                    }
+    })();
+</script><script type="text/javascript">!function(s){s.src='https://px.srvcs.tumblr.com/impixu?T=1509422406&J=eyJ0eXBlIjoidXJsIiwidXJsIjoiaHR0cDpcL1wvd3d3LmxlYXJuaW5nLWhpbmRpLmNvbVwvcG9zdFwvMTAxNDA5ODczM1wvbGVzc29uLTM3LXBvc3Nlc3NpdmUtcHJvbm91bnMiLCJyZXF0eXBlIjowLCJyb3V0ZSI6IlwvcG9zdFwvOmlkXC86c3VtbWFyeSJ9&U=DMPHINCMJO&K=9a740864204dda764692a430736352f732392246936d867cd10d1189234291fa&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall'.replace(/&R=[^&$]*/,'').concat('&R='+escape(document.referrer)).slice(0,2000).replace(/%.?.?$/,'');}(new Image());</script><noscript><img style="position:absolute;z-index:-3334;top:0px;left:0px;visibility:hidden;" src="https://px.srvcs.tumblr.com/impixu?T=1509422406&J=eyJ0eXBlIjoidXJsIiwidXJsIjoiaHR0cDpcL1wvd3d3LmxlYXJuaW5nLWhpbmRpLmNvbVwvcG9zdFwvMTAxNDA5ODczM1wvbGVzc29uLTM3LXBvc3Nlc3NpdmUtcHJvbm91bnMiLCJyZXF0eXBlIjowLCJyb3V0ZSI6IlwvcG9zdFwvOmlkXC86c3VtbWFyeSIsIm5vc2NyaXB0IjoxfQ==&U=DMPHINCMJO&K=f3baca78b448cc496fbf8f7489b5f170d5ecf8abd05600effaad95993a55ec41&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall"></noscript><script >
+        (function (w,d) {
+            'use strict';
+            var l = function(el, type, listener, useCapture) {
+                el.addEventListener ?
+                el.addEventListener(type, listener, !!useCapture) :
+                el.attachEvent && el.attachEvent('on' + type, listener, !!useCapture);
+            };
+            var a = function () {
+                                if (d.getElementById('tumblr-cdx')) {
+                    return;
+                }
+                var s = d.createElement('script');
+                var el = d.getElementsByTagName('script')[0];
+                s.async = true;
+                s.src = 'http://assets.tumblr.com/assets/scripts/vendor/cedexis/1-13960-radar10.min.js?_v=f1579c509dad6daa6d33b4284812ab90';
+                s.type = 'text/javascript';
+                s.id = 'tumblr-cdx';
+                d.body.appendChild(s);
+            };
+            l(w,'load',a);
+        }(window, document));
+</script><script type="text/javascript">!function(s){s.src='https://px.srvcs.tumblr.com/impixu?T=1509422406&J=eyJ0eXBlIjoicG9zdCIsInVybCI6Imh0dHA6XC9cL3d3dy5sZWFybmluZy1oaW5kaS5jb21cL3Bvc3RcLzEwMTQwOTg3MzNcL2xlc3Nvbi0zNy1wb3NzZXNzaXZlLXByb25vdW5zIiwicmVxdHlwZSI6MCwicm91dGUiOiJcL3Bvc3RcLzppZFwvOnN1bW1hcnkiLCJwb3N0cyI6W3sicG9zdGlkIjoiMTAxNDA5ODczMyIsImJsb2dpZCI6IjU1NTYwMDkiLCJzb3VyY2UiOjMzfV19&U=NDIEPAPCBN&K=6ac8794f449eede9838460d27f775ec38c05b776c49a7e0245d67873903a25e6&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall'.replace(/&R=[^&$]*/,'').concat('&R='+escape(document.referrer)).slice(0,2000).replace(/%.?.?$/,'');}(new Image());</script><noscript><img style="position:absolute;z-index:-3334;top:0px;left:0px;visibility:hidden;" src="https://px.srvcs.tumblr.com/impixu?T=1509422406&J=eyJ0eXBlIjoicG9zdCIsInVybCI6Imh0dHA6XC9cL3d3dy5sZWFybmluZy1oaW5kaS5jb21cL3Bvc3RcLzEwMTQwOTg3MzNcL2xlc3Nvbi0zNy1wb3NzZXNzaXZlLXByb25vdW5zIiwicmVxdHlwZSI6MCwicm91dGUiOiJcL3Bvc3RcLzppZFwvOnN1bW1hcnkiLCJwb3N0cyI6W3sicG9zdGlkIjoiMTAxNDA5ODczMyIsImJsb2dpZCI6IjU1NTYwMDkiLCJzb3VyY2UiOjMzfV0sIm5vc2NyaXB0IjoxfQ==&U=NDIEPAPCBN&K=0bef986b9ec2c1814bb56b924e3725a12a76cd931d1736f190d65d22f9bab169&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall"></noscript><noscript id="bootloader" data-bootstrap="{&quot;Components&quot;:{&quot;PostActivity&quot;:[],&quot;NotificationPoller&quot;:{&quot;messaging_keys&quot;:[],&quot;token&quot;:&quot;c86f8a500596474a7ef5034081f694bd&quot;,&quot;inbox_unread&quot;:0},&quot;TumblelogIframe&quot;:{&quot;unified&quot;:true,&quot;variant&quot;:null,&quot;isCompact&quot;:true,&quot;tumblelogBundleSrc&quot;:&quot;http:\/\/assets.tumblr.com\/client\/prod\/standalone\/tumblelog\/index.build.js?_v=c41e22c9b4f5b7ebfca85acc96f7b07f&quot;,&quot;tumblelogName&quot;:&quot;learninghindi&quot;,&quot;isLoggedIn&quot;:false,&quot;isFriend&quot;:false,&quot;formKey&quot;:&quot;&quot;,&quot;canSubscribe&quot;:false,&quot;isSubscribed&quot;:false,&quot;tumblelogTitle&quot;:&quot;Learning Hindi!&quot;,&quot;tumblelogAvatar&quot;:&quot;http:\/\/78.media.tumblr.com\/avatar_2afd6f55f15f_40.png&quot;,&quot;tumblelogHost&quot;:&quot;http:\/\/www.learning-hindi.com&quot;,&quot;isOptica&quot;:false,&quot;isCustomTheme&quot;:true,&quot;themeHeaderImage&quot;:&quot;https:\/\/static.tumblr.com\/9066660bc011f6ee206ae5205c0659d5\/yk90tr7\/yDEn5wh73\/tumblr_static_tumblr_static_ah7o3vi9xuokokw0o4sg8k40w_focused_v3.jpg&quot;,&quot;themeBackgroundColor&quot;:&quot;#FAFAFA&quot;,&quot;themeTitleColor&quot;:&quot;#444444&quot;,&quot;themeAccentColor&quot;:&quot;#529ECC&quot;,&quot;brag&quot;:false,&quot;adsEnabled&quot;:false,&quot;canShowAd&quot;:true,&quot;isPremium&quot;:false,&quot;showLrecAds&quot;:false,&quot;showStickyLrecBackfill&quot;:false,&quot;showGeminiAds&quot;:false,&quot;geminiSectionCodeDesktop&quot;:&quot;a10bca9c-0c5d-4a02-ab13-14ab8513d81d&quot;,&quot;geminiSectionCodeMobile&quot;:&quot;ced63809-b609-4aca-96a0-abc099acba6b&quot;,&quot;currentPageType&quot;:&quot;single_post&quot;,&quot;currentPage&quot;:&quot;1&quot;,&quot;searchQuery&quot;:&quot;&quot;,&quot;tag&quot;:&quot;&quot;,&quot;query&quot;:&quot;&quot;,&quot;chrono&quot;:false,&quot;postId&quot;:&quot;1014098733&quot;,&quot;src&quot;:&quot;http:\/\/www.learning-hindi.com\/post\/1014098733\/lesson-37-possessive-pronouns&quot;,&quot;postUrl&quot;:&quot;&quot;,&quot;isBlocked&quot;:null,&quot;isAdmin&quot;:false,&quot;lookupButtonUrl&quot;:&quot;&quot;,&quot;showSpamButton&quot;:false,&quot;showRootPostButton&quot;:false,&quot;rootPostUrl&quot;:&quot;&quot;,&quot;showRadarPostButton&quot;:false,&quot;radarKeys&quot;:&quot;&quot;,&quot;isUniblocked&quot;:false,&quot;isNsfw&quot;:false,&quot;isAdult&quot;:false,&quot;isSpam&quot;:false,&quot;isPrimaryBlog&quot;:false,&quot;canEdit&quot;:false,&quot;canReblogSelf&quot;:false,&quot;showLikeButton&quot;:false,&quot;showReblogButton&quot;:false,&quot;reblogUrl&quot;:&quot;&quot;,&quot;showFanMailButton&quot;:false,&quot;showMessagingButton&quot;:false,&quot;loginCheckIframeSrc&quot;:&quot;http:\/\/assets.tumblr.com\/assets\/html\/iframe\/login_check.html?_v=d92d24a70075d882e6cfd5c8303fbf32&quot;,&quot;appInstallUrls&quot;:{&quot;android&quot;:&quot;https:\/\/play.google.com\/store\/apps\/details?id=com.tumblr\u0026referrer=utm_source%3Dtumblr%26utm_medium%3Diframe%26utm_campaign%3Dblog_network_floating_cta&quot;,&quot;ios&quot;:&quot;https:\/\/itunes.apple.com\/app\/apple-store\/id305343404?pt=9029\u0026ct=blog_network_floating_cta\u0026mt=8&quot;},&quot;appOpenReferrer&quot;:&quot;tumblr_new_iframe&quot;,&quot;isShowSearch&quot;:true,&quot;supplyLogging&quot;:[],&quot;secondsSinceLastActivity&quot;:-1}},&quot;Flags&quot;:{&quot;doods&quot;:&quot;eyJmaWx0ZXJfbnNmdyI6dHJ1ZSwic2FmZV9tb2RlIjp0cnVlLCJzYWZlX21vZGVfZW5hYmxlZCI6dHJ1ZSwia2V5Y29tbWFuZF9hdXRvX3BhZ2luYXRlIjp0cnVlLCJsb2dnZWRfb3V0X3NlYXJjaCI6dHJ1ZSwia3Jha2VuX3dlYl9sb2dnaW5nX2xpYnJhcnkiOnRydWUsInNlY3VyZV9mb3JtX2tleSI6dHJ1ZSwic2VjdXJlX2Zvcm1fa2V5X2Z1bGx5X29uIjp0cnVlLCJ0dW1ibGVsb2dfcG9wb3ZlciI6dHJ1ZSwiY2Fub25pY2FsX3VybF93cml0ZXMiOnRydWUsImVuYWJsZV9jYXB0dXJlX2pzIjp0cnVlLCJwcmltYV9wb3N0X2Zvcm1zIjp0cnVlLCJsb2NrZWRfcmVibG9nX3VpIjp0cnVlLCJ0YWJsZXRfYmFubmVyX2FjdGl2ZSI6dHJ1ZSwibW9iaWxlX2Jhbm5lcl9hY3RpdmUiOnRydWUsImxvZ19zZWFyY2hfYm94Ijp0cnVlLCJ1c2VyX21lbnRpb25zIjp0cnVlLCJodG1sNV9hdWRpb19wbGF5ZXIiOnRydWUsInBvcG92ZXJfcmVjb21tZW5kYXRpb25zIjp0cnVlLCJpbmRhc2hfcmVjb21tZW5kYXRpb25zIjp0cnVlLCJwb3B0aWNhX3R1bWJsZWxvZ19wb3BvdmVycyI6dHJ1ZSwidHVtYmxyX3R2Ijp0cnVlLCJkZXByZWNhdGVfZmVhdHVyZWRfdGFncyI6dHJ1ZSwicmVibG9nX3VpX3JlZnJlc2giOnRydWUsInRhYl9zd2l0Y2hlciI6dHJ1ZSwiZmFzdF9jb21wb3NlIjp0cnVlLCJkYXNoYm9hcmRfcmVmcmVzaCI6dHJ1ZSwibW9iaWxlX3dlYl9waG90b3NldHMiOnRydWUsIm1vYmlsZV93ZWJfZ2F0ZSI6dHJ1ZSwibW9iaWxlX3dlYl9wYWdlX3RpdGxlcyI6dHJ1ZSwibW9iaWxlX3dlYl9hYnVzZV9mb3JtIjp0cnVlLCJkb250X2Nhc3RfanNfZm9sbG93cyI6dHJ1ZSwiYWRzX25ld192ZW5kb3JfYnV0dG9ucyI6dHJ1ZSwicmVhY3RpdmF0aW9uX2Zsb3ciOnRydWUsImd1bHBqc19hZG1pbiI6dHJ1ZSwiZW5hYmxlX2pzX2VwaGVtZXJhbF9sb2ciOnRydWUsImxvZ19sYWR5Ijp0cnVlLCJjc2xvZ2dlcl9qcyI6dHJ1ZSwiZGlzY292ZXJ5X2h1Yl9hY2Nlc3MiOnRydWUsImhlYWRlcl9hY2NvdW50X21lbnUiOnRydWUsImVuYWJsZV9zaGFyZV9lbWJlZF9jb2RlIjp0cnVlLCJyZWRkaXRfc2hhcmluZyI6dHJ1ZSwicG9zdF9pdF9mb3J3YXJkIjp0cnVlLCJwZWVwcl9zZWFyY2hfYW5kX2ZpbHRlciI6dHJ1ZSwiaW50ZXJuc19wYWdlIjp0cnVlLCJmb2xsb3dlZF9zZWFyY2hlc19iaWdfd2ViIjp0cnVlLCJsaXZlcGhvdG9zX3dlYiI6dHJ1ZSwic2FmZV9tb2RlX293bl9wb3N0Ijp0cnVlLCJoaWRlX2RlZmF1bHRfaGVhZGVyc19ibG9nX2NhcmRzIjp0cnVlLCJrcmFrZW5fd2ViX2JibG9nX2FjdGl2ZSI6dHJ1ZSwiYXJjaGl2ZS1wbHVzIjp0cnVlLCJkYXJsYV9hZF9mZWVkYmFjayI6dHJ1ZSwic3RhdHVzX2luZGljYXRvcnNfdWkiOnRydWUsImRpc2FibGVfeWFob29fYl9jb29raWUiOnRydWUsImxpdmVwaG90b3MiOnRydWV9&quot;},&quot;Context&quot;:{&quot;name&quot;:&quot;default&quot;,&quot;time&quot;:1509422406000,&quot;userinfo&quot;:{&quot;primary&quot;:&quot;&quot;,&quot;name&quot;:&quot;&quot;,&quot;channels&quot;:[]},&quot;hosts&quot;:{&quot;assets_host&quot;:&quot;http:\/\/assets.tumblr.com&quot;,&quot;secure_assets_host&quot;:&quot;https:\/\/assets.tumblr.com&quot;,&quot;www_host&quot;:&quot;http:\/\/www.tumblr.com&quot;,&quot;secure_www_host&quot;:&quot;https:\/\/www.tumblr.com&quot;,&quot;embed_host&quot;:&quot;https:\/\/embed.tumblr.com&quot;,&quot;safe_host&quot;:&quot;http:\/\/safe.txmblr.com&quot;,&quot;platform_host&quot;:&quot;http:\/\/platform.tumblr.com&quot;},&quot;language&quot;:&quot;en_US&quot;,&quot;language_simple&quot;:&quot;en&quot;,&quot;assets&quot;:&quot;http:\/\/assets.tumblr.com\/client\/prod\/&quot;},&quot;Translations&quot;:{&quot;%1$sReport %2$s&#039;s post?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;:&quot;%1$sReport %2$s&#039;s reblog?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;,&quot;%1$sReport %2$s&#039;s reply?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;:&quot;%1$sReport %2$s&#039;s reblog?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;}}"></noscript><script src="http://assets.tumblr.com/client/prod/standalone/tumblelog/index.build.js?_v=c41e22c9b4f5b7ebfca85acc96f7b07f"></script></body></html>

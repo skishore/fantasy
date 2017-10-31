@@ -1,0 +1,429 @@
+<!DOCTYPE html><script>var __pbpa = true;</script><script>var translated_warning_string = 'Warning: Never enter your Tumblr password unless \u201chttps://www.tumblr.com/login\u201d\x0ais the address in your web browser.\x0a\x0aYou should also see a green \u201cTumblr, Inc.\u201d identification in the address bar.\x0a\x0aSpammers and other bad guys use fake forms to steal passwords.\x0a\x0aTumblr will never ask you to log in from a user\u2019s blog.\x0a\x0aAre you absolutely sure you want to continue?';</script><script type="text/javascript" language="javascript" src="http://assets.tumblr.com/assets/scripts/pre_tumblelog.js?_v=7e0654d636b56bfe6a0970b99e23e0f7"></script><!DOCTYPE html><!--[if lt IE 7]><html class="no-js lt-ie9 lt-ie8 lt-ie7"></html><![endif]--><!--[if IE 7]><html class="no-js lt-ie9 lt-ie8"></html><![endif]--><!--[if IE 8]><html class="no-js lt-ie9"></html><![endif]--><!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]--><!--
+  ==========================================================================
+   ____                     ___       __  __
+  /\  _`\  __              /\_ \     /\ \/\ \          __
+  \ \ \L\ \\_\  __  _    __\//\ \    \ \ \ \ \    ___ /\_\    ___    ___
+   \ \ ,__//\ \/\ \/'\ /'__`\\ \ \    \ \ \ \ \ /' _ `\/\ \  / __`\/' _ `\
+    \ \ \/ \ \ \/>  <//\  __/ \_\ \_   \ \ \_\ \/\ \/\ \ \ \/\ \L\ \\ \/\ \
+     \ \_\  \ \_\\_/\_\ \____\/\____\   \ \_____\ \_\ \_\ \_\ \____/ \_\ \_\
+      \/_/   \/_///\/_/\/____/\/____/    \/_____/\/_/\/_/\/_/\/___/ \/_/\/_/
+  ==========================================================================
+     Provenance v3.4.0
+     Updated: May 07, 2013
+     Website: http://pixelunion.net
+     Themes: http:tumblr.com/themes/by/pixelunion
+  ==========================================================================
+--><head><meta charset="utf-8" /><meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible" /><meta content="" name="description" /><meta content="width=1000px" name="viewport" /><meta name="text:Facebook API ID" content="" /><meta name="text:Facebook Username" content="" /><meta name="text:GA Property ID" content="" /><meta name="text:Tag Collections" content="" /><meta name="text:Tag Collections Menu" content="Galleries" /><meta name="text:Instagram Access Token" content="" /><meta name="text:Flickr ID" content="" /><meta name="text:Sticky Post ID" content="" /><meta name="text:Header Color Opacity" content="0.7" /><meta name="text:Disqus Shortname" content="" /><meta name="text:Social Links Title" content="Connect with me" /><meta name="text:Copyright Text" content="" /><meta name="if:Disqus Comments" content="" /><meta name="if:Facebook Comments" content="0" /><meta name="if:Infinite Scroll" content="1" /><meta name="if:Sidebar" content="1" /><meta name="if:Alternate Header Layout" content="0" /><meta name="if:Show Latest Tweet" content="1" /><meta name="if:Show Random Archive RSS" content="1" /><meta name="if:Show Title in Header" content="1" /><meta name="if:Show Description in Header" content="1" /><meta name="if:Show Description in Footer" content="1" /><meta name="if:Show Header Gradient" content="1" /><meta name="if:Fixed Sidebar" content="0" /><meta name="if:Nav on Top" content="0" /><meta name="image:Header Avatar" content="http://static.tumblr.com/7szwxy7/pWSmlvib3/default_portrait.jpeg" /><meta name="image:Header Background" content="http://static.tumblr.com/7szwxy7/zR2mlvibf/default_header.jpeg" /><meta name="image:Sidebar Avatar" content="" /><meta name="color:Header Color" content="#2a2d35" /><meta name="color:Secondary Background" content="#162024" /><meta name="color:Secondary Text" content="#76919c" /><meta name="color:Header Text" content="#aec7d1" /><meta name="color:Header Title" content="#ffffff" /><meta name="color:Accent" content="#eb5e29" /><meta name="color:Main Background" content="#e8e8e8" /><meta name="text:Behance URL" content="" /><meta name="text:Delicious URL" content="" /><meta name="text:DeviantArt URL" content="" /><meta name="text:Digg URL" content="" /><meta name="text:Dribbble URL" content="" /><meta name="text:Email Address" content="" /><meta name="text:Flickr URL" content="" /><meta name="text:Foursquare URL" content="" /><meta name="text:Github URL" content="" /><meta name="text:Google Plus URL" content="" /><meta name="text:Instagram URL" content="" /><meta name="text:Lastfm URL" content="" /><meta name="text:Linkedin URL" content="" /><meta name="text:MySpace URL" content="" /><meta name="text:Pinboard URL" content="" /><meta name="text:Pinterest URL" content="" /><meta name="text:Rdio URL" content="" /><meta name="text:Skype Username" content="" /><meta name="text:Soundcloud URL" content="" /><meta name="text:Spotify URL" content="" /><meta name="text:Stumbleupon URL" content="" /><meta name="text:Svpply URL" content="" /><meta name="text:Vimeo URL" content="" /><meta name="text:Youtube URL" content="" /><style type="text/css">body {
+      background-color: #e8e8e8;
+    } 
+     
+    header #nav .galleries .menu > li a:hover,
+    header #nav ul > li .label:hover, #sidebar > ul li .label:hover, #sidebar > ul li.galleries .menu a:hover,
+    .post .post-footer .bottom .share.button .share-box .url.hover,
+    header #nav .right a:hover, #sidebar .bottom a:hover,
+    .post h1:hover a,
+    .search-results span,
+    a {
+      color: #4ea3d0;
+    } #sidebar > ul li.galleries .label:hover:after,
+    header #nav ul > li .label:hover:after {
+      border-top-color: #4ea3d0;
+    } #pagination .previous, #pagination .next, #pagination .previous, #pagination .previous,
+    .post .post-footer .bottom .share.button .share-box .button:hover, #infinite-scroll .button,
+    .type-audio .audio-wrap .custom-player-wrap .custom-player .bar .inner-bar {
+      background-color: #4ea3d0;
+    } #tabber .photostream .photo .border, #tabber .photostream .permalink .border {
+      border-color: #4ea3d0;
+    } 
+    header .underlay.one {
+      background-image: url(http://static.tumblr.com/6a7a25b2b3976283c5dd29c7b0a5327a/yk90tr7/RDomnglw5/tumblr_static_cropandshade3.jpg);
+    } 
+    header .underlay.three {
+      background-color: #2a2d35;
+      opacity: 0.30;
+    } 
+    header #nav,
+    header #nav .galleries .menu, #sidebar,
+    footer {
+      background-color: #162024;
+    } 
+    footer,
+    .bottom a,
+    footer #twitter .twitter-info a,
+    footer #twitter .twitter-info a:link,
+    footer #twitter .twitter-info a:visited,
+    footer .back-to-top,
+    .copyright a, #nav .right #search, #tabber .photostream .permalink div, #twitter .tweet .permalink, #nav .right a {
+      color: #76919c;
+    } 
+    header {
+      color: #fdfdfd;
+    } 
+    header h1 a {
+      color: #ffffff;
+    }</style><script>var options = {facebook_api_id:false,
+  facebook_username:true,
+  ga_property_id:true,
+  tag_collections:true,
+  tag_collections_menu:true,
+  instagram_access_token:false,
+  flickr_id:false,
+  sticky_post_id:false,
+  header_color_opacity:true,
+  disqus_shortname:true,
+  social_links_title:true,
+  copyright_text:true,
+  disqus_comments:true,
+  facebook_comments:false,
+  infinite_scroll:false,
+  sidebar:true,
+  alternate_header_layout:true,
+  show_latest_tweet:true,
+  show_random_archive_rss:false,
+  show_title_in_header:true,
+  show_description_in_header:true,
+  show_description_in_footer:false,
+  show_header_gradient:true,
+  fixed_sidebar:true,
+  nav_on_top:false,
+  header_avatar: 'http://assets.tumblr.com/images/x.gif?v=1',
+  header_background: 'http://static.tumblr.com/6a7a25b2b3976283c5dd29c7b0a5327a/yk90tr7/RDomnglw5/tumblr_static_cropandshade3.jpg',
+  sidebar_avatar: 'http://assets.tumblr.com/images/x.gif?v=1',
+  header_color: '#2a2d35',
+  secondary_background: '#162024',
+  secondary_text: '#76919c',
+  header_text: '#fdfdfd',
+  header_title: '#ffffff',
+  accent: '#4ea3d0',
+  main_background: '#e8e8e8'};</script><script type="text/javascript">
+    
+    
+      options.disqus_shortname = "learninghindi";
+    
+    
+    
+   
+     /* 
+      options.galleries = "1,2,3"; */
+      
+    
+    
+      options.twitterName = 'learning_hindi';
+    
+    
+    
+    
+    </script><meta content="LearningHindi" property="fb:admins" /><meta content="Learning Hindi!" property="og:site_name" /><meta content="http://www.learning-hindi.com/post/1564407772/lesson-71-revisiting-the-elephants-friendship" property="og:url" /><meta content="article" property="og:type" /><meta content="It was over two weeks ago now, in&nbsp;Lesson #66, that we saw the short Hindi story &#2361;&#2366;&#2341;&#2368; &#2325;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352;&#2340;&#2366; haathee kee mitrtaa - The Elephant&rsquo;s Friendship. The purpose of the exercise was for you to simply listen to the story, see how much you could understand and see how many words you could recongise.&nbsp;
+
+
+ Today we&rsquo;re going to go through in a little more detail some of the sentences from the start of the story. This should help you understand the story a little more and increase your vocabulary.&nbsp;
+
+
+ So here&rsquo;s the video again, watch it through once more;
+
+
+ 
+
+
+
+
+ So we&rsquo;re going to go from the start of the story today and I&rsquo;m going to completely break it down for you so that you can fully understand what&rsquo;s being said. We&rsquo;ll only see the first few sentences, otherwise this will get really long and boring. Ready to begin? &nbsp;
+
+
+ This does get a little complicated but please try your hardest to follow!&nbsp;
+
+
+ The first sentence is;&nbsp;
+
+
+ &#2348;&#2361;&#2369;&#2340; &#2346;&#2369;&#2352;&#2366;&#2344;&#2368; &#2348;&#2366;&#2340; &#2361;&#2376; bahut puraanee baat hai&nbsp;
+
+
+ Any ideas what this means? You should be familiar with the word &#2348;&#2361;&#2369;&#2340; bahut - very, because we use it all the time.&nbsp;&#2346;&#2369;&#2352;&#2366;&#2344;&#2368; puraanee is the feminine form of the adjective&nbsp;&#2346;&#2369;&#2352;&#2366;&#2344;&#2366; puraanaa - old (when describing objects only - not people!), and &#2346;&#2369;&#2352;&#2366;&#2344;&#2368; puraanee is feminine because it agrees with the feminine word &#2348;&#2366;&#2340; baat -&nbsp;which mean can &lsquo;problem&rsquo;, 'matter&rsquo;, 'story&rsquo; or 'thing&rsquo;. So if we put this all together we have;&nbsp;
+
+
+ &#2348;&#2361;&#2369;&#2340; &#2346;&#2369;&#2352;&#2366;&#2344;&#2368; &#2348;&#2366;&#2340; &#2361;&#2376; bahut puraanee baat hai -&nbsp;A very old story.
+
+
+ Note there that the translations is not 'unique&rsquo;. &nbsp;We could say aslo 'A very old thing&rsquo; or 'The old matter&rsquo;, you just have to chose which one 'sounds&rsquo; and fits the best.&nbsp;
+
+
+ That&rsquo;s one sentences done! Now what comes next? Well we have a very, very, very long sentence, ready for it?&nbsp;
+
+
+ &#2319;&#2325; &#2332;&#2306;&#2327;&#2354; &#2350;&#2375;&#2306; &#2319;&#2325; &#2361;&#2366;&#2341;&#2368; &#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368; &#2340;&#2354;&#2366;&#2358; &#2350;&#2375;&#2306; &#2311;&#2343;&#2352; &#2313;&#2343;&#2352; &#2328;&#2370;&#2350; &#2352;&#2361;&#2366; &#2341;&#2366; &#2404;&nbsp;
+
+
+ ek jangal men ek haathee kisee mitr kee talaash men idhar udhar ghoom rahaa thaa.&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;
+
+
+ 
+
+
+
+
+
+
+ The sentence is so long it doesn&rsquo;t even fit on one screen of subtitles!&nbsp;
+
+
+
+
+
+
+ Wow. So where on earth do you start when you are confronted with a sentence in Hindi like this? We&rsquo;ll simply take it a few words at a time;&nbsp;
+
+
+ &#2319;&#2325; &#2332;&#2306;&#2327;&#2354; &#2350;&#2375;&#2306;&nbsp;ek jangal men &nbsp;- well we already know &#2319;&#2325; ek - one and &#2350;&#2375;&#2306; men- in. The word &#2332;&#2306;&#2327;&#2354; jangal is super easy, what English word does it sound exactly like? Jungle - and it&rsquo;s as easy as that. So we have 'In one jungle&rsquo;, or 'In a jungle&rsquo;. &nbsp;
+
+
+ &#2319;&#2325; &#2361;&#2366;&#2341;&#2368;&nbsp;ek haathee -&nbsp;an elephant. That&rsquo;s easy!
+
+
+ &#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368; &#2340;&#2354;&#2366;&#2358; &#2350;&#2375;&#2306;&nbsp;kisee mitr kee talaash men. So what have we got here? &#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368; kisee mitr kee means 'of some friends&rsquo;. We know the word friend, it&rsquo;s in the title! We covered &#2325;&#2368; kee&nbsp;in Lesson #51 it means 'of&rsquo; or &rsquo;s (apostrophe s). Then the completely new word&nbsp;&#2340;&#2354;&#2366;&#2358; talaash,&nbsp;this simply means 'search&rsquo;.&nbsp;
+
+
+ So far then we have 'In a jungle an Elephant in search of some friends&hellip;&rsquo; It doesn&rsquo;t really make sense but don&rsquo;t worry, we&rsquo;re not finished yet!&nbsp;
+
+
+ &#2311;&#2343;&#2352; &#2313;&#2343;&#2352; idhar uhdar - This simply means here and there or over here and over there. Together they almost give the meaning of 'everywhere&rsquo;.&nbsp;
+
+
+ &#2328;&#2370;&#2350; &#2352;&#2361;&#2366; &#2341;&#2366;&nbsp;ghoom rahaa thaa&nbsp;- This is the Past Continous Tense we covered last time in Lesson#70! &#2328;&#2370;&#2350;&#2344;&#2366; ghoomnaa is the verb to roam or to wonder. &nbsp;So we have, applying what we know of the Past Continuous tense, 'was roaming&rsquo;.&nbsp;
+
+
+ Do you think we can put this all together now? Let&rsquo;s try; &ldquo;In a jungle an Elephant in search of some friends here there was roaming"&nbsp;This doesn&rsquo;t really make much sense does it? We&rsquo;ve need to 'neaten&rsquo; up the English a little, so finally;&nbsp;
+
+
+ &#2319;&#2325; &#2332;&#2306;&#2327;&#2354; &#2350;&#2375;&#2306; &#2319;&#2325; &#2361;&#2366;&#2341;&#2368; &#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368; &#2340;&#2354;&#2366;&#2358; &#2350;&#2375;&#2306; &#2311;&#2343;&#2352; &#2313;&#2343;&#2352; &#2328;&#2370;&#2350; &#2352;&#2361;&#2366; &#2341;&#2366; &#2404;&nbsp;
+
+
+ ek jangal men ek haathee kisee mitr kee talaash men idhar udhar ghoom rahaa thaa.&nbsp;&nbsp;&nbsp;
+
+
+ In a jungle an elephant was roaming everywhere searching for some friends.
+
+
+ Can you see I&rsquo;ve reorder some of the words a little just so it makes more sense in English. This hasn&rsquo;t changed the meaning and it&rsquo;s something you&rsquo;re going to have to get used to when translating, unfortunately!&nbsp;
+
+
+ I understand that was probably quite difficult and there was a lot of new words, so don&rsquo;t worry, just try your hardest to understand the new words we&rsquo;ve learn.&nbsp;
+
+
+ I want you to try and translate the next few sentences yourself! Try and see how far you can get. Working by yourself on something really is the best way to learn. You may need to use a Hindi dictionary, if you don&rsquo;t have one yourself you can use a wonderful free website called Shabdkosh&nbsp;(which means Dictionary in Hindi). Let me know in a comment how far you get, don&rsquo;t forget to ask for help if you get stuck!&nbsp;
+
+
+ Back to Beginner&rsquo;s Grammar." property="og:description" /><meta content="Lesson #71: Revisiting The Elephant&rsquo;s Friendship" property="og:title" /><style type="text/css">p.center { text-align: center; }
+
+img {vertical-align:middle; } 
+
+.tumblr-notes { display: none !important; }
+
+/* tumblr_controls{ background: none !important; border: none !important; box-shadow: none !important; } */</style><title> Lesson #71: Revisiting The Elephant's Friendship |   Learning Hindi!  </title><style>figure{margin:0}.tmblr-iframe{position:absolute}.tmblr-iframe.hide{display:none}.tmblr-iframe--amp-cta-button{visibility:hidden;position:fixed;bottom:10px;left:50%;transform:translateX(-50%);z-index:100}.tmblr-iframe--amp-cta-button.tmblr-iframe--loaded{visibility:visible;animation:iframe-app-cta-transition .2s ease-out}</style><link href="http://78.media.tumblr.com/avatar_2afd6f55f15f_128.png" rel="shortcut icon" /><link href="../../rss" rel="alternate" type="application/rss+xml" /><link href="http://fonts.googleapis.com/css?family=Source+Sans+Pro:200,300,400,600,700,900,200italic,300italic,400italic,600italic,700italic,900italic" media="screen" rel="stylesheet" type="text/css" /><link href="http://static.tumblr.com/yk90tr7/Iexode5dt/style.css" media="screen" rel="stylesheet" type="text/css" /><script src="http://static.tumblr.com/hugxd2w/gPam0w5o1/modernizr-2.5.3.min.js"></script><link rel="alternate" href="android-app://com.tumblr/tumblr/x-callback-url/blog?blogName=learninghindi%26postID=1564407772" /><link rel="alternate" href="ios-app://305343404/tumblr/x-callback-url/blog?blogName=learninghindi&postID=1564407772" /><link rel="alternate" type="application/json+oembed" href="https://www.tumblr.com/oembed/1.0?url=http://www.learning-hindi.com/post/1564407772/lesson-71-revisiting-the-elephants-friendship" title="Lesson #71: Revisiting The Elephant&#039;s Friendship
+It was over two weeks ago now, in Lesson #66, that we saw the short Hindi story हाथी की मित्रता haathee kee mitrtaa - The Elephant&rsquo;s Friendship. The purpose of the exercise was for you to simply listen..."/><link rel="amphtml" href=http://www.learning-hindi.com/post/1564407772/lesson-71-revisiting-the-elephants-friendship/amp /><script src="http://assets.tumblr.com/assets/scripts/tumblelog_post_message_queue.js?_v=a8938c0e77cf8b1347c2e8acd1ee607c"></script><link rel="stylesheet" type="text/css" href="http://assets.tumblr.com/fonts/gibson/stylesheet.css?v=3"><meta name="keywords" content="nov2010,video,grammar,translating" /><!-- GOOGLE CAROUSEL --><script type="application/ld+json">
+	{"@type":"SocialMediaPosting","url":"http:\/\/www.learning-hindi.com\/post\/1564407772\/lesson-71-revisiting-the-elephants-friendship","mainEntityOfPage":true,"datePublished":"2010-11-13T20:14:00-05:00","author":"learninghindi","image":"http:\/\/78.media.tumblr.com\/tumblr_lbu6p76i251qzfx8l.jpg","headline":"Lesson #71: Revisiting The Elephant\u0027s Friendship","articleBody":"It was over two weeks ago now, in Lesson #66, that we saw the short Hindi story \u0939\u093e\u0925\u0940 \u0915\u0940 \u092e\u093f\u0924\u094d\u0930\u0924\u093e haathee kee mitrtaa - The Elephant\u2019s Friendship. The purpose of the exercise was for you to simply listen to the story, see how much you could understand and see how many words you could recongise.\nToday...","@context":"http:\/\/schema.org"}</script><link rel="canonical" href="lesson-71-revisiting-the-elephants-friendship" /></head><body class="permalink-page   has-sidebar  "><div id="page-wrap"><header class="header-2  no-avatar-image"><div class="underlay one"></div><div class="underlay two"></div><div class="underlay three"></div><!--  --><div class="inner clearfix"><div class="wrap"><a class="avatar-link" href="../../index.html"></a><h1><a href="../../index.html">Learning Hindi!</a></h1><div id="blog-description">नमस्ते namaste and welcome to Learning Hindi! We teach the beautiful language of Hindi in short, easy and fun lessons. Best of all, everything is completely free!</div></div></div><div align="right"> Image by <a href="https://www.facebook.com/Lilsunshinephotography"><FONT COLOR="#fdfdfd">LilSunshinePhotography</a> </FONT></div><div  id="nav"><div class="inner clearfix"><ul class="nav-list wider"><li><a class="label" href="../../index.html">Home</a> </li><li><a class="label" href="../../about">About</a></li><!-- 
+                              <li><a class="label" href="/about">About</a></li><li><a class="label" href="/intro">An Introduction to Hindi</a></li><li><a class="label" href="/vowels">Hindi Vowels</a></li><li><a class="label" href="/consonants">Hindi Consonants </a></li><li><a class="label" href="/beginner">Beginner's Grammar Lessons</a></li><li><a class="label" href="/intermediate">Intermediate Grammar!</a></li><li><a class="label" href="/convo">Conversational Phrases!</a></li><li><a class="label" href="/urdu">Urdu!</a></li><li><a class="label" href="/all">All Lessons</a></li><li><a class="label" href="/legal">Legal</a></li> --><!--     <li><a class="label" href="/ask" id="ask">Ask me anything!</a></li> --><li class="galleries"><div class="label">Lessons</div><div class="menu-wrap"><ul class="menu"><li><a href="../../intro">Introduction</a></li><li><a href="../../vowels">Vowels</a></li><li><a href="../../consonants">Consonants</a></li><li><a href="../../convo">Conversational</a></li><li><a href="../../beginner">Beginner's Grammar</a></li><li><a href="../../intermediate">Intermediate</a></li><li><a href="../../numbers">Numbers</a></li><li><a href="../../urdu">Urdu</a></li><li><a href="../../all">All Lessons</a></li></ul></div></li><li><a class="label" href="../../legal">Legal</a> </li><li><a class="label" href="../../links">Links</a> </li>  
+                              </ul><div class="right"><div id="search"><div class="search-icon"></div><div class="form-wrap"><div class="close-icon"></div><form action="http://www.learning-hindi.com/search" id="search-form" method="get"><input id="search-field" name="q" onblur="if (this.value == '') {this.value = 'Search tags';}" onfocus="if (this.value == 'Search tags') {this.value = '';}" type="text" value="Search tags" /></form></div></div></div></div></div></header><section id="content"><div class="inner clearfix"><div class="fixed" id="sidebar"><ul><li><a class="label" href="../../index.html">Home</a> </li><li><a class="label" href="../../about">About</a></li><!--   
+                    <li><a class="label" href="/about">About</a></li><li><a class="label" href="/intro">An Introduction to Hindi</a></li><li><a class="label" href="/vowels">Hindi Vowels</a></li><li><a class="label" href="/consonants">Hindi Consonants </a></li><li><a class="label" href="/beginner">Beginner's Grammar Lessons</a></li><li><a class="label" href="/intermediate">Intermediate Grammar!</a></li><li><a class="label" href="/convo">Conversational Phrases!</a></li><li><a class="label" href="/urdu">Urdu!</a></li><li><a class="label" href="/all">All Lessons</a></li><li><a class="label" href="/legal">Legal</a></li>
+                   
+                   
+                    
+                     --><!-- <li><a class="label" href="/ask" id="ask">Ask me anything!</a></li> --><li><a class="label" href="../../intro"><small> - Introduction</small></a></li><li><a class="label" href="../../vowels"><small>- Vowels</small></a></li><li><a class="label" href="../../consonants"><small>- Consonants</small></a></li><li><a class="label" href="../../convo"><small>- Conversational</small></a></li><li><a class="label" href="../../beginner"><small> - Beginner's</small></a></li><li><a class="label" href="../../intermediate"><small> - Intermediate</small></a></li><li><a class="label" href="../../numbers"><small> - Numbers</small></a></li><li><a class="label" href="../../urdu"><small> - Urdu</small></a></li><li><a class="label" href="../../all"><small> - All Lessons</small></a></li><!--  <li class="galleries"><div class="label">Lessons</div><div class="menu-wrap"><ul class="menu"><li><a href="http://www.learning-hindi.com/intro">Introduction</a></li><li><a href="http://www.learning-hindi.com/vowels">Vowels</a></li><li><a href="http://www.learning-hindi.com/consonants">Consonants</a></li><li><a href="http://www.learning-hindi.com/convo">Conversational</a></li><li><a href="http://www.learning-hindi.com/beginner">Beginner's Grammar</a></li><li><a href="http://www.learning-hindi.com/intermediate">Intermediate</a></li><li><a href="http://www.learning-hindi.com/numbers">Numbers</a></li><li><a href="http://www.learning-hindi.com/urdu">Urdu</a></li><li><a href="http://www.learning-hindi.com/all">All Lessons</a></li></ul></div></li><li id="search"><div class="label">Search<div class="icon"></div></div><div class="form-wrap"><div class="icon"></div><form action="/search" id="search-form" method="get"><input id="search-field" name="q" onblur="if (this.value == '') {this.value = 'Search tags';}" onfocus="if (this.value == 'Search tags') {this.value = '';}" type="text" value="Search tags" /></form></div></li> --><li><a class="label" href="../../legal">Legal</a> </li><li><a class="label" href="../../links">Links</a> </li> 
+
+          </ul></div><div id="posts"><article class="post type-text" id="1564407772"><aside class="metadata not-custom-page"><a class="timestamp" href="lesson-71-revisiting-the-elephants-friendship">November 13th, 2010</a><!--   --><a class="comment-count" href="lesson-71-revisiting-the-elephants-friendship#disqus_thread"></a><script type="text/javascript">
+    var disqus_shortname = 'learninghindi';
+
+    (function () {
+        var s = document.createElement('script'); s.async = true;
+        s.type = 'text/javascript';
+        s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+        (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+    }());
+</script></aside><h2><a href="lesson-71-revisiting-the-elephants-friendship">Lesson #71: Revisiting The Elephant&rsquo;s Friendship</a></h2><div class="caption clearfix rte"><p>It was over two weeks ago now, in&nbsp;<a href="http://learninghindi.tumblr.com/post/1416574303/lesson-66-the-elephants-friendship">Lesson #66</a>, that we saw the short Hindi story <big><big>&#2361;&#2366;&#2341;&#2368; &#2325;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352;&#2340;&#2366;</big></big> <em>haathee kee mitrtaa</em> - The Elephant&rsquo;s Friendship. The purpose of the exercise was for you to simply listen to the story, see how much you could understand and see how many words you could recongise.&nbsp;</p><p>Today we&rsquo;re going to go through in a little more detail some of the sentences from the start of the story. This should help you understand the story a little more and increase your vocabulary.&nbsp;</p><p>So here&rsquo;s the video again, watch it through once more;</p><p><iframe frameborder="0" height="315" src="http://www.youtube.com/embed/FuUZhnHGrYo" width="420"></iframe></p><p>So we&rsquo;re going to go from the start of the story today and I&rsquo;m going to completely break it down for you so that you can fully understand what&rsquo;s being said. We&rsquo;ll only see the first few sentences, otherwise this will get really long and boring. Ready to begin? &nbsp;</p><p>This does get a little complicated but please try your hardest to follow!&nbsp;</p><p>The first sentence is;&nbsp;</p><p><big><big>&#2348;&#2361;&#2369;&#2340; &#2346;&#2369;&#2352;&#2366;&#2344;&#2368; &#2348;&#2366;&#2340; &#2361;&#2376;</big></big> <em>bahut puraanee baat hai&nbsp;</em></p><p>Any ideas what this means? You should be familiar with the word <big><big>&#2348;&#2361;&#2369;&#2340;</big></big> <em>bahut</em> - very, because we use it all the time.&nbsp;<big><big>&#2346;&#2369;&#2352;&#2366;&#2344;&#2368;</big></big> <em>puraanee</em> is the feminine form of the adjective&nbsp;<big><big>&#2346;&#2369;&#2352;&#2366;&#2344;&#2366;</big></big> <em>puraanaa</em> - old (when describing objects only - not people!), and <big><big>&#2346;&#2369;&#2352;&#2366;&#2344;&#2368;</big></big> <em>puraanee</em> is feminine because it agrees with the feminine word <big><big>&#2348;&#2366;&#2340;</big></big> <em>baat -</em>&nbsp;which mean can &lsquo;problem&rsquo;, 'matter&rsquo;, 'story&rsquo; or 'thing&rsquo;. So if we put this all together we have;&nbsp;</p><p><big><big>&#2348;&#2361;&#2369;&#2340; &#2346;&#2369;&#2352;&#2366;&#2344;&#2368; &#2348;&#2366;&#2340; &#2361;&#2376;</big></big> <em>bahut puraanee baat hai -&nbsp;</em>A very old story.</p><p>Note there that the translations is not 'unique&rsquo;. &nbsp;We could say aslo 'A very old thing&rsquo; or 'The old matter&rsquo;, you just have to chose which one 'sounds&rsquo; and fits the best.&nbsp;</p><p>That&rsquo;s one sentences done! Now what comes next? Well we have a very, very, very long sentence, ready for it?&nbsp;</p><p><big><big>&#2319;&#2325; &#2332;&#2306;&#2327;&#2354; &#2350;&#2375;&#2306; &#2319;&#2325; &#2361;&#2366;&#2341;&#2368; &#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368; &#2340;&#2354;&#2366;&#2358; &#2350;&#2375;&#2306; &#2311;&#2343;&#2352; &#2313;&#2343;&#2352; &#2328;&#2370;&#2350; &#2352;&#2361;&#2366; &#2341;&#2366; &#2404;&nbsp;</big></big></p><p><em>ek jangal men ek haathee kisee mitr kee talaash men idhar udhar ghoom rahaa thaa.&nbsp;</em>&nbsp;&nbsp; &nbsp;&nbsp;</p><p><img alt="image" src="http://78.media.tumblr.com/tumblr_lbu6p76i251qzfx8l.jpg"></p><blockquote><div><p><em>The sentence is so long it doesn&rsquo;t even fit on one screen of subtitles!&nbsp;</em></p></div></blockquote><p>Wow. So where on earth do you start when you are confronted with a sentence in Hindi like this? We&rsquo;ll simply take it a few words at a time;&nbsp;</p><p><big><big>&#2319;&#2325; &#2332;&#2306;&#2327;&#2354; &#2350;&#2375;&#2306;</big></big>&nbsp;<em>ek jangal men &nbsp;- </em>well we already know <big><big>&#2319;&#2325;</big></big> <em>ek </em>- one and <big><big>&#2350;&#2375;&#2306;</big></big> <em>men</em>- in. The word <big><big>&#2332;&#2306;&#2327;&#2354;</big></big> <em>jangal</em> is super easy, what English word does it sound exactly like? Jungle - and it&rsquo;s as easy as that. So we have 'In one jungle&rsquo;, or 'In a jungle&rsquo;. &nbsp;</p><p><big><big>&#2319;&#2325; &#2361;&#2366;&#2341;&#2368;</big></big>&nbsp;<em>ek haathee -&nbsp;</em>an elephant. That&rsquo;s easy!</p><p><big><big>&#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368; &#2340;&#2354;&#2366;&#2358; &#2350;&#2375;&#2306;</big></big>&nbsp;<em>kisee mitr kee talaash men. </em>So what have we got here? <big><big>&#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368;</big></big><em> kisee mitr kee </em>means 'of some friends&rsquo;. We know the word friend, it&rsquo;s in the title! We covered <big><big>&#2325;&#2368;</big></big> <em>kee</em>&nbsp;in <a href="http://learninghindi.tumblr.com/post/1156594856/lesson-51-possessive-pronouns-part-3-kaa">Lesson #51</a> it means 'of&rsquo; or &rsquo;s (apostrophe s). Then the completely new word&nbsp;<big><big>&#2340;&#2354;&#2366;&#2358;</big></big> <em>talaash,&nbsp;</em>this simply means 'search&rsquo;.&nbsp;</p><p>So far then we have 'In a jungle an Elephant in search of some friends&hellip;&rsquo; It doesn&rsquo;t really make sense but don&rsquo;t worry, we&rsquo;re not finished yet!&nbsp;</p><p><big><big>&#2311;&#2343;&#2352; &#2313;&#2343;&#2352;</big></big><em> idhar uhdar </em>- This simply means here and there or over here and over there. Together they almost give the meaning of 'everywhere&rsquo;.&nbsp;</p><p><big><big>&#2328;&#2370;&#2350; &#2352;&#2361;&#2366; &#2341;&#2366;</big></big>&nbsp;<em>ghoom rahaa thaa</em>&nbsp;- This is the Past Continous Tense we covered last time in <a href="http://learninghindi.tumblr.com/post/1546814687/lesson-70-past-tense-part-2-the-past-continuous">Lesson#70</a>! <big><big>&#2328;&#2370;&#2350;&#2344;&#2366;</big></big> <em>ghoomnaa</em> is the verb to roam or to wonder. &nbsp;So we have, applying what we know of the Past Continuous tense, 'was roaming&rsquo;.&nbsp;</p><p>Do you think we can put this all together now? Let&rsquo;s try; &ldquo;In a jungle an Elephant in search of some friends here there was roaming"&nbsp;This doesn&rsquo;t really make much sense does it? We&rsquo;ve need to 'neaten&rsquo; up the English a little, so finally;&nbsp;</p><p><big><big>&#2319;&#2325; &#2332;&#2306;&#2327;&#2354; &#2350;&#2375;&#2306; &#2319;&#2325; &#2361;&#2366;&#2341;&#2368; &#2325;&#2367;&#2360;&#2368; &#2350;&#2367;&#2340;&#2381;&#2352; &#2325;&#2368; &#2340;&#2354;&#2366;&#2358; &#2350;&#2375;&#2306; &#2311;&#2343;&#2352; &#2313;&#2343;&#2352; &#2328;&#2370;&#2350; &#2352;&#2361;&#2366; &#2341;&#2366; &#2404;&nbsp;</big></big></p><p><em>ek jangal men ek haathee kisee mitr kee talaash men idhar udhar ghoom rahaa thaa.&nbsp;</em>&nbsp;&nbsp;</p><p>In a jungle an elephant was roaming everywhere searching for some friends.</p><p>Can you see I&rsquo;ve reorder some of the words a little just so it makes more sense in English. This hasn&rsquo;t changed the meaning and it&rsquo;s something you&rsquo;re going to have to get used to when translating, unfortunately!&nbsp;</p><p>I understand that was probably quite difficult and there was a lot of new words, so don&rsquo;t worry, just try your hardest to understand the new words we&rsquo;ve learn.&nbsp;</p><p>I want you to try and translate the next few sentences yourself! Try and see how far you can get. Working by yourself on something really is the best way to learn. You may need to use a Hindi dictionary, if you don&rsquo;t have one yourself you can use a wonderful free website called <a href="http://t.umblr.com/redirect?z=http%3A%2F%2Fwww.shabdkosh.com%2F&amp;t=NmYzY2FjOTMzZWE1ZDIxOTBmYTEzZTRjMTAzYjkxYWM3Zjk0ZjRjNix0WTdNQXdtYQ%3D%3D&amp;b=t%3Ahf3yIetu6VvjxJqY6DH92g&amp;p=http%3A%2F%2Fwww.learning-hindi.com%2Fpost%2F1564407772%2Flesson-71-revisiting-the-elephants-friendship&amp;m=0">Shabdkosh</a>&nbsp;(which means Dictionary in Hindi). Let me know in a comment how far you get, don&rsquo;t forget to ask for help if you get stuck!&nbsp;</p><p><a href="http://learninghindi.tumblr.com/beginner">Back to Beginner&rsquo;s Grammar</a>.</p></div><aside class="post-footer"><div class="tags"><span>Tags:</span><a href="http://www.learning-hindi.com/tagged/nov2010">nov2010</a> <a href="http://www.learning-hindi.com/tagged/video">video</a> <a href="http://www.learning-hindi.com/tagged/grammar">grammar</a> <a href="http://www.learning-hindi.com/tagged/translating">translating</a> </div><div class="bottom"><div class="like_button" data-post-id="1564407772" data-blog-name="learninghindi" id="like_button_1564407772"><iframe id="like_iframe_1564407772" src="http://assets.tumblr.com/assets/html/like_iframe.html?_v=5716f9145cbbcc5e21aa13229de5d4ed#name=learninghindi&amp;post_id=1564407772&amp;color=grey&amp;rk=tY7MAwma" scrolling="no" width="16" height="16" frameborder="0" class="like_toggle" allowTransparency="true" name="like_iframe_1564407772"></iframe></div><a href="https://www.tumblr.com/reblog/1564407772/tY7MAwma" class="reblog_button"style="display: block;width:16px;height:16px;"><svg width="100%" height="100%" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" fill="#ccc"><path d="M5.01092527,5.99908429 L16.0088498,5.99908429 L16.136,9.508 L20.836,4.752 L16.136,0.083 L16.1360004,3.01110845 L2.09985349,3.01110845 C1.50585349,3.01110845 0.979248041,3.44726568 0.979248041,4.45007306 L0.979248041,10.9999998 L3.98376463,8.30993634 L3.98376463,6.89801007 C3.98376463,6.20867902 4.71892527,5.99908429 5.01092527,5.99908429 Z"></path><path d="M17.1420002,13.2800293 C17.1420002,13.5720293 17.022957,14.0490723 16.730957,14.0490723 L4.92919922,14.0490723 L4.92919922,11 L0.5,15.806 L4.92919922,20.5103758 L5.00469971,16.9990234 L18.9700928,16.9990234 C19.5640928,16.9990234 19.9453125,16.4010001 19.9453125,15.8060001 L19.9453125,9.5324707 L17.142,12.203"></path></svg></a><div class="share button">Share<div class="share-box"><div class="label">Share this:</div><a class="twitter button" href="https://twitter.com/intent/tweet?url=http://www.learning-hindi.com/post/1564407772/lesson-71-revisiting-the-elephants-friendship" target="_blank">Twitter</a><a class="pinterest button" target="_blank">Pinterest</a><a class="facebook button" href="https://www.facebook.com/sharer.php?u=http://www.learning-hindi.com/post/1564407772/lesson-71-revisiting-the-elephants-friendship" target="_blank">Facebook</a><a class="google-plus button" href="https://plus.google.com/share?url=http://www.learning-hindi.com/post/1564407772/lesson-71-revisiting-the-elephants-friendship" target="_blank">Google+</a><div class="url" data-clipboard-text="https://tmblr.co/ZJelGy1TFlVS">https://tmblr.co/ZJelGy1TFlVS</div></div></div></div></aside></article><!--       <div class="comments"><div id="disqus_thread"></div><script type="text/javascript">var disqus_shortname = 'learninghindi';
+                      (function() {
+                      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                      dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                      })();</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a class="dsq-brlink" href="http://disqus.com">comments powered by <span class="logo-disqus">Disqus</span></a></div> --> 
+                  
+                  
+                  
+      
+                                          
+                                                                                                                  
+                                                                                     <div class="comments"><div id="disqus_thread"></div><script type="text/javascript">var disqus_shortname = 'learninghindi';
+                      (function() {
+                      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+                      dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+                      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+                      })();</script><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript><a class="dsq-brlink" href="http://disqus.com">comments powered by <span class="logo-disqus">Disqus</span></a></div>    
+                                          
+                                          
+                                          
+
+
+                                           
+                                          
+                                       
+                                          
+                                          
+                                          
+                    
+                    
+                                      
+
+                                      
+                                      
+                                      
+                                  </div>                                                                    
+      </div></section><footer class="has-twitter"><div class="inner clearfix"><div class="box" id="twitter"><h1>Latest Tweet</h1></div><div class="box" id="social"><h1 class="social-links-title">Connect</h1><div class="social-icons clearfix"><a class="email" href="mailto:george.learninghindi@gmail.com">Email</a><a class="facebook" href="http://www.facebook.com/LearningHindi">Facebook</a><a class="twitter" href="http://twitter.com/learning_hindi">Twitter</a><a class="soundcloud" href="https://soundcloud.com/learninghindi">Soundcloud</a><!-- 
+              
+              
+              
+              
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ --> 
+    
+</div></div><div class="box" id="tabber"><ul class="controls"></ul><div class="tabs"><div class="tab photostream" id="instagram"></div><div class="tab photostream" id="flickr"></div></div></div><div class="box copyright">The contents of this website are, unless otherwise mentioned, licenced under a <a href='../../legal'>CC-BY-NC 3.0 unported licence</a>.<br /><a href="http://provenance-theme.tumblr.com">Provenance Theme</a> by <a href="http://pixelunion.net">Pixel Union</a>. Powered by <a href="http://tumblr.com">Tumblr</a>.</div><div class="back-to-top">Back To Top</div></div></footer></div><script type="text/javascript">function recent_tweets(data){window.tweet_data=data;}</script><script src="http://learninghindi.tumblr.com/tweets.js" type="text/javascript"></script><script src="http://static.tumblr.com/7szwxy7/T9jmmer60/script.js" type="text/javascript"></script><script type="text/javascript">(function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = "//connect.facebook.net/en_US/all.js#xfbml=1";
+       fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));</script><script type="text/javascript">var _gaq=[['_setAccount','UA-18265204-1'],['_trackPageview']];
+      (function(d,t){var g=d.createElement(t),s=d.getElementsByTagName(t)[0];
+      g.src=('https:'==location.protocol?'//ssl':'//www')+'.google-analytics.com/ga.js';
+      s.parentNode.insertBefore(g,s)}(document,'script'));</script><script type="text/javascript">var themeTitle = "Provenance Theme";
+    var url = "http://provenance-theme.tumblr.com";
+    (function() {
+      var pxu = document.createElement('script'); pxu.type = 'text/javascript'; pxu.async = true; pxu.src = 'http://cdn.pixelunion.net/customize/pxucm.js';
+      var isCustomize = (window.location.href.indexOf('/customize_preview_receiver.html') >= 0);
+      var isDemo = (window.location.href.indexOf(url) >= 0);
+      (isCustomize || isDemo) && ((document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(pxu));
+    })();</script><iframe scrolling="no" width="1" height="1" frameborder="0" style="background-color:transparent; overflow:hidden; position:absolute; top:0; left:0; z-index:9999;" id="ga_target"></iframe><script type="text/javascript">
+    (function(){
+        var analytics_frame = document.getElementById('ga_target');
+        var analytics_iframe_loaded;
+        var user_logged_in;
+        var blog_is_nsfw = 'No';
+        var addthis_enabled = false;
+
+        var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+        var eventer = window[eventMethod];
+        var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+        eventer(messageEvent,function(e) {
+            var message = (e.data && e.data.split) ? e.data.split(';') : '';
+            switch (message[0]) {
+                case 'analytics_iframe_loaded':
+                    analytics_iframe_loaded = true;
+                    postCSMessage();
+                    postGAMessage();
+                    postATMessage();
+                    postRapidMessage();
+                    break;
+                case 'user_logged_in':
+                    user_logged_in = message[1];
+                    postGAMessage();
+                    postATMessage();
+                    break;
+            }
+        }, false);
+
+        analytics_frame.src = "https://assets.tumblr.com/analytics.html?e545bd2397476017430227533432638a#" +
+                              "http://www.learning-hindi.com";
+        function postGAMessage() {
+            if (analytics_iframe_loaded && user_logged_in) {
+                var is_ajax = false;
+                analytics_frame.contentWindow.postMessage(['tick_google_analytics', is_ajax, user_logged_in, blog_is_nsfw, '/post/1564407772/lesson-71-revisiting-the-elephants-friendship?route=%2Fpost%2F%3Aid%2F%3Asummary'].join(';'), analytics_frame.src.split('/analytics.html')[0]);
+            }
+        }
+        function postCSMessage() {
+            COMSCORE = true;
+            analytics_frame.contentWindow.postMessage('enable_comscore;' + window.location, analytics_frame.src.split('/analytics.html')[0]);
+        }
+        function postATMessage() {
+            if (addthis_enabled && analytics_iframe_loaded) {
+                analytics_frame.contentWindow.postMessage('enable_addthis', analytics_frame.src.split('/analytics.html')[0]);
+            }
+        }
+        function postRapidMessage() {
+                            if (analytics_iframe_loaded) {
+                    var is_ajax = '';
+                    var route = '/post/:id/:summary';
+                    var tumblelog_id = '5556009';
+                    var yahoo_space_id = '1197719230';
+                    var rapid_client_only = '1';
+                    var apv = '1';
+                    var rapid_ex = '';
+
+                    analytics_frame.contentWindow.postMessage(
+                        [
+                            'tick_rapid', is_ajax, route, user_logged_in, tumblelog_id,
+                            yahoo_space_id, rapid_client_only, apv, rapid_ex
+                        ].join(';'),
+                        analytics_frame.src.split('/analytics.html')[0]
+                    );
+                }
+                    }
+    })();
+</script><script type="text/javascript">!function(s){s.src='https://px.srvcs.tumblr.com/impixu?T=1509422411&J=eyJ0eXBlIjoidXJsIiwidXJsIjoiaHR0cDpcL1wvd3d3LmxlYXJuaW5nLWhpbmRpLmNvbVwvcG9zdFwvMTU2NDQwNzc3MlwvbGVzc29uLTcxLXJldmlzaXRpbmctdGhlLWVsZXBoYW50cy1mcmllbmRzaGlwIiwicmVxdHlwZSI6MCwicm91dGUiOiJcL3Bvc3RcLzppZFwvOnN1bW1hcnkifQ==&U=OCIMFCNCNP&K=a3c3aa2c524c01677af928db4394ba824df19fccb92428809642e3e0c8b112eb&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall'.replace(/&R=[^&$]*/,'').concat('&R='+escape(document.referrer)).slice(0,2000).replace(/%.?.?$/,'');}(new Image());</script><noscript><img style="position:absolute;z-index:-3334;top:0px;left:0px;visibility:hidden;" src="https://px.srvcs.tumblr.com/impixu?T=1509422411&J=eyJ0eXBlIjoidXJsIiwidXJsIjoiaHR0cDpcL1wvd3d3LmxlYXJuaW5nLWhpbmRpLmNvbVwvcG9zdFwvMTU2NDQwNzc3MlwvbGVzc29uLTcxLXJldmlzaXRpbmctdGhlLWVsZXBoYW50cy1mcmllbmRzaGlwIiwicmVxdHlwZSI6MCwicm91dGUiOiJcL3Bvc3RcLzppZFwvOnN1bW1hcnkiLCJub3NjcmlwdCI6MX0=&U=OCIMFCNCNP&K=7e69afe184f8f0cd9bc407ca3bbaf2f2ee30fb5811820db25b6e53a6b9ffed3d&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall"></noscript><script >
+        (function (w,d) {
+            'use strict';
+            var l = function(el, type, listener, useCapture) {
+                el.addEventListener ?
+                el.addEventListener(type, listener, !!useCapture) :
+                el.attachEvent && el.attachEvent('on' + type, listener, !!useCapture);
+            };
+            var a = function () {
+                                if (d.getElementById('tumblr-cdx')) {
+                    return;
+                }
+                var s = d.createElement('script');
+                var el = d.getElementsByTagName('script')[0];
+                s.async = true;
+                s.src = 'http://assets.tumblr.com/assets/scripts/vendor/cedexis/1-13960-radar10.min.js?_v=f1579c509dad6daa6d33b4284812ab90';
+                s.type = 'text/javascript';
+                s.id = 'tumblr-cdx';
+                d.body.appendChild(s);
+            };
+            l(w,'load',a);
+        }(window, document));
+</script><script type="text/javascript">!function(s){s.src='https://px.srvcs.tumblr.com/impixu?T=1509422411&J=eyJ0eXBlIjoicG9zdCIsInVybCI6Imh0dHA6XC9cL3d3dy5sZWFybmluZy1oaW5kaS5jb21cL3Bvc3RcLzE1NjQ0MDc3NzJcL2xlc3Nvbi03MS1yZXZpc2l0aW5nLXRoZS1lbGVwaGFudHMtZnJpZW5kc2hpcCIsInJlcXR5cGUiOjAsInJvdXRlIjoiXC9wb3N0XC86aWRcLzpzdW1tYXJ5IiwicG9zdHMiOlt7InBvc3RpZCI6IjE1NjQ0MDc3NzIiLCJibG9naWQiOiI1NTU2MDA5Iiwic291cmNlIjozM31dfQ==&U=KFOEEKHBDN&K=d1ab81767feb01146393af51350097e7c367fd5105ca29329bd944f67cda93a8&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall'.replace(/&R=[^&$]*/,'').concat('&R='+escape(document.referrer)).slice(0,2000).replace(/%.?.?$/,'');}(new Image());</script><noscript><img style="position:absolute;z-index:-3334;top:0px;left:0px;visibility:hidden;" src="https://px.srvcs.tumblr.com/impixu?T=1509422411&J=eyJ0eXBlIjoicG9zdCIsInVybCI6Imh0dHA6XC9cL3d3dy5sZWFybmluZy1oaW5kaS5jb21cL3Bvc3RcLzE1NjQ0MDc3NzJcL2xlc3Nvbi03MS1yZXZpc2l0aW5nLXRoZS1lbGVwaGFudHMtZnJpZW5kc2hpcCIsInJlcXR5cGUiOjAsInJvdXRlIjoiXC9wb3N0XC86aWRcLzpzdW1tYXJ5IiwicG9zdHMiOlt7InBvc3RpZCI6IjE1NjQ0MDc3NzIiLCJibG9naWQiOiI1NTU2MDA5Iiwic291cmNlIjozM31dLCJub3NjcmlwdCI6MX0=&U=KFOEEKHBDN&K=4b8e2d63a253bf70e5706828a3304d37f03e0f42c94369351cf25107f7840a25&R=http%3A%2F%2Fwww.learning-hindi.com%2Fall"></noscript><noscript id="bootloader" data-bootstrap="{&quot;Components&quot;:{&quot;PostActivity&quot;:[],&quot;NotificationPoller&quot;:{&quot;messaging_keys&quot;:[],&quot;token&quot;:&quot;c86f8a500596474a7ef5034081f694bd&quot;,&quot;inbox_unread&quot;:0},&quot;TumblelogIframe&quot;:{&quot;unified&quot;:true,&quot;variant&quot;:null,&quot;isCompact&quot;:true,&quot;tumblelogBundleSrc&quot;:&quot;http:\/\/assets.tumblr.com\/client\/prod\/standalone\/tumblelog\/index.build.js?_v=c41e22c9b4f5b7ebfca85acc96f7b07f&quot;,&quot;tumblelogName&quot;:&quot;learninghindi&quot;,&quot;isLoggedIn&quot;:false,&quot;isFriend&quot;:false,&quot;formKey&quot;:&quot;&quot;,&quot;canSubscribe&quot;:false,&quot;isSubscribed&quot;:false,&quot;tumblelogTitle&quot;:&quot;Learning Hindi!&quot;,&quot;tumblelogAvatar&quot;:&quot;http:\/\/78.media.tumblr.com\/avatar_2afd6f55f15f_40.png&quot;,&quot;tumblelogHost&quot;:&quot;http:\/\/www.learning-hindi.com&quot;,&quot;isOptica&quot;:false,&quot;isCustomTheme&quot;:true,&quot;themeHeaderImage&quot;:&quot;https:\/\/static.tumblr.com\/9066660bc011f6ee206ae5205c0659d5\/yk90tr7\/yDEn5wh73\/tumblr_static_tumblr_static_ah7o3vi9xuokokw0o4sg8k40w_focused_v3.jpg&quot;,&quot;themeBackgroundColor&quot;:&quot;#FAFAFA&quot;,&quot;themeTitleColor&quot;:&quot;#444444&quot;,&quot;themeAccentColor&quot;:&quot;#529ECC&quot;,&quot;brag&quot;:false,&quot;adsEnabled&quot;:false,&quot;canShowAd&quot;:true,&quot;isPremium&quot;:false,&quot;showLrecAds&quot;:false,&quot;showStickyLrecBackfill&quot;:false,&quot;showGeminiAds&quot;:false,&quot;geminiSectionCodeDesktop&quot;:&quot;a10bca9c-0c5d-4a02-ab13-14ab8513d81d&quot;,&quot;geminiSectionCodeMobile&quot;:&quot;ced63809-b609-4aca-96a0-abc099acba6b&quot;,&quot;currentPageType&quot;:&quot;single_post&quot;,&quot;currentPage&quot;:&quot;1&quot;,&quot;searchQuery&quot;:&quot;&quot;,&quot;tag&quot;:&quot;&quot;,&quot;query&quot;:&quot;&quot;,&quot;chrono&quot;:false,&quot;postId&quot;:&quot;1564407772&quot;,&quot;src&quot;:&quot;http:\/\/www.learning-hindi.com\/post\/1564407772\/lesson-71-revisiting-the-elephants-friendship&quot;,&quot;postUrl&quot;:&quot;&quot;,&quot;isBlocked&quot;:null,&quot;isAdmin&quot;:false,&quot;lookupButtonUrl&quot;:&quot;&quot;,&quot;showSpamButton&quot;:false,&quot;showRootPostButton&quot;:false,&quot;rootPostUrl&quot;:&quot;&quot;,&quot;showRadarPostButton&quot;:false,&quot;radarKeys&quot;:&quot;&quot;,&quot;isUniblocked&quot;:false,&quot;isNsfw&quot;:false,&quot;isAdult&quot;:false,&quot;isSpam&quot;:false,&quot;isPrimaryBlog&quot;:false,&quot;canEdit&quot;:false,&quot;canReblogSelf&quot;:false,&quot;showLikeButton&quot;:false,&quot;showReblogButton&quot;:false,&quot;reblogUrl&quot;:&quot;&quot;,&quot;showFanMailButton&quot;:false,&quot;showMessagingButton&quot;:false,&quot;loginCheckIframeSrc&quot;:&quot;http:\/\/assets.tumblr.com\/assets\/html\/iframe\/login_check.html?_v=d92d24a70075d882e6cfd5c8303fbf32&quot;,&quot;appInstallUrls&quot;:{&quot;android&quot;:&quot;https:\/\/play.google.com\/store\/apps\/details?id=com.tumblr\u0026referrer=utm_source%3Dtumblr%26utm_medium%3Diframe%26utm_campaign%3Dblog_network_floating_cta&quot;,&quot;ios&quot;:&quot;https:\/\/itunes.apple.com\/app\/apple-store\/id305343404?pt=9029\u0026ct=blog_network_floating_cta\u0026mt=8&quot;},&quot;appOpenReferrer&quot;:&quot;tumblr_new_iframe&quot;,&quot;isShowSearch&quot;:true,&quot;supplyLogging&quot;:[],&quot;secondsSinceLastActivity&quot;:-1}},&quot;Flags&quot;:{&quot;doods&quot;:&quot;eyJmaWx0ZXJfbnNmdyI6dHJ1ZSwic2FmZV9tb2RlIjp0cnVlLCJzYWZlX21vZGVfZW5hYmxlZCI6dHJ1ZSwia2V5Y29tbWFuZF9hdXRvX3BhZ2luYXRlIjp0cnVlLCJsb2dnZWRfb3V0X3NlYXJjaCI6dHJ1ZSwia3Jha2VuX3dlYl9sb2dnaW5nX2xpYnJhcnkiOnRydWUsInNlY3VyZV9mb3JtX2tleSI6dHJ1ZSwic2VjdXJlX2Zvcm1fa2V5X2Z1bGx5X29uIjp0cnVlLCJ0dW1ibGVsb2dfcG9wb3ZlciI6dHJ1ZSwiY2Fub25pY2FsX3VybF93cml0ZXMiOnRydWUsImVuYWJsZV9jYXB0dXJlX2pzIjp0cnVlLCJwcmltYV9wb3N0X2Zvcm1zIjp0cnVlLCJsb2NrZWRfcmVibG9nX3VpIjp0cnVlLCJ0YWJsZXRfYmFubmVyX2FjdGl2ZSI6dHJ1ZSwibW9iaWxlX2Jhbm5lcl9hY3RpdmUiOnRydWUsImxvZ19zZWFyY2hfYm94Ijp0cnVlLCJ1c2VyX21lbnRpb25zIjp0cnVlLCJodG1sNV9hdWRpb19wbGF5ZXIiOnRydWUsInBvcG92ZXJfcmVjb21tZW5kYXRpb25zIjp0cnVlLCJpbmRhc2hfcmVjb21tZW5kYXRpb25zIjp0cnVlLCJwb3B0aWNhX3R1bWJsZWxvZ19wb3BvdmVycyI6dHJ1ZSwidHVtYmxyX3R2Ijp0cnVlLCJkZXByZWNhdGVfZmVhdHVyZWRfdGFncyI6dHJ1ZSwicmVibG9nX3VpX3JlZnJlc2giOnRydWUsInRhYl9zd2l0Y2hlciI6dHJ1ZSwiZmFzdF9jb21wb3NlIjp0cnVlLCJkYXNoYm9hcmRfcmVmcmVzaCI6dHJ1ZSwibW9iaWxlX3dlYl9waG90b3NldHMiOnRydWUsIm1vYmlsZV93ZWJfZ2F0ZSI6dHJ1ZSwibW9iaWxlX3dlYl9wYWdlX3RpdGxlcyI6dHJ1ZSwibW9iaWxlX3dlYl9hYnVzZV9mb3JtIjp0cnVlLCJkb250X2Nhc3RfanNfZm9sbG93cyI6dHJ1ZSwiYWRzX25ld192ZW5kb3JfYnV0dG9ucyI6dHJ1ZSwicmVhY3RpdmF0aW9uX2Zsb3ciOnRydWUsImd1bHBqc19hZG1pbiI6dHJ1ZSwiZW5hYmxlX2pzX2Vycm9yc19sb2ciOnRydWUsImVuYWJsZV9qc19lcGhlbWVyYWxfbG9nIjp0cnVlLCJsb2dfbGFkeSI6dHJ1ZSwiY3Nsb2dnZXJfanMiOnRydWUsImRpc2NvdmVyeV9odWJfYWNjZXNzIjp0cnVlLCJoZWFkZXJfYWNjb3VudF9tZW51Ijp0cnVlLCJlbmFibGVfc2hhcmVfZW1iZWRfY29kZSI6dHJ1ZSwicmVkZGl0X3NoYXJpbmciOnRydWUsInBvc3RfaXRfZm9yd2FyZCI6dHJ1ZSwicGVlcHJfc2VhcmNoX2FuZF9maWx0ZXIiOnRydWUsImludGVybnNfcGFnZSI6dHJ1ZSwiZm9sbG93ZWRfc2VhcmNoZXNfYmlnX3dlYiI6dHJ1ZSwibGl2ZXBob3Rvc193ZWIiOnRydWUsInNhZmVfbW9kZV9vd25fcG9zdCI6dHJ1ZSwiaGlkZV9kZWZhdWx0X2hlYWRlcnNfYmxvZ19jYXJkcyI6dHJ1ZSwia3Jha2VuX3dlYl9iYmxvZ19hY3RpdmUiOnRydWUsImFyY2hpdmUtcGx1cyI6dHJ1ZSwiZGFybGFfYWRfZmVlZGJhY2siOnRydWUsInN0YXR1c19pbmRpY2F0b3JzX3VpIjp0cnVlLCJkaXNhYmxlX3lhaG9vX2JfY29va2llIjp0cnVlLCJsaXZlcGhvdG9zIjp0cnVlfQ==&quot;},&quot;Context&quot;:{&quot;name&quot;:&quot;default&quot;,&quot;time&quot;:1509422411000,&quot;userinfo&quot;:{&quot;primary&quot;:&quot;&quot;,&quot;name&quot;:&quot;&quot;,&quot;channels&quot;:[]},&quot;hosts&quot;:{&quot;assets_host&quot;:&quot;http:\/\/assets.tumblr.com&quot;,&quot;secure_assets_host&quot;:&quot;https:\/\/assets.tumblr.com&quot;,&quot;www_host&quot;:&quot;http:\/\/www.tumblr.com&quot;,&quot;secure_www_host&quot;:&quot;https:\/\/www.tumblr.com&quot;,&quot;embed_host&quot;:&quot;https:\/\/embed.tumblr.com&quot;,&quot;safe_host&quot;:&quot;http:\/\/safe.txmblr.com&quot;,&quot;platform_host&quot;:&quot;http:\/\/platform.tumblr.com&quot;},&quot;language&quot;:&quot;en_US&quot;,&quot;language_simple&quot;:&quot;en&quot;,&quot;assets&quot;:&quot;http:\/\/assets.tumblr.com\/client\/prod\/&quot;},&quot;Translations&quot;:{&quot;%1$sReport %2$s&#039;s post?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;:&quot;%1$sReport %2$s&#039;s reblog?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;,&quot;%1$sReport %2$s&#039;s reply?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;:&quot;%1$sReport %2$s&#039;s reblog?%3$sIf it violates our community guidelines, we&#039;ll remove it.%4$s&quot;}}"></noscript><script src="http://assets.tumblr.com/client/prod/standalone/tumblelog/index.build.js?_v=c41e22c9b4f5b7ebfca85acc96f7b07f"></script></body></html>
