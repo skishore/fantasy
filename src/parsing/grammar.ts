@@ -112,4 +112,4 @@ const print_term = (term: Term): string =>
 
 const Grammar = {from_code, from_file, print_rule, print_term};
 
-export {Grammar, Rule};
+export {Grammar, Rule, Term};
