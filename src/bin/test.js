@@ -28,7 +28,7 @@ readEntireStream(fs.createReadStream(commander.args[0]))
   .then(([grammar, parser]) => {
     const input = commander.args[1].join(' ');
     console.error(parser.debug());
-    for (const token of grammar.lexer.iterable(input)) {
+    for (const token of grammar.lexer.lex(input)) {
       console.error();
       parser.feed(token);
       console.error(parser.debug());

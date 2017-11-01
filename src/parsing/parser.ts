@@ -214,7 +214,7 @@ class Parser {
   }
   static parse(grammar: Grammar, input: string): any {
     const parser = new Parser(grammar);
-    grammar.lexer.iterable(input).forEach((x) => parser.feed(x));
+    grammar.lexer.lex(input).forEach((x) => parser.feed(x));
     return parser.result();
   }
   private maybe_throw(message: () => string) {

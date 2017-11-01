@@ -1,10 +1,14 @@
 declare const require: any;
 const moo = require('../../src/external/moo.js');
 
+import {Option} from '../lib/base';
+
 // The Lexer interface allows literal- and type-based token matching.
 
 interface Lexer {
-  iterable: (input: string) => Token[],
+  lex: (input: string) => Token[],
+  unlex_text: (text: string, value: Option<any>) => Option<string>,
+  unlex_type: (type: string, value: Option<any>) => Option<string>,
 }
 
 interface Match {
@@ -37,6 +41,15 @@ ${message} at line ${line}, column ${column}:
   `.trim();
 }
 
+const moo_tokens = (input: string, lexer: Moo): MooToken[] => {
+  const result = [];
+  lexer.reset(input);
+  for (let token = null; token = lexer.next();) {
+    result.push(token);
+  }
+  return result;
+}
+
 const swap_quotes = (x: string) =>
     x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
 
@@ -45,7 +58,7 @@ const Lexer = {format_error, swap_quotes};
 // Some simple implementations of lexers.
 
 class CharacterLexer implements Lexer {
-  iterable(input: string) {
+  lex(input: string) {
     const match = (x: string): Match => ({score: 0, value: x});
     return Array.from(input).map((x, i) => ({
       index: i,
@@ -55,6 +68,18 @@ class CharacterLexer implements Lexer {
       type_matches: {},
     }));
   }
+  unlex_text(text: string, value: Option<any>) {
+    if (value && value.some !== text) return null;
+    return text.length === 1 ? {some: text} : null;
+  }
+  unlex_type(type: string, value: Option<any>) {
+    return null;
+  }
+}
+
+interface Moo {
+  next: () => MooToken | null,
+  reset: (input: string) => void,
 }
 
 interface MooRule {
@@ -72,15 +97,13 @@ interface MooToken {
 }
 
 class MooLexer implements Lexer {
-  private lexer: any;
+  private lexer: Moo;
   constructor(config: {[cls: string]: MooConfig}) {
     this.lexer = moo.compile(config);
   }
-  iterable(input: string) {
+  lex(input: string) {
     const result: Token[] = [];
-    this.lexer.reset(input);
-    let token: MooToken | null = this.lexer.next();
-    while (!!token) {
+    for (const token of moo_tokens(input, this.lexer)) {
       const match: Match = {score: 0, value: token.value};
       result.push({
         index: token.offset,
@@ -89,9 +112,18 @@ class MooLexer implements Lexer {
         text_matches: {[token.text]: match},
         type_matches: {[token.type]: match},
       });
-      token = this.lexer.next();
     }
     return result;
+  }
+  unlex_text(text: string, value: Option<any>) {
+    if (value && value.some !== text) return null;
+    const tokens = moo_tokens(text, this.lexer);
+    return tokens.length === 1 ? {some: text} : null;
+  }
+  unlex_type(type: string, value: Option<any>) {
+    if (!value || typeof value.some !== 'string') return null;
+    const tokens = moo_tokens(value.some, this.lexer);
+    return tokens.length === 1 && tokens[0].type === type ? value : null;
   }
   static string: MooConfig = [
     {match: /"[^"]*"/, value: (x) => JSON.parse(x)},
