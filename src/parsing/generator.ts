@@ -53,3 +53,8 @@ const generate = (grammar: Grammar, value: any): Option<string[]> => {
 const Generator = {generate};
 
 export {Generator};
+
+// A quick test of the generator on a generative grammar.
+
+const grammar = Grammar.from_file('../dsl/english');
+console.log(Generator.generate(grammar, {name: 'judge'}));
