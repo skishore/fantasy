@@ -3,6 +3,7 @@ type Map = {[index: string]: string};
 const SYMBOLS = {
   anusvara: 'ं',
   chandrabindu: 'ँ',
+  nukta: '़',
   om: 'ॐ',
   virama: '\u094D',
 };

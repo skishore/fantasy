@@ -16,7 +16,7 @@ const transliterate = (word: string): string => {
   const characters = Array.from(word).map(normalize);
   for (let i = 0; i < characters.length; i++) {
     const ch = characters[i];
-    const transliteration = TRANSLITERATIONS[ch];
+    const transliteration = ch === ' ' ? ' ' : TRANSLITERATIONS[ch];
     assert(transliteration != null, () => `Invalid Devanagari: ${ch}`);
     result.push(transliteration);
     const next = characters[i + 1];
@@ -29,10 +29,24 @@ const transliterate = (word: string): string => {
 
 export {transliterate};
 
-const words = `
-इक्कीस
-बाइस
-`.trim().split('\n');
-for (const word of words) {
-  console.log(`${word} -> ${transliterate(word)}`);
+declare const require: any;
+const fs = require('fs');
+const readline = require('readline');
+
+const stream = fs.createReadStream('/Users/skishore/Projects/Examples/english-hindi-dictionary/English-Hindi Dictionary.csv');
+const reader = readline.createInterface({input: stream});
+
+const read_word = (line: string): string | null => {
+  try {
+    return JSON.parse(`[${line}]`)[1].trim();
+  } catch {
+    return null;
+  }
 }
+
+reader.on('line', (line: string) => {
+  const word = read_word(line);
+  if (!word || word === 'hword') return;
+  console.log(word);
+  console.log(`${word} -> ${transliterate(word)}`);
+});

@@ -1,0 +1,29 @@
+crowdsourced:
+
+===== README for Transliteration Test Bench =======
+
+Content of the Folder
+=====================
+* "README.txt" file
+* "Bangla" folder
+    * "Chat" folder
+    * "Dictation Experiment" folder
+    * "Scenario" folder
+* "Hindi" folder
+    * "Chat" folder
+    * "Dictation Experiment" folder
+    * "Scenario" folder
+
+Description of the Data
+=======================
+The "Bangla\Chat" folder contains files from the chat experiments from the users. There is one file per user. Each line contains a sentence in Roman text followed by the transliteration in Bangla script. The words are separated by ";". The sentences are word-aligned.
+
+All the other files in all the folders are organized in the same way. For details of the experiments and data collection, please refer to
+
+  Sowmya V.B., Monojit Choudhury, Kalika Bali, Tirthankar Dasgupta and Anupam Basu. "Resource Creation for Training and Testing of Transliteration Systems for Indian Languages", LREC 2010.
+
+
+
+lyrics.txt:
+
+Kanika Gupta and Monojit Choudhury and Kalika Bali, Mining Hindi-English Transliteration Pairs from Online Hindi Lyrics, In Proceedings of the Eight International Conference on Language Resources and Evaluation (LREC '12), 23-25 May 2012, Istanbul, Turkey, pages 2459-2465.
