@@ -1,13 +1,17 @@
+# -*- coding: utf-8 -*-
+
 import collections
 import csv
 import os
 import sys
 
 
-dictionary = set()
+dictionary = dict()
 
-for line in list(csv.reader(open('datasets/dictionary.txt')))[1:]:
-    dictionary.add(line[1].decode('utf8'))
+for line in open('datasets/unicode.txt').readlines():
+    (frequency, wx, word) = line.decode('utf8').strip().split()
+    if not word.startswith('#'):
+        dictionary[word] = int(frequency)
 
 
 def filter_entries(entries):
@@ -21,7 +25,7 @@ def filter_entries(entries):
         if not all(x.isalpha() for x in latin):
             continue
         if hindi not in dictionary:
-            print 'Unknown Hindi word: %s' % (hindi,)
+            print ('Unknown Hindi word: %s' % (hindi,)).encode('utf8')
             continue
         result.append((latin, hindi))
     return result
