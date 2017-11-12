@@ -3,7 +3,7 @@ mumbai;mein;har;bharatiya;tyohaar;bade;hi;dhoom;dhaam;se;manaaya;jaat;ahain;chaa
 मुम्बई;में;हर;भारतीय;त्योहार;बड़े;ही;धूम;धाम;से;मनाया;जाता;है;चाहे;वो;होली;हो;याद;दीवाली;या;ईद;या;क्रिसमस;
 kahaan;jaata;hain;ki;mumbai;mein;ek;aadmi;kaa;jeebva;train;ki;raftaar;se;chalta;hain;
 कहाँ;जाता;है;कि;मुम्बई;में;एक;आदमी;का;cannot understand;ट्रेन**;की,;रफ्तार;से;चलता;हैं;
-aise;mein;ek;shaant;vatavaran;paana;bahut;mushkil;ho;jaata;hain;
+aise;mein;ek;shaant;vatavaran;paana;bahut;mushkil;ho;
 ऐसे;मे;एक;शांत;वातावरण;पाना;बहुत;मुश्किल;हो;
 doosre;pranto;se;aaye;hue;logon;ko;ees;tej;gati;ke;saath;chalne;mein;bahut;hoti;hain;
 दूसरे;प्रांतों;से;आए;हुए;लोगों;को;इस;तेज;गति;के;साथ;चलने;में;बहुत;होती;है;

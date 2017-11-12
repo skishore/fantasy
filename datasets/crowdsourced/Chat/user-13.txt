@@ -15,9 +15,9 @@ hum;log;aksar;milke;filmein;dekha;karte;hai;haal;hi;mein;humne;love;aaj;kal;dekh
 हम;लोग;अकसर;मिलके;फ़िल्में;देखा;करते;हैं;हाल;ही;में;हमने;लव**;आज;कल;देखी;मुझे;ये;फ़िल्म**;अच्छी;लगी;
 agar;use;swachandtawadi;film;achhi;lagti;hai;toh;use;zaroor;dekhna;chahiye;
 अगर;उसे;स्वछंदतावादी;फ़िल्म**;अच्छी;लगती;है;तो;उसे;जरूर;देखना;चाहिए;
-ab;yaar;itne;complicated;prashn;puchenge;toh;kaise;bolo;shuru;
+ab;yaar;itne;complicated;prashn;puchenge;toh;kaise;bolo;
 अब;यार;इतने;कॉम्पिलकेटेड**;प्रश्न;पूछेंगे;तो;कैसे;बोलो;
-bangalore;mein;bahut;kuch;hota;rehta;hai;life;toh;yahan;pe;kamaal;ki;hai;haan;kiya;jaye;theek;hai;
+bangalore;mein;bahut;kuch;hota;rehta;hai;life;toh;yahan;pe;kamaal;ki;hai;haan;
 बैंगलोर;में;बहुत;कुछ;होता;रहता;है;लाइफ**;तो;यहाँ;पे;कमाल;की;है;हाँ;
 aise;hi;na??;
 ऐसे;ही;ना??;

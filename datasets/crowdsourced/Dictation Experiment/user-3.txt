@@ -35,7 +35,7 @@ bank;ki;report;men;ullikhit;binduon;par;bichaar;aur;mimansa;ke;liye;karya;dal;
 बैंक**;की;रिपोर्ट;में;उल्लिखित;बिन्दुओं;पर;विचार;और;मींमांसा;के;लिए;कार्य;दल;
 vahan;se;samatahiradasi;aur;napagual;gontha;aate;hain;
 वहाँ;से;समताहिरादासी;और;नापगुअल;गोंथा;आते;हैं;
-beet;rahe;saptaah;men;nifty;index;tejadiya;livaali;se;chalate;karobaar;men;pahali;baar;chaar;hajaari;hua;
+beet;rahe;saptaah;men;nifty;index;tejadiya;livaali;se;chalate;karobaar;men;pahali;baar;
 बीत;रहे;सप्ताह;में;निफ्टी**;इंडेक्स**;तेजड़िया;लिवाली;से;चलते;कारोबार;में;पहली;बार;
 jaisa;ki;abhiyog;se;spasht;hai;usane;shehbaaz;nishaane;par;nahin;
 जैसा;की;अभियोग;से;स्पष्ट;है;उसने;शहबाज़;निशाने;पर;नहीं;

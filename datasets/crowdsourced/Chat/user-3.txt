@@ -7,7 +7,7 @@ tu;suna;bangalore;main;kya;ho;raha;hai;
 तू;सुना;बैंगलोर;में;क्या;हो;रहा;है;
 kuch;khass;nahin;yaar;
 कुछ;खास;नहीं;यार;
-bus;kam;main;busy;hun;
+bus;kam;main;
 बस;काम;में;
 office;aata;hun;
 ऑफिस;आता;हूँ;

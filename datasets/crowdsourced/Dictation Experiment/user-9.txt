@@ -1,5 +1,4 @@
-﻿
-bhajpa;pradesh;sagthan;ke;sabal;par;unhone;kaha;ki;bahut;badhiya;hai;
+﻿bhajpa;pradesh;sagthan;ke;sabal;par;unhone;kaha;ki;bahut;badhiya;hai;
 भाजपा;प्रदेश;संगठन;के;सवाल;पर;उन्होंने;कहा;कि;बहुत;बढिया;है;
 ak;prasn;ke;uttar;me;lee;ne;apni;gend;kee;rafter;kam;karne;se;saf;inkar;kar;diya;
 एक;प्रश्न;के;उत्तर;में;ली;ने;अपनी;गेन्द;की;रफ़्तार;काम;करने;से;साफ़;इंकार;कर;दिया;
@@ -21,7 +20,7 @@ rajy;sarkar;dvara;prdome;kapada;vyavsay;ki;unnti;ke;liye;har;sambhav;madad;ki;ja
 राज्य;सरकार;द्वारा;cannot understand;कपड़ा;व्यवसाय;की;उन्नति;के;लिए;हर;संभव;मदद;की;जाएगी;
 laaos;ke;vaky;me;bhi;bak;katha;ke;chitr;hai;
 लाओस;के;वाकये;में;भी;बक;कथा;के;चित्र;है;
-bhartiy;antriksh;anusandhan;sagthan;esro;ki;uplabdhiyo;ki;ferhist;me;ak;aur;nam;jud;jayega;sre;
+bhartiy;antriksh;anusandhan;sagthan;esro;ki;uplabdhiyo;ki;ferhist;me;ak;aur;nam;jud;jayega;
 भारतीय;अंतरिक्ष;अनुसंधान;संगठन;इएसआरओ;की;उपलब्धियों;की;फ़ेहरिस्त;मे;एक;और;नाम;जुड़;जाएगा;
 en;ladaeyon;ka;mahatv;netratv;karne;bale;vyaktiyon;ke;karan;nahi;muddo;ke;karan;hai;
 इन;लड़ाइयों;का;महत्व;नेतृत्व;करने;वाले;व्यक्तियों;के;कारण;नहीं;मुद्दो;के;कारण;है;
@@ -96,7 +95,7 @@ Virajan;ne;bolna;chaha;parantu;khanth;rundh;ho;gaya;aur;aankhen;bhi;bhar;aayi;
 विरजन;ने ;बोलना ;चाहा;पर ;कंठ ;रुंध;हो;गया;और;आँखें;भी;भर;आईं;
 Chinmay;mission;ke;sansthapak;Swami;Chinmayanand;ji,;Swami;Sundaranand;ji;ke;gurubhai;hain;
 चिन्मय;मिशन;के ;संस्थापक;स्वामी;चिन्मयानन्द;जी;स्वामी;सुन्दरानन्द ;जी;के ;गुरुभाई ;हैं;
-Aava;khan;foundation;ko;yuva;karyakramon;ke;liye;sahaayta;ka;prasthav;hai;
+Aava;khan;foundation;ko;yuva;karyakramon;ke;liye;sahaayta;ka;prasthav;
 आगा;खान;फाउंडेशन ;को;युवा;कार्यक्रमों;के ;लिए;सहायता;का ;प्रस्ताव;
 Yeh;jaankari;aaj;loksabha;mein;bith;rajya;mantri;Shri;S;S;Palaanimannakam;ne;ek;prashn;ke;likhith;uttar;mein;di;
 यह;जानकारी;आज;लोकसभा;में ;वित्त;राज्य;मंत्री;श्री;एस;एस;पलानिमक्कम;ने;एक;प्रश्न;के ;लिखित ;उत्तर;में ;दी;
