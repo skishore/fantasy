@@ -1,6 +1,30 @@
 import collections
+import csv
 import os
 import sys
+
+
+dictionary = set()
+
+for line in list(csv.reader(open('datasets/dictionary.txt')))[1:]:
+    dictionary.add(line[1].decode('utf8'))
+
+
+def filter_entries(entries):
+    result = []
+    for (latin, hindi) in entries:
+        latin = latin.lower()
+        if hindi.endswith('**'):
+            continue
+        latin = latin.strip('?').strip('!').strip(',')
+        hindi = hindi.strip('?').strip('!').strip(',')
+        if not all(x.isalpha() for x in latin):
+            continue
+        if hindi not in dictionary:
+            print 'Unknown Hindi word: %s' % (hindi,)
+            continue
+        result.append((latin, hindi))
+    return result
 
 
 def get_entries(name):
@@ -36,7 +60,7 @@ for name in sys.argv[1:]:
         entries = get_entries(name)
         source = get_source(name)
     source = source.split(' ')[0].lower()
-    data[source].extend(entries)
+    data[source].extend(filter_entries(entries))
 
 with open('combined.txt', 'w') as output:
     for (source, entries) in sorted(data.items()):
