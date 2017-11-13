@@ -1,0 +1,107 @@
+Implicit Schwa -> e instead of a
+================================
+ahmedabad
+sheher
+rehta
+pehle
+pehle
+hoker
+pehchaan
+bengal
+behla
+rehta
+rehti
+
+Implicit Schwa -> u instead of a
+================================
+bus
+hum
+hume
+humare
+hum
+humne
+
+"rrr" r -> d
+============
+padhne
+bada
+thodi
+bada
+chodti
+pad
+thoda
+bada
+padai
+
+Append final "h" or "n" after short vowel
+=========================================
+woh
+yeh
+main
+mukhyan
+hain
+hain
+yeh
+yeh
+toh
+nahin
+toh
+
+Drop the "h" in an aspirated consonant
+======================================
+likne
+suru
+siv
+baris
+shashakiya
+baris
+
+Insert "y" between two vowels
+=============================
+chahiye
+chahiye
+aayega
+liye
+gaye (BUG: Need to handle long vowels correctly) गए
+rupayee (SAME BUG)
+jayega
+liye
+aaye (SAME BUG)
+isliye
+chahiye
+liye
+chahiye
+huye
+jaaye
+jaaye
+
+Add an "h" to an unaspirated consonant
+======================================
+shashakiya
+khadr
+
+achha -> need to allow for a single c even though it's ch-chh
+gaon -> true spelling gaanv (very tricky...)
+gaon again
+men -> main (m ai bindu) with e for ai
+goojarti -> gujarti available, but vowel is short
+sthanoo -> sthanon (n - o - bindu - o gets stretched) (typo?)
+deskh -> desh (typo?)
+chinah -> chinha (reorder ah / ha)
+vaishal -> vaishali (drop last vowel)
+thhek -> theek (typo?)
+es -> is with e for i
+me -> mai with e for ai
+ak -> ek with a for e
+hyderabad -> multiple misses - y for ai, e for a
+ey -> yahin (typo?)
+bohot -> bahut (woah, way off)
+mein -> men (m - e - bindu) w/ extra i
+mein again
+mein again
+mein again
+mein again
+mein again
+mein again
+chawk -> aw for au
+achhe / ache -> acche
