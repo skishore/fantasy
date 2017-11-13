@@ -6,14 +6,6 @@ import os
 import sys
 
 
-dictionary = dict()
-
-for line in open('datasets/unicode.txt').readlines():
-    (frequency, wx, word) = line.decode('utf8').strip().split()
-    if not word.startswith('#'):
-        dictionary[word] = int(frequency)
-
-
 def filter_entries(entries):
     result = []
     for (latin, hindi) in entries:
@@ -23,9 +15,6 @@ def filter_entries(entries):
         latin = latin.strip('?').strip('!').strip(',')
         hindi = hindi.strip('?').strip('!').strip(',')
         if not all(x.isalpha() for x in latin):
-            continue
-        if hindi not in dictionary:
-            print ('Unknown Hindi word: %s' % (hindi,)).encode('utf8')
             continue
         result.append((latin, hindi))
     return result
