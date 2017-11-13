@@ -28,25 +28,3 @@ const transliterate = (word: string): string => {
 }
 
 export {transliterate};
-
-declare const require: any;
-const fs = require('fs');
-const readline = require('readline');
-
-const stream = fs.createReadStream('/Users/skishore/Projects/Examples/english-hindi-dictionary/English-Hindi Dictionary.csv');
-const reader = readline.createInterface({input: stream});
-
-const read_word = (line: string): string | null => {
-  try {
-    return JSON.parse(`[${line}]`)[1].trim();
-  } catch {
-    return null;
-  }
-}
-
-reader.on('line', (line: string) => {
-  const word = read_word(line);
-  if (!word || word === 'hword') return;
-  console.log(word);
-  console.log(`${word} -> ${transliterate(word)}`);
-});
