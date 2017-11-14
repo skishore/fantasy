@@ -1,4 +1,5 @@
 import {Trie} from '../lib/trie';
+import {SYMBOLS} from './devanagari';
 import {transliterate} from './transliterator';
 
 declare const require: any;
@@ -11,6 +12,9 @@ console.log(`Reading ${lines.length} words...`);
 for (const line of lines) {
   const [str, wx, word] = line.split(' ');
   if (!word || word.startsWith('#')) continue;
+  if (word.includes(SYMBOLS.visarga) ||
+      word.startsWith(SYMBOLS.anusvara) ||
+      word.startsWith(SYMBOLS.chandrabindu)) continue;
   const frequency = parseInt(str, 10);
   const transliterations = transliterate(word);
   transliterations.forEach(

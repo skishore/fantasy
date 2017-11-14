@@ -6,6 +6,7 @@ const SYMBOLS = {
   nukta: '़',
   om: 'ॐ',
   virama: '\u094D',
+  visarga: '\u0903',
 };
 
 const TRANSLITERATIONS: Map<string[]> = {
@@ -66,29 +67,16 @@ const TRANSLITERATIONS: Map<string[]> = {
   'ख़': ['kh'],
   'ग़': ['g'],
   'ज़': ['z'],
-  'ड़': ['r'],
-  'ढ़': ['rh'],
+  'ड़': ['r', 'd'],
+  'ढ़': ['rh', 'dh'],
   'ऩ': ['n'],
   'फ़': ['f'],
   'य़': ['y'],
   'ऱ': ['r'],
-  // Digits.
-  '०': ['0'],
-  '१': ['1'],
-  '२': ['2'],
-  '३': ['3'],
-  '४': ['4'],
-  '५': ['5'],
-  '६': ['6'],
-  '७': ['7'],
-  '८': ['8'],
-  '९': ['9'],
-  // Symbols.
-  'ं': ['n', 'm', ''],
-  'ँ': ['n', 'm', ''],
-  'ॐ': ['om'],
-  '\u0903': [''],
-  '\u094D': [''],
+  // Structural symbols from syllabization.
+  a: ['a', ''],
+  n: ['n', 'm', ''],
+  y: ['y', ''],
 };
 
 const VOWELS: Map<string> = {

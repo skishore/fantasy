@@ -50,32 +50,23 @@ const syllables = (word: string): Syllable[] => {
     if (bindu(word[i])) {
       [i, syllable.bindu] = [i + 1, true];
     }
-    assert(i > last_position, () => `Invalid Devanagari: ${word[i]}`);
-    assert(syllable.consonants.length > 0 || !!syllable.vowel);
+    assert(i > last_position, () => `Devanagari error: ${word[i]} (${word})`);
+    assert(syllable.consonants.length > 0 || !!syllable.vowel, () => word);
     result.push(syllable);
   }
   return result;
 }
 
 const transliterate = (word: string): string[] => {
-  const result: string[][] = [];
-  const characters = Array.from(word).map(normalize);
-  let last_was_consonant = false;
-  for (let i = 0; i < characters.length; i++) {
-    const ch = characters[i];
-    const transliteration = TRANSLITERATIONS[ch];
-    assert(transliteration != null, () => `Invalid Devanagari: ${ch}`);
-    if (last_was_consonant && bindu(ch)) {
-      result.push(['a']);
-    } else if (last_was_consonant && consonant(ch)) {
-      result.push(['a', '']);
-    }
-    last_was_consonant = consonant(ch);
-    result.push(transliteration);
-  }
-  if (last_was_consonant) {
-    result.push(['a', '']);
-  }
+  const pieces: string[] = [];
+  syllables(word).forEach((x, i) => {
+    x.consonants.forEach((y) => pieces.push(y));
+    if (i > 0 && x.consonants.length === 0) pieces.push('y');
+    pieces.push(x.vowel || 'a');
+    if (x.bindu) pieces.push('n');
+  });
+  const result = pieces.map((x) => TRANSLITERATIONS[x]);
+  assert(result.every((x) => !!x));
   return result.reduce(cross, ['']);
 }
 
@@ -109,4 +100,5 @@ for (const word of words) {
   if (word !== words[0]) console.log('');
   console.log(`Syllables: ${word}`);
   console.log(syllables(word));
+  console.log(`Transliterations: ${transliterate(word).join(', ')}`);
 }
