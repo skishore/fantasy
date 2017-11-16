@@ -89,6 +89,9 @@ const split = (word: string): string[] => {
     pieces.push(x.vowel || 'a');
     if (x.bindu) pieces.push('n');
   });
+  const last = pieces[pieces.length - 1];
+  if (last === 'n') pieces[pieces.length - 1] = 'x';
+  if (last !== 'n') pieces.push('e');
   assert(pieces.every((x) => !!TRANSLITERATIONS[x]));
   return pieces;
 }
