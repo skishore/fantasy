@@ -1,9 +1,42 @@
 import {Trie} from '../lib/trie';
-import {SYMBOLS} from './devanagari';
-import {transliterate} from './transliterator';
+import {SYMBOLS, TRANSLITERATIONS} from './devanagari';
+import {align, split, transliterate} from './transliterator';
 
 declare const require: any;
 const fs = require('fs');
+
+// Compute alignments based on transliteration pairs.
+
+const compute_alignments = () => {
+  const counts: {[index: string]: {[index: string]: number}}  = {};
+  Object.keys(TRANSLITERATIONS).forEach((x) => {
+    counts[x] = {};
+    TRANSLITERATIONS[x].forEach((y) => counts[x][y] = 0);
+  });
+  const data: string = fs.readFileSync('combined.txt', 'utf-8');
+  const pairs = data.split('\n').filter((x) => !!x && x[0] !== '/');
+  for (const pair of pairs) {
+    const [latin, hindi] = pair.split('\t');
+    if (latin === 'suronn') continue;
+    if (Array.from(hindi).some((x) =>
+        x === '‘' || x === '’' || x === '\u0949' || x === '\u200D' ||
+        x === SYMBOLS.visarga || x.charCodeAt(0) < 128)) continue;
+    const alignment = align(hindi, latin);
+    const debug = alignment ? JSON.stringify(alignment)
+                            : `null (${JSON.stringify(split(hindi))})`;
+    console.log(`Aligning: ${hindi} -> ${latin}: ${debug}`);
+    (alignment || []).forEach(([hindi, latin]) => counts[hindi][latin] += 1);
+  }
+  console.log('');
+  console.log(`Final counts:`);
+  console.log(counts);
+}
+
+declare const process: any;
+compute_alignments();
+process.exit(0);
+
+// Run the translieration eval.
 
 const items: {keys: string[], value: string}[] = [];
 const data: string = fs.readFileSync('datasets/unicode.txt', 'utf-8');
