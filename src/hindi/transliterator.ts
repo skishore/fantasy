@@ -1,7 +1,31 @@
 import {assert} from '../lib/base';
-import {SYMBOLS, TRANSLITERATIONS, VOWELS, VOWEL_SIGNS} from './devanagari';
+import {NUKTAS, SYMBOLS, TRANSLITERATIONS, VOWELS, VOWEL_SIGNS} from './devanagari';
 
 interface Syllable {bindu?: true, consonants: string[], vowel?: string};
+
+const align = (hindi: string, latin: string): [string, string][] | null => {
+  const pieces = split(hindi);
+  const memo: ([number, [string, string]] | null)[] =
+      Array((latin.length + 1) * (pieces.length + 1)).fill(null);
+  for (let i = 0; i < pieces.length; i++) {
+    for (let j = 0; j <= latin.length; j++) {
+      const head = i * (latin.length + 1) + j;
+      if (!memo[head] && (i || j)) continue;
+      for (const option of TRANSLITERATIONS[pieces[i]]) {
+        if (latin.substring(j, j + option.length) !== option) continue;
+        const tail = (i + 1) * (latin.length + 1) + j + option.length;
+        memo[tail] = [head, [pieces[i], option]];
+      }
+    }
+  }
+  let current = memo[memo.length - 1];
+  const result: [string, string][] = [];
+  while (current) {
+    result.push(current[1]);
+    current = memo[current[0]];
+  }
+  return result.length < pieces.length ? null : result.reverse();
+}
 
 const bindu = (ch: string): boolean =>
     ch === SYMBOLS.anusvara || ch === SYMBOLS.chandrabindu;
@@ -15,13 +39,13 @@ const consonant = (ch: string): boolean => {
 const cross = (xs: string[], ys: string[]): string[] =>
     [].concat.apply([], xs.map((x) => ys.map((y) => x + y)));
 
-const normalize = (ch: string): string => VOWEL_SIGNS[ch] || ch;
-
 const parse_consonants = (word: string, i: number): [number, string[]] => {
   const result = [];
-  while (true) {
-    assert(consonant(word[i]));
-    result.push(word[i++]);
+  while (i < word.length) {
+    const item = word[i++];
+    assert(consonant(item), () => word);
+    result.push((word[i] === SYMBOLS.nukta ? NUKTAS[item] : null) || item);
+    if (word[i] === SYMBOLS.nukta) i += 1;
     if (word[i] !== SYMBOLS.virama) break;
     i += 1;
   }
@@ -57,7 +81,7 @@ const syllables = (word: string): Syllable[] => {
   return result;
 }
 
-const transliterate = (word: string): string[] => {
+const split = (word: string): string[] => {
   const pieces: string[] = [];
   syllables(word).forEach((x, i) => {
     x.consonants.forEach((y) => pieces.push(y));
@@ -65,40 +89,11 @@ const transliterate = (word: string): string[] => {
     pieces.push(x.vowel || 'a');
     if (x.bindu) pieces.push('n');
   });
-  const result = pieces.map((x) => TRANSLITERATIONS[x]);
-  assert(result.every((x) => !!x));
-  return result.reduce(cross, ['']);
+  assert(pieces.every((x) => !!TRANSLITERATIONS[x]));
+  return pieces;
 }
 
-export {transliterate};
+const transliterate = (word: string): string[] =>
+    split(word).map((x) => TRANSLITERATIONS[x]).reduce(cross, ['']);
 
-const words = `
-वैशाली
-स्तूप
-गणतांत्रिक
-दिखते
-रूपए
-शासकीय
-उन्नति
-साम्राज्य
-प्रमुख
-अशोक
-हमीं
-अभी
-चाहिए
-की
-पर
-एक
-क
-कक
-हैं
-अ
-गए
-`.trim().split('\n').sort();
-
-for (const word of words) {
-  if (word !== words[0]) console.log('');
-  console.log(`Syllables: ${word}`);
-  console.log(syllables(word));
-  console.log(`Transliterations: ${transliterate(word).join(', ')}`);
-}
+export {align, split, transliterate};

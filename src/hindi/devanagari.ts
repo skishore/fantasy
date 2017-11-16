@@ -1,5 +1,15 @@
 type Map<T> = {[index: string]: T};
 
+const NUKTAS: Map<string> = {
+  'क': 'क़',
+  'ख': 'ख़',
+  'ग': 'ग़',
+  'ज': 'ज़',
+  'ड': 'ड़',
+  'ढ': 'ढ़',
+  'फ': 'फ़',
+};
+
 const SYMBOLS = {
   anusvara: 'ं',
   chandrabindu: 'ँ',
@@ -101,4 +111,4 @@ const VOWELS: Map<string> = {
 const VOWEL_SIGNS: Map<string> = {};
 Object.keys(VOWELS).forEach((x) => VOWEL_SIGNS[VOWELS[x]] = x);
 
-export {SYMBOLS, TRANSLITERATIONS, VOWELS, VOWEL_SIGNS};
+export {NUKTAS, SYMBOLS, TRANSLITERATIONS, VOWELS, VOWEL_SIGNS};
