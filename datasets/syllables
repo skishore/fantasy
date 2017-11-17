@@ -1,0 +1,88 @@
+Syllables: अ
+[ { consonants: [], vowel: 'अ' } ]
+
+Syllables: अभी
+[ { consonants: [], vowel: 'अ' },
+  { consonants: [ 'भ' ], vowel: 'ई' } ]
+
+Syllables: अशोक
+[ { consonants: [], vowel: 'अ' },
+  { consonants: [ 'श' ], vowel: 'ओ' },
+  { consonants: [ 'क' ] } ]
+
+Syllables: उन्नति
+[ { consonants: [], vowel: 'उ' },
+  { consonants: [ 'न', 'न' ] },
+  { consonants: [ 'त' ], vowel: 'इ' } ]
+
+Syllables: एक
+[ { consonants: [], vowel: 'ए' }, { consonants: [ 'क' ] } ]
+
+Syllables: क
+[ { consonants: [ 'क' ] } ]
+
+Syllables: कक
+[ { consonants: [ 'क' ] }, { consonants: [ 'क' ] } ]
+
+Syllables: की
+[ { consonants: [ 'क' ], vowel: 'ई' } ]
+
+Syllables: गए
+[ { consonants: [ 'ग' ] }, { consonants: [], vowel: 'ए' } ]
+
+Syllables: गणतांत्रिक
+[ { consonants: [ 'ग' ] },
+  { consonants: [ 'ण' ] },
+  { consonants: [ 'त' ], vowel: 'आ', bindu: true },
+  { consonants: [ 'त', 'र' ], vowel: 'इ' },
+  { consonants: [ 'क' ] } ]
+
+Syllables: चाहिए
+[ { consonants: [ 'च' ], vowel: 'आ' },
+  { consonants: [ 'ह' ], vowel: 'इ' },
+  { consonants: [], vowel: 'ए' } ]
+
+Syllables: दिखते
+[ { consonants: [ 'द' ], vowel: 'इ' },
+  { consonants: [ 'ख' ] },
+  { consonants: [ 'त' ], vowel: 'ए' } ]
+
+Syllables: पर
+[ { consonants: [ 'प' ] }, { consonants: [ 'र' ] } ]
+
+Syllables: प्रमुख
+[ { consonants: [ 'प', 'र' ] },
+  { consonants: [ 'म' ], vowel: 'उ' },
+  { consonants: [ 'ख' ] } ]
+
+Syllables: रूपए
+[ { consonants: [ 'र' ], vowel: 'ऊ' },
+  { consonants: [ 'प' ] },
+  { consonants: [], vowel: 'ए' } ]
+
+Syllables: वैशाली
+[ { consonants: [ 'व' ], vowel: 'ऐ' },
+  { consonants: [ 'श' ], vowel: 'आ' },
+  { consonants: [ 'ल' ], vowel: 'ई' } ]
+
+Syllables: शासकीय
+[ { consonants: [ 'श' ], vowel: 'आ' },
+  { consonants: [ 'स' ] },
+  { consonants: [ 'क' ], vowel: 'ई' },
+  { consonants: [ 'य' ] } ]
+
+Syllables: साम्राज्य
+[ { consonants: [ 'स' ], vowel: 'आ' },
+  { consonants: [ 'म', 'र' ], vowel: 'आ' },
+  { consonants: [ 'ज', 'य' ] } ]
+
+Syllables: स्तूप
+[ { consonants: [ 'स', 'त' ], vowel: 'ऊ' },
+  { consonants: [ 'प' ] } ]
+
+Syllables: हमीं
+[ { consonants: [ 'ह' ] },
+  { consonants: [ 'म' ], vowel: 'ई', bindu: true } ]
+
+Syllables: हैं
+[ { consonants: [ 'ह' ], vowel: 'ऐ', bindu: true } ]
