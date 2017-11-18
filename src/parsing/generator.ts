@@ -75,5 +75,5 @@ export {Generator};
 
 // A quick test of the generator on a generative grammar.
 
-const grammar = Grammar.from_file('../dsl/english');
-console.log(Generator.generate(grammar, {name: 'judge'}));
+const grammar = Grammar.from_file('../dsl/hindi');
+console.log(Generator.generate(grammar, {modifiers: ['large', 'small'], noun: 'man'}));
