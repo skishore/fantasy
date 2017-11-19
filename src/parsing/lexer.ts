@@ -55,7 +55,7 @@ const swap_quotes = (x: string) =>
 
 const Lexer = {format_error, swap_quotes};
 
-// Some simple implementations of lexers.
+// A lexer that splits a string into raw characters.
 
 class CharacterLexer implements Lexer {
   lex(input: string) {
@@ -76,6 +76,8 @@ class CharacterLexer implements Lexer {
     return null;
   }
 }
+
+// A lexer that uses the moo.js library to split a string into tokens.
 
 interface Moo {
   next: () => MooToken | null,

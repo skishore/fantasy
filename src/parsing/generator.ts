@@ -72,8 +72,3 @@ const generate = (grammar: Grammar, value: any): Option<string[]> => {
 const Generator = {generate};
 
 export {Generator};
-
-// A quick test of the generator on a generative grammar.
-
-const grammar = Grammar.from_file('../dsl/hindi');
-console.log(Generator.generate(grammar, {modifiers: ['large', 'small'], noun: 'man'}));
