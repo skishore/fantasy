@@ -207,7 +207,7 @@ const validate = (grammar: CompiledGrammar): CompiledGrammar => {
 class Compiler {
   static compile(input: string): string {
     const grammar = Grammar.from_file('../dsl/bootstrapped');
-    const ast = Parser.parse(grammar, input);
+    const ast = Parser.parse(grammar, input).value!.some;
     return generate(evaluate(ast));
   }
 }

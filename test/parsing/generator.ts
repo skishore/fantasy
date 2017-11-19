@@ -1,8 +1,12 @@
 import {Compiler} from '../../src/parsing/compiler';
+import {Derivation} from '../../src/parsing/derivation';
 import {Generator} from '../../src/parsing/generator';
 import {Grammar} from '../../src/parsing/grammar';
 import {Parser} from '../../src/parsing/parser';
 import {Test} from '../test';
+
+const texts = (derivation: Derivation | null): string[] | null =>
+    derivation ? Derivation.texts(derivation) : null;
 
 const generator: Test = {
   generative_grammar_works: () => {
@@ -40,12 +44,12 @@ const generator: Test = {
       PT_noun -> 'aurat' {% (= 'woman') %}
     `;
     const grammar = Grammar.from_code(Compiler.compile(input));
-    const generate = (x: any) => Generator.generate(grammar, x);
-    Test.assert_eq(generate({noun: 'man'}), {some: ['aadmi']});
-    Test.assert_eq(generate({count: 2, noun: 'man'}), {some: ['do', 'aadmi']});
+    const generate = (x: any) => texts(Generator.generate(grammar, x));
+    Test.assert_eq(generate({noun: 'man'}), ['aadmi']);
+    Test.assert_eq(generate({count: 2, noun: 'man'}), ['do', 'aadmi']);
     Test.assert_eq(generate({count: 3, noun: 'man'}), null);
     Test.assert_eq(generate({modifiers: ['large', 'small'], noun: 'woman'}),
-                   {some: ['bare', 'chote', 'aurat']});
+                   ['bare', 'chote', 'aurat']);
   },
   random_generation_works: () => {
     const input = `
@@ -69,10 +73,10 @@ const generator: Test = {
       part -> 'b' {% (= 'b') %}
     `;
     const grammar = Grammar.from_code(Compiler.compile(input));
-    const generate = (x: any) => Generator.generate(grammar, x);
+    const generate = (x: any) => texts(Generator.generate(grammar, x));
     const maybe = generate(['a', ['a', 'b']]);
     if (!maybe) throw Error(`Unable to generate S-expression!`);
-    const result = maybe.some.join('');
+    const result = maybe.join('');
     const xs = ['(a (a b))', '( a ( a b))', '(a (a b ) )', '( a ( a b ) )'];
     Test.assert_eq(xs.some((x) => x === result), true);
   },

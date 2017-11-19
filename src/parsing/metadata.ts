@@ -73,7 +73,8 @@ const parse = (input: string | void, modifiers: Modifier[],
     return result;
   }
   const grammar = Grammar.from_file('../dsl/metadata');
-  for (const item of Parser.parse(grammar, input) as ItemNode[]) {
+  const items: ItemNode[] = Parser.parse(grammar, input).value!.some;
+  for (const item of items) {
     if (item.type === 'score') {
       const score = item.score.map((x) => typeof x === 'number' ? x : 0);
       item.score.forEach((x) => {

@@ -250,7 +250,7 @@ class Template {
   constructor(input: string, optional?: boolean[]) {
     optional = optional || [];
     const grammar = Grammar.from_file('../dsl/template');
-    this.data = Parser.parse(grammar, input);
+    this.data = Parser.parse(grammar, input).value!.some;
     this.size = optional.length;
     validate(this.data, optional);
   }

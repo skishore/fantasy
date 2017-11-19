@@ -1,11 +1,14 @@
-import {Grammar, Rule} from './grammar';
+import {Derivation} from './derivation';
+import {Grammar, Rule, Term} from './grammar';
 import {Lexer, Match, Token} from './lexer';
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
 
-type Next = {match: Match, token: true} | {state: State, token: false};
+type Leaf = {match: Match, term: Term, token: Token};
+
+type Next = {leaf: Leaf, token: true} | {state: State, token: false};
 
 interface State {
   cursor: number,
@@ -17,15 +20,24 @@ interface State {
   wanted_by: State[],
 }
 
-const fill_state = (state: State): any => {
-  const data = [];
+const derive_leaf = (leaf: Leaf): Derivation => ({
+  type: 'leaf',
+  term: leaf.term,
+  text: leaf.token.text,
+  value: {some: leaf.match.value},
+});
+
+const derive_state = (state: State): Derivation => {
+  const xs: Derivation[] = [];
   let current: State = state;
   for (let i = current.cursor; i--;) {
     const next = current.next![0];
-    data.push(next.token ? next.match.value : fill_state(next.state));
+    xs.push(next.token ? derive_leaf(next.leaf) : derive_state(next.state));
     current = current.prev!;
   }
-  return state.rule.transform.merge(data.reverse());
+  const values = xs.reverse().map((x) => x.value!.some);
+  const value = {some: state.rule.transform.merge(values)};
+  return {type: 'node', rule: state.rule, value, xs};
 }
 
 const make_state = (rule: Rule, start: number, wanted_by: State[]): State =>
@@ -148,7 +160,7 @@ const next_column = (prev: Column, token: Token): Column => {
     const match = !!term.text ? token.text_matches[term.text] :
                                 token.type_matches[term.type];
     if (!!match) {
-      const next: Next = {match, token: true};
+      const next: Next = {leaf: {match, term, token}, token: true};
       advance_state(map, max_index, state, column.states).push(next);
     }
   }
@@ -164,7 +176,8 @@ const score_state = (state: State): number => {
   let best_score = -Infinity;
   for (let i = next.length; i--;) {
     const nexti = next[i];
-    const score = nexti.token ? nexti.match.score : score_state(nexti.state);
+    const score = nexti.token ? nexti.leaf.match.score
+                              : score_state(nexti.state);
     if (score > best_score) {
       best_nexti = nexti;
       best_score = score;
@@ -203,16 +216,16 @@ class Parser {
       return Lexer.format_error(token, `Expected: ${unique.join(' | ')}:`);
     });
   }
-  result(): any {
+  result(): Derivation {
     const start = this.grammar.start;
     const match = (x: State) => x.cursor === x.rule.rhs.length &&
                                 x.rule.lhs === start && x.start === 0;
     const states = this.column.states.filter(match).sort(
         (x, y) => y.score! - x.score!);
     if (states.length === 0) throw Error('Unexpected end of input!');
-    return fill_state(states[0]);
+    return derive_state(states[0]);
   }
-  static parse(grammar: Grammar, input: string): any {
+  static parse(grammar: Grammar, input: string): Derivation {
     const parser = new Parser(grammar);
     grammar.lexer.lex(input).forEach((x) => parser.feed(x));
     return parser.result();

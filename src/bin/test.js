@@ -4,6 +4,7 @@ const fs = require('fs');
 
 const base = require('../lib/base');
 const commander = require('../external/commander');
+const derivation = require('../parsing/derivation');
 const grammar = require('../parsing/grammar');
 const parser = require('../parsing/parser');
 
@@ -33,6 +34,9 @@ readEntireStream(fs.createReadStream(commander.args[0]))
       parser.feed(token);
       console.error(parser.debug());
     }
+    const result = parser.result();
+    console.error('\nDerivation:');
+    console.error(derivation.Derivation.print(result, /*depth=*/1));
     console.error();
-    console.log(base.debug(parser.result()));
+    console.error(base.debug(result.value));
   }).catch((error) => console.error(error.stack));
