@@ -7,19 +7,19 @@ import {Option} from '../lib/base';
 
 interface Lexer {
   lex: (input: string) => Token[],
-  unlex_text: (text: string, value: Option<any>) => Option<string>,
-  unlex_type: (type: string, value: Option<any>) => Option<string>,
+  unlex_text: (text: string, value: Option<any>) => Option<Match>,
+  unlex_type: (type: string, value: Option<any>) => Option<Match>,
 }
 
 interface Match {
   score: number,
+  text: string,
   value: any,
 }
 
 interface Token {
-  index: number,
   input: string,
-  text: string,
+  range: [number, number],
   text_matches: {[text: string]: Match},
   type_matches: {[type: string]: Match},
 }
@@ -27,11 +27,12 @@ interface Token {
 // Helper methods common to multiple lexers.
 
 const format_error = (token: Token, message: string): string => {
-  const start = token.input.lastIndexOf('\n', token.index - 1) + 1;
+  const index = token.range[0];
+  const start = token.input.lastIndexOf('\n', index - 1) + 1;
   const maybe_end = token.input.indexOf('\n', start);
   const end = maybe_end < 0 ? token.input.length : maybe_end;
-  const line = token.input.slice(0, token.index).split('\n').length;
-  const column = token.index - start + 1;
+  const line = token.input.slice(0, index).split('\n').length;
+  const column = index - start + 1;
   const highlight = token.input.substring(start, end);
   return `
 ${message} at line ${line}, column ${column}:
@@ -59,18 +60,18 @@ const Lexer = {format_error, swap_quotes};
 
 class CharacterLexer implements Lexer {
   lex(input: string) {
-    const match = (x: string): Match => ({score: 0, value: x});
-    return Array.from(input).map((x, i) => ({
-      index: i,
+    const match = (x: string): Match => ({score: 0, text: x, value: x});
+    return Array.from(input).map<Token>((x, i) => ({
       input,
-      text: x,
+      range: [i, i + 1],
       text_matches: {[x]: match(x)},
       type_matches: {},
     }));
   }
   unlex_text(text: string, value: Option<any>) {
     if (value && value.some !== text) return null;
-    return text.length === 1 ? {some: text} : null;
+    const match = {score: 0, text, value: text};
+    return text.length === 1 ? {some: match} : null;
   }
   unlex_type(type: string, value: Option<any>) {
     return null;
@@ -106,11 +107,10 @@ class MooLexer implements Lexer {
   lex(input: string) {
     const result: Token[] = [];
     for (const token of moo_tokens(input, this.lexer)) {
-      const match: Match = {score: 0, value: token.value};
+      const match: Match = {score: 0, text: token.text, value: token.value};
       result.push({
-        index: token.offset,
         input,
-        text: token.text,
+        range: [token.offset, token.offset + token.text.length],
         text_matches: {[token.text]: match},
         type_matches: {[token.type]: match},
       });
@@ -120,12 +120,14 @@ class MooLexer implements Lexer {
   unlex_text(text: string, value: Option<any>) {
     if (value && value.some !== text) return null;
     const tokens = moo_tokens(text, this.lexer);
-    return tokens.length === 1 ? {some: text} : null;
+    if (tokens.length !== 1) return null;
+    return {some: {score: 0, text: tokens[0].text, value: tokens[0].value}};
   }
   unlex_type(type: string, value: Option<any>) {
     if (!value || typeof value.some !== 'string') return null;
     const tokens = moo_tokens(value.some, this.lexer);
-    return tokens.length === 1 && tokens[0].type === type ? value : null;
+    if (tokens.length !== 1 || tokens[0].type !== type) return null;
+    return {some: {score: 0, text: tokens[0].text, value: tokens[0].value}};
   }
   static string: MooConfig = [
     {match: /"[^"]*"/, value: (x) => JSON.parse(x)},

@@ -55,7 +55,8 @@ const generate_from_term = (
   const type: string = (<any>term).type;
   const result = !!text ? memo.grammar.lexer.unlex_text(text, value)
                         : memo.grammar.lexer.unlex_type(type, value);
-  return !!result ? {type: 'leaf', term, text: result.some, value} : null;
+  if (!result) return null;
+  return {type: 'leaf', leaf: {match: result.some, term}, value};
 }
 
 const sample = <T>(xs: T[]): T | null => {

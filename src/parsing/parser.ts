@@ -1,12 +1,10 @@
-import {Derivation} from './derivation';
+import {Derivation, Leaf} from './derivation';
 import {Grammar, Rule, Term} from './grammar';
 import {Lexer, Match, Token} from './lexer';
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
-
-type Leaf = {match: Match, term: Term, token: Token};
 
 type Next = {leaf: Leaf, token: true} | {state: State, token: false};
 
@@ -20,12 +18,10 @@ interface State {
   wanted_by: State[],
 }
 
-const derive_leaf = (leaf: Leaf): Derivation => ({
-  type: 'leaf',
-  term: leaf.term,
-  text: leaf.token.text,
-  value: {some: leaf.match.value},
-});
+const derive_leaf = (leaf: Leaf): Derivation => {
+  const value = {some: leaf.match.value};
+  return {type: 'leaf', leaf, value};
+}
 
 const derive_state = (state: State): Derivation => {
   const xs: Derivation[] = [];
@@ -128,6 +124,14 @@ const fill_column = (column: Column) => {
   return column;
 }
 
+const get_debug_header = (column: Column): string => {
+  const token = column.token;
+  if (!token) return `Column ${column.index}`;
+  const [start, end] = token.range;
+  const text = token.input.substring(start, end);
+  return `Column ${column.index}: ${JSON.stringify(text)}`;
+}
+
 const make_column = (grammar: Grammar, index: number): Column => {
   const column: Column = {
     grammar,
@@ -160,7 +164,7 @@ const next_column = (prev: Column, token: Token): Column => {
     const match = !!term.text ? token.text_matches[term.text] :
                                 token.type_matches[term.type];
     if (!!match) {
-      const next: Next = {leaf: {match, term, token}, token: true};
+      const next: Next = {leaf: {match, term}, token: true};
       advance_state(map, max_index, state, column.states).push(next);
     }
   }
@@ -200,11 +204,9 @@ class Parser {
     this.maybe_throw(() => `No rules for initial state: ${grammar.start}`);
   }
   debug(): string {
-    const column = this.column;
-    const text = column.token ? `: ${JSON.stringify(column.token.text)}`: '';
-    const lines = [`Column ${column.index}${text}`];
-    column.states.forEach((x, i) => lines.push(`${i}: ${print_state(x)}`));
-    return lines.join('\n');
+    const xs = [get_debug_header(this.column)];
+    this.column.states.forEach((x, i) => xs.push(`${i}: ${print_state(x)}`));
+    return xs.join('\n');
   }
   feed(token: Token) {
     const last_column = this.column;
