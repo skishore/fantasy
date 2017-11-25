@@ -164,7 +164,7 @@ const next_column = (prev: Column, token: Token): Column => {
     const match = !!term.text ? token.text_matches[term.text] :
                                 token.type_matches[term.type];
     if (!!match) {
-      const next: Next = {leaf: {match, term}, token: true};
+      const next: Next = {leaf: {match, term, token}, token: true};
       advance_state(map, max_index, state, column.states).push(next);
     }
   }

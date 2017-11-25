@@ -70,6 +70,13 @@ const generate = (grammar: Grammar, value: any): Derivation | null => {
   return generate_from_symbol(memo, grammar.start, {some: value});
 }
 
-const Generator = {generate};
+const generate_from_rules = (grammar: Grammar, rules: Rule[],
+                             value: Option<any>): Derivation | null => {
+  const memo: Memo = {grammar, saved: {}};
+  const options = rules.map((x) => generate_from_rule(memo, x, value));
+  return sample(options.filter((x) => !!x));
+}
+
+const Generator = {generate, generate_from_rules};
 
 export {Generator};
