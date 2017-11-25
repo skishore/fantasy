@@ -11,12 +11,26 @@
   _: /./,
 }) %}
 
+@{% const list = (d) => [d[0]].concat(d[1].map((x) => x[1])); %}
+
 # The body of our grammar.
 
-main -> item (_ item):* {% (d) => [d[0]].concat(d[1].map((x) => x[1])) %}
+main -> item (_ item):* {% list %}
 
-item -> "(" _ "!" _ scores _ ")" {% (d) => ({type: 'score', score: d[4]}) %}
+item -> "(" _ "?" _ checks _ ")" {% (d) => ({type: 'checks', checks: d[4]}) %}
+      | "(" _ "!" _ scores _ ")" {% (d) => ({type: 'score', score: d[4]}) %}
       | "(" _ "=" _ tokens _ ")" {% (d) => ({type: 'template', template: d[4]}) %}
+
+checks -> (check _):? extra:? {% (d) => [d[0] ? d[0][0] : []].concat(d[1] || []) %}
+
+extra -> parenthesized_check (_ parenthesized_check):* {% list %}
+
+parenthesized_check -> '(' _ check _ ')' {% (d) => d[2] %}
+
+check -> element (_ element):* {% list %}
+
+element -> '{' _ tokens _ '}' {% (d) => `{${d[2]}}` %}
+         | '$' %integer {% (d) => d[1] %}
 
 scores -> score score_suffix:* {% (d) => [d[0]].concat(d[1]) %}
 

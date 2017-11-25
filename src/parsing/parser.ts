@@ -198,6 +198,7 @@ const score_state = (state: State): number => {
 class Parser {
   private column: Column;
   private grammar: Grammar;
+  private input?: string;
   constructor(grammar: Grammar) {
     this.column = make_column(grammar, 0);
     this.grammar = grammar;
@@ -211,6 +212,7 @@ class Parser {
   feed(token: Token) {
     const last_column = this.column;
     this.column = next_column(this.column, token);
+    this.input = token.input;
     this.maybe_throw(() => {
       const terms = last_column.structures.scannable.map(
           (x) => Grammar.print_term(x.rule.rhs[x.cursor]));
@@ -224,7 +226,8 @@ class Parser {
                                 x.rule.lhs === start && x.start === 0;
     const states = this.column.states.filter(match).sort(
         (x, y) => y.score! - x.score!);
-    if (states.length === 0) throw Error('Unexpected end of input!');
+    if (states.length === 0) throw Error(
+        `Unexpected end of input: ${JSON.stringify(this.input || '')}`);
     return derive_state(states[0]);
   }
   static parse(grammar: Grammar, input: string): Derivation {

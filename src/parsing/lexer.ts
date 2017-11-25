@@ -5,13 +5,18 @@ import {Option} from '../lib/base';
 
 // The Lexer interface allows literal- and type-based token matching.
 
+interface Agreement {[axis: string]: string};
+
 interface Lexer {
+  join: (matches: Match[]) => string,
   lex: (input: string) => Token[],
+  match_agreement: (match: Match, agreement: Agreement) => Option<Match>,
   unlex_text: (text: string, value: Option<any>) => Option<Match>,
   unlex_type: (type: string, value: Option<any>) => Option<Match>,
 }
 
 interface Match {
+  agreement?: Agreement,
   score: number,
   text: string,
   value: any,
@@ -59,6 +64,9 @@ const Lexer = {format_error, swap_quotes};
 // A lexer that splits a string into raw characters.
 
 class CharacterLexer implements Lexer {
+  join(matches: Match[]) {
+    return matches.map((x) => x.text).join('');
+  }
   lex(input: string) {
     const match = (x: string): Match => ({score: 0, text: x, value: x});
     return Array.from(input).map<Token>((x, i) => ({
@@ -67,6 +75,9 @@ class CharacterLexer implements Lexer {
       text_matches: {[x]: match(x)},
       type_matches: {},
     }));
+  }
+  match_agreement(match: Match, agreement: Agreement) {
+    return {some: match};
   }
   unlex_text(text: string, value: Option<any>) {
     if (value && value.some !== text) return null;
@@ -104,6 +115,9 @@ class MooLexer implements Lexer {
   constructor(config: {[cls: string]: MooConfig}) {
     this.lexer = moo.compile(config);
   }
+  join(matches: Match[]) {
+    return matches.map((x) => x.text).join('');
+  }
   lex(input: string) {
     const result: Token[] = [];
     for (const token of moo_tokens(input, this.lexer)) {
@@ -116,6 +130,9 @@ class MooLexer implements Lexer {
       });
     }
     return result;
+  }
+  match_agreement(match: Match, agreement: Agreement) {
+    return {some: match};
   }
   unlex_text(text: string, value: Option<any>) {
     if (value && value.some !== text) return null;
@@ -135,4 +152,4 @@ class MooLexer implements Lexer {
   ];
 }
 
-export {CharacterLexer, Lexer, Match, MooLexer, Token};
+export {Agreement, CharacterLexer, Lexer, Match, MooLexer, Token};

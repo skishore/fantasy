@@ -1,12 +1,16 @@
+import {assert} from '../lib/base';
 import {Template} from '../lib/template';
-import {Grammar} from '../parsing/grammar';
+import {Check, Grammar} from '../parsing/grammar';
 import {Parser} from '../parsing/parser';
 
 // The output of the metadata grammar is a list of ItemNode values.
 
 type ItemNode =
+  {type: 'checks', checks: CheckNode[]} |
   {type: 'score', score: ScoreNode[]} |
   {type: 'template', template: string};
+
+type CheckNode = (number | string)[];
 
 type ScoreNode = number | {i: number, score: number};
 
@@ -75,7 +79,9 @@ const parse = (input: string | void, modifiers: Modifier[],
   const grammar = Grammar.from_file('../dsl/metadata');
   const items: ItemNode[] = Parser.parse(grammar, input).value!.some;
   for (const item of items) {
-    if (item.type === 'score') {
+    if (item.type === 'checks') {
+      result.suffix += parse_checks(item.checks);
+    } else if (item.type === 'score') {
       const score = item.score.map((x) => typeof x === 'number' ? x : 0);
       item.score.forEach((x) => {
         if (typeof x === 'number') return;
@@ -88,6 +94,22 @@ const parse = (input: string | void, modifiers: Modifier[],
     }
   }
   return result;
+}
+
+const parse_check = (input: CheckNode): string => {
+  const check: Check = {agreement: {}, indices: []};
+  for (const element of input) {
+    if (typeof element === 'number') {
+      check.indices.push(element);
+      continue;
+    }
+    check.agreement = <any>(new Template(element).merge([]));
+  }
+  return JSON.stringify(check);
+}
+
+const parse_checks = (input: CheckNode[]): string => {
+  return `, checks: [${input.map(parse_check).join(', ')}]`;
 }
 
 const parse_template = (input: string, modifiers: Modifier[]): string => {
