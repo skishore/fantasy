@@ -1,4 +1,4 @@
-import {assert} from '../lib/base';
+import {assert, flatten} from '../lib/base';
 import {NUKTAS, SYMBOLS, TRANSLITERATIONS, VOWELS, VOWEL_SIGNS} from './devanagari';
 
 interface Syllable {bindu?: true, consonants: string[], vowel?: string};
@@ -37,7 +37,7 @@ const consonant = (ch: string): boolean => {
 }
 
 const cross = (xs: string[], ys: string[]): string[] =>
-    [].concat.apply([], xs.map((x) => ys.map((y) => x + y)));
+    flatten(xs.map((x) => ys.map((y) => x + y)));
 
 const parse_consonants = (word: string, i: number): [number, string[]] => {
   const result = [];

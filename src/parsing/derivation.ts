@@ -1,4 +1,4 @@
-import {Option, debug} from '../lib/base';
+import {Option, debug, flatten} from '../lib/base';
 import {Match, Token} from './lexer';
 import {Grammar, Rule, Term} from './grammar';
 
@@ -25,7 +25,7 @@ const print = (derivation: Derivation, depth?: number): string => {
 
 const texts = (derivation: Derivation): string[] =>
     derivation.type === 'leaf' ? [derivation.text] :
-        [].concat.apply([], derivation.xs.map(texts));
+        flatten(derivation.xs.map(texts));
 
 const Derivation = {empty, print, texts};
 

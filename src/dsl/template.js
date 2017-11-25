@@ -15,8 +15,6 @@ const builtin_recursives = {
 
 const lexer = require('../parsing/lexer');
 
-const create_join = (d) => [].concat.apply([], d.map((x) => x instanceof Array ? x : [x]));
-
 exports.lexer = new lexer.MooLexer({
   boolean: {match: /(?:false|true)\b/, value: (x) => x === 'true'},
   float: {match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/, value: (x) => parseFloat(x, 10)},
