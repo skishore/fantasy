@@ -137,3 +137,17 @@ const correct = (derivation: Derivation, grammar: Grammar): Correction => {
 const Corrector = {correct};
 
 export {Corrector};
+
+// A basic test of the correction logic.
+import {Parser} from './parser';
+const input = 'do bara bari aadmi';
+const grammar = Grammar.from_file('../dsl/hindi');
+const derivation = Parser.parse(grammar, input);
+console.log(`Original input: ${JSON.stringify(input)}`);
+const correction = correct(derivation, grammar);
+console.log(`Corrected text: ${JSON.stringify(correction.output)}`);
+for (const issue of correction.issues) {
+  const [i, j] = issue.range;
+  const text = issue.input.substring(i, j);
+  console.log(`- At ${i}:${j} ${JSON.stringify(text)}: ${issue.error}`);
+}
