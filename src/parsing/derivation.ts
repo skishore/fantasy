@@ -11,6 +11,10 @@ interface Leaf {match: Match, term: Term, token?: Token};
 const empty = (derivation: Derivation): boolean =>
     derivation.type === 'node' && derivation.xs.every(empty);
 
+const matches = (derivation: Derivation): Match[] =>
+    derivation.type === 'leaf' ? [derivation.leaf.match] :
+        flatten(derivation.xs.map(matches));
+
 const print = (derivation: Derivation, depth?: number): string => {
   if (empty(derivation)) return '';
   const padding = Array(depth || 0).fill('  ').join('');
@@ -25,10 +29,14 @@ const print = (derivation: Derivation, depth?: number): string => {
   }
 }
 
-const texts = (derivation: Derivation): string[] =>
-    derivation.type === 'leaf' ? [derivation.leaf.match.text] :
-        flatten(derivation.xs.map(texts));
+const tokens = (derivation: Derivation): Token[] => {
+  if (derivation.type === 'leaf') {
+    const token = derivation.leaf.token;
+    return !!token ? [token] : [];
+  }
+  return flatten(derivation.xs.map(tokens));
+}
 
-const Derivation = {empty, print, texts};
+const Derivation = {empty, matches, print, tokens};
 
 export {Derivation, Leaf};

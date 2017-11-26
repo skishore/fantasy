@@ -5,8 +5,11 @@ import {Grammar} from '../../src/parsing/grammar';
 import {Parser} from '../../src/parsing/parser';
 import {Test} from '../test';
 
-const texts = (derivation: Derivation | null): string[] | null =>
-    derivation ? Derivation.texts(derivation) : null;
+const run = (grammar: Grammar, value: any): string[] | null => {
+  const derivation = Generator.generate(grammar, value);
+  if (!derivation) return null;
+  return Derivation.matches(derivation).map((x) => grammar.lexer.join([x]));
+}
 
 const generator: Test = {
   generative_grammar_works: () => {
@@ -44,7 +47,7 @@ const generator: Test = {
       PT_noun -> 'aurat' {% (= 'woman') %}
     `;
     const grammar = Grammar.from_code(Compiler.compile(input));
-    const generate = (x: any) => texts(Generator.generate(grammar, x));
+    const generate = (value: any) => run(grammar, value);
     Test.assert_eq(generate({noun: 'man'}), ['aadmi']);
     Test.assert_eq(generate({count: 2, noun: 'man'}), ['do', 'aadmi']);
     Test.assert_eq(generate({count: 3, noun: 'man'}), null);
@@ -73,7 +76,7 @@ const generator: Test = {
       part -> 'b' {% (= 'b') %}
     `;
     const grammar = Grammar.from_code(Compiler.compile(input));
-    const generate = (x: any) => texts(Generator.generate(grammar, x));
+    const generate = (value: any) => run(grammar, value);
     const maybe = generate(['a', ['a', 'b']]);
     if (!maybe) throw Error(`Unable to generate S-expression!`);
     const result = maybe.join('');

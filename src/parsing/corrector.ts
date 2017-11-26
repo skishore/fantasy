@@ -51,20 +51,8 @@ const check_rule = (rule: Rule, state: State): string | null => {
   return check(rule.checks[0].agreement, state);
 }
 
-const get_matches = (derivation: Derivation): Match[] =>
-    derivation.type === 'leaf' ? [derivation.leaf.match] :
-        flatten(derivation.xs.map(get_matches));
-
-const get_tokens = (derivation: Derivation): Token[] => {
-  if (derivation.type === 'leaf') {
-    const token = derivation.leaf.token;
-    return !!token ? [token] : [];
-  }
-  return flatten(derivation.xs.map(get_tokens));
-}
-
 const note = (derivation: Derivation, error: string, state: State): Issue => {
-  const tokens = get_tokens(derivation);
+  const tokens = Derivation.tokens(derivation);
   if (tokens.length === 0) return {error: '', input: '', range: [0, 0]};
   const last = tokens[tokens.length - 1];
   const range: [number, number] = [tokens[0].range[0], last.range[1]];
@@ -118,8 +106,8 @@ const recurse = (derivation: Derivation, state: State): Derivation => {
 
   state.agreement = original;
   if (top_level_issue) {
-    top_level_issue.replacement =
-        state.grammar.lexer.join(get_matches(modified));
+    const matches = Derivation.matches(modified);
+    top_level_issue.replacement = state.grammar.lexer.join(matches);
   }
   return modified;
 }
@@ -130,7 +118,7 @@ const correct = (derivation: Derivation, grammar: Grammar): Correction => {
   const state: State = {agreement: {}, grammar, issues: []};
   const corrected = recurse(derivation, state);
   const issues = state.issues.sort((a, b) => a.range[0] - b.range[0]);
-  const output = grammar.lexer.join(get_matches(corrected));
+  const output = grammar.lexer.join(Derivation.matches(corrected));
   return {derivation: corrected, issues: state.issues, output};
 }
 
