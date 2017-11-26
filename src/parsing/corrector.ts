@@ -1,8 +1,8 @@
 import {flatten} from '../lib/base';
 import {Derivation, Leaf} from './derivation';
-import {Agreement, Lexer, Match, Token} from './lexer';
+import {Lexer, Match, Tense, Token} from './lexer';
 import {Generator} from './generator';
-import {Check, Grammar, Rule} from './grammar';
+import {Grammar, Rule, Syntax} from './grammar';
 
 // The correction interface takes a Derivation and attempts to correct it.
 // Its output is a new derivation, a new text output, and a list of "fixes",
@@ -24,13 +24,13 @@ interface Issue {
 // Helpers used to implement correct.
 
 interface State {
-  agreement: Agreement,
+  tense: Tense,
   grammar: Grammar,
   issues: Issue[],
 }
 
-const check = (actual: Agreement, state: State): string | null => {
-  const goal = state.agreement;
+const check = (actual: Tense, state: State): string | null => {
+  const goal = state.tense;
   const axes = Object.keys(goal).sort();
   return axes.filter((x) => actual.hasOwnProperty(x) && actual[x] !== goal[x])
              .map((x) => `${x} should be ${goal[x]} (was: ${actual[x]})`)
@@ -38,26 +38,26 @@ const check = (actual: Agreement, state: State): string | null => {
 }
 
 const check_and_update = (
-    actual: Agreement[] | void, state: State): string | null => {
+    actual: Tense[] | void, state: State): string | null => {
   if (!actual) return null;
   const checks = actual.map((x) => check(x, state));
   const okay = actual.filter((x, i) => !checks[i]);
   if (okay.length === 0) return checks.sort()[0];
-  Object.assign(state.agreement, merge(okay));
+  Object.assign(state.tense, merge(okay));
   return null;
 }
 
 const check_rule = (rule: Rule, state: State): string | null => {
-  if (rule.checks.length === 0) return null;
-  return check(rule.checks[0].agreement, state);
+  if (rule.syntaxes.length === 0) return null;
+  return check(rule.syntaxes[0].tense, state);
 }
 
-const merge = (agreements: Agreement[]): Agreement => {
-  const first = agreements[0] || {};
-  if (agreements.length <= 1) return first;
-  const result: Agreement = {};
+const merge = (tenses: Tense[]): Tense => {
+  const first = tenses[0] || {};
+  if (tenses.length <= 1) return first;
+  const result: Tense = {};
   Object.keys(first)
-      .filter((x) => agreements.every((y) => y[x] === first[x]))
+      .filter((x) => tenses.every((y) => y[x] === first[x]))
       .forEach((x) => result[x] = first[x]);
   return result;
 }
@@ -72,15 +72,15 @@ const note = (derivation: Derivation, error: string, state: State): Issue => {
 }
 
 const recurse = (derivation: Derivation, state: State): Derivation => {
-  // Correct leaf nodes using the Lexer's match_agreement method.
+  // Correct leaf nodes using the Lexer's match_tense method.
   if (derivation.type === 'leaf') {
     const match = derivation.leaf.match;
-    const error = check_and_update(match.agreement, state);
+    const error = check_and_update(match.tenses, state);
     if (!error) return derivation;
     const issue = note(derivation, error, state);
-    const maybe = state.grammar.lexer.match_agreement(match, state.agreement);
+    const maybe = state.grammar.lexer.match_tense(match, state.tense);
     if (!maybe) return derivation;
-    check_and_update(maybe.some.agreement, state);
+    check_and_update(maybe.some.tenses, state);
     issue.replacement = state.grammar.lexer.join([match]);
     return {...derivation, leaf: {...derivation.leaf, match: maybe.some}};
   }
@@ -101,22 +101,22 @@ const recurse = (derivation: Derivation, state: State): Derivation => {
     replacement ? (modified = replacement) : (top_level_issue = null);
   }
   if (modified.type !== 'node') throw Error('Invalid node replacement!');
-  const check = modified.rule.checks[0];
-  if (check) check_and_update([check.agreement], state);
+  const check = modified.rule.syntaxes[0];
+  if (check) check_and_update([check.tense], state);
 
-  // Correct agreement issues in each of the rule node's children.
+  // Correct tense issues in each of the rule node's children.
   const rule = modified.rule;
-  const base : Check = {agreement: {}, indices: rule.rhs.map((x, i) => i)};
-  const checks = rule.checks.length === 0 ? [base] : rule.checks;
-  const original = state.agreement;
-  for (let i = 0; i < checks.length; i++) {
-    if (i > 0) state.agreement = {...checks[i].agreement};
-    for (const j of checks[i].indices) {
+  const base: Syntax = {indices: rule.rhs.map((x, i) => i), tense: {}};
+  const syntaxes = rule.syntaxes.length === 0 ? [base] : rule.syntaxes;
+  const original = state.tense;
+  for (let i = 0; i < syntaxes.length; i++) {
+    if (i > 0) state.tense = {...syntaxes[i].tense};
+    for (const j of syntaxes[i].indices) {
       modified.xs[j] = recurse(modified.xs[j], state);
     }
   }
 
-  state.agreement = original;
+  state.tense = original;
   if (top_level_issue) {
     const matches = Derivation.matches(modified);
     top_level_issue.replacement = state.grammar.lexer.join(matches);
@@ -127,7 +127,7 @@ const recurse = (derivation: Derivation, state: State): Derivation => {
 // The final correction interface.
 
 const correct = (derivation: Derivation, grammar: Grammar): Correction => {
-  const state: State = {agreement: {}, grammar, issues: []};
+  const state: State = {tense: {}, grammar, issues: []};
   const corrected = recurse(derivation, state);
   const issues = state.issues.sort((a, b) => a.range[0] - b.range[0]);
   const output = grammar.lexer.join(Derivation.matches(corrected));

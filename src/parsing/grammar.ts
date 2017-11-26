@@ -1,11 +1,6 @@
-import {Agreement, Lexer} from './lexer';
+import {Lexer, Tense} from './lexer';
 
 // A Grammar is a list of rules along with an index to access them.
-
-interface Check {
-  agreement: Agreement,
-  indices: number[],
-}
 
 interface Grammar {
   by_name: {[name: string]: Rule[]},
@@ -16,12 +11,17 @@ interface Grammar {
 }
 
 interface Rule {
-  checks: Check[],
   index: number,
   lhs: string,
   rhs: Term[],
   score: number,
+  syntaxes: Syntax[],
   transform: Transform,
+}
+
+interface Syntax {
+  indices: number[],
+  tense: Tense,
 }
 
 type Term = string | {text: string} | {type: string};
@@ -41,10 +41,10 @@ interface GrammarSpec {
 }
 
 interface RuleSpec {
-  checks?: Check[],
   lhs: string,
   rhs: Term[],
   score?: number,
+  syntaxes?: Syntax[],
   transform?: Transform | Transform['merge'],
 }
 
@@ -96,7 +96,7 @@ const from_spec = (grammar: GrammarSpec): Grammar => {
     start: grammar.start,
   };
   grammar.rules.forEach((x) => {
-    const base = {checks: [], score: 0};
+    const base = {score: 0, syntaxes: []};
     const transform = coerce_transform(x.transform, x.rhs.length);
     const rule: Rule = {...base, ...x, index: result.max_index, transform};
     (result.by_name[x.lhs] = result.by_name[x.lhs] || []).push(rule);
@@ -119,4 +119,4 @@ const print_term = (term: Term): string =>
 
 const Grammar = {from_code, from_file, print_rule, print_term};
 
-export {Check, Grammar, Rule, Term};
+export {Grammar, Rule, Syntax, Term};

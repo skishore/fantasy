@@ -1,18 +1,18 @@
 import {assert} from '../lib/base';
 import {Template} from '../lib/template';
-import {Check, Grammar} from '../parsing/grammar';
+import {Grammar, Syntax} from '../parsing/grammar';
 import {Parser} from '../parsing/parser';
 
 // The output of the metadata grammar is a list of ItemNode values.
 
 type ItemNode =
-  {type: 'checks', checks: CheckNode[]} |
   {type: 'score', score: ScoreNode[]} |
+  {type: 'syntax', syntaxes: SyntaxNode[]} |
   {type: 'template', template: string};
 
-type CheckNode = (number | string)[];
-
 type ScoreNode = number | {i: number, score: number};
+
+type SyntaxNode = (number | string)[];
 
 // This module will read metadata expressions and return parsed metadata.
 
@@ -79,9 +79,7 @@ const parse = (input: string | void, modifiers: Modifier[],
   const grammar = Grammar.from_file('../dsl/metadata');
   const items: ItemNode[] = Parser.parse(grammar, input).value!.some;
   for (const item of items) {
-    if (item.type === 'checks') {
-      result.suffix += parse_checks(item.checks);
-    } else if (item.type === 'score') {
+    if (item.type === 'score') {
       const score = item.score.map((x) => typeof x === 'number' ? x : 0);
       item.score.forEach((x) => {
         if (typeof x === 'number') return;
@@ -89,6 +87,8 @@ const parse = (input: string | void, modifiers: Modifier[],
         result.scores[x.i] += x.score;
       });
       result.suffix += `, score: ${score}`;
+    } else if (item.type === 'syntax') {
+      result.suffix += parse_syntaxes(item.syntaxes);
     } else if (item.type === 'template') {
       result.suffix += parse_template(item.template, modifiers);
     }
@@ -96,20 +96,20 @@ const parse = (input: string | void, modifiers: Modifier[],
   return result;
 }
 
-const parse_check = (input: CheckNode): string => {
-  const check: Check = {agreement: {}, indices: []};
+const parse_syntax = (input: SyntaxNode): string => {
+  const syntax: Syntax = {indices: [], tense: {}};
   for (const element of input) {
     if (typeof element === 'number') {
-      check.indices.push(element);
+      syntax.indices.push(element);
       continue;
     }
-    check.agreement = <any>(new Template(element).merge([]));
+    syntax.tense = <any>(new Template(element).merge([]));
   }
-  return JSON.stringify(check);
+  return JSON.stringify(syntax);
 }
 
-const parse_checks = (input: CheckNode[]): string => {
-  return `, checks: [${input.map(parse_check).join(', ')}]`;
+const parse_syntaxes = (input: SyntaxNode[]): string => {
+  return `, syntaxes: [${input.map(parse_syntax).join(', ')}]`;
 }
 
 const parse_template = (input: string, modifiers: Modifier[]): string => {

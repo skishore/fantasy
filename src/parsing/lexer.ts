@@ -5,18 +5,18 @@ import {Option} from '../lib/base';
 
 // The Lexer interface allows literal- and type-based token matching.
 
-interface Agreement {[axis: string]: string};
+interface Tense {[axis: string]: string};
 
 interface Lexer {
   join: (matches: Match[]) => string,
   lex: (input: string) => Token[],
-  match_agreement: (match: Match, agreement: Agreement) => Option<Match>,
+  match_tense: (match: Match, tense: Tense) => Option<Match>,
   unlex_text: (text: string, value: Option<any>) => Option<Match>,
   unlex_type: (type: string, value: Option<any>) => Option<Match>,
 }
 
 interface Match {
-  agreement?: Agreement[],
+  tenses?: Tense[],
   score: number,
   text: string,
   value: any,
@@ -76,7 +76,7 @@ class CharacterLexer implements Lexer {
       type_matches: {},
     }));
   }
-  match_agreement(match: Match, agreement: Agreement) {
+  match_tense(match: Match, tense: Tense) {
     return {some: match};
   }
   unlex_text(text: string, value: Option<any>) {
@@ -131,7 +131,7 @@ class MooLexer implements Lexer {
     }
     return result;
   }
-  match_agreement(match: Match, agreement: Agreement) {
+  match_tense(match: Match, tense: Tense) {
     return {some: match};
   }
   unlex_text(text: string, value: Option<any>) {
@@ -152,4 +152,4 @@ class MooLexer implements Lexer {
   ];
 }
 
-export {Agreement, CharacterLexer, Lexer, Match, MooLexer, Token};
+export {Tense, CharacterLexer, Lexer, Match, MooLexer, Token};

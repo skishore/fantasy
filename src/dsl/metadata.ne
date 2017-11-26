@@ -17,11 +17,11 @@
 
 main -> item (_ item):* {% list %}
 
-item -> "(" _ "?" _ checks _ ")" {% (d) => ({type: 'checks', checks: d[4]}) %}
-      | "(" _ "!" _ scores _ ")" {% (d) => ({type: 'score', score: d[4]}) %}
+item -> "(" _ "!" _ scores _ ")" {% (d) => ({type: 'score', score: d[4]}) %}
+      | "(" _ "?" _ syntax _ ")" {% (d) => ({type: 'syntax', syntaxes: d[4]}) %}
       | "(" _ "=" _ tokens _ ")" {% (d) => ({type: 'template', template: d[4]}) %}
 
-checks -> (check _):? extra:? {% (d) => [d[0] ? d[0][0] : []].concat(d[1] || []) %}
+syntax -> (check _):? extra:? {% (d) => [d[0] ? d[0][0] : []].concat(d[1] || []) %}
 
 extra -> parenthesized_check (_ parenthesized_check):* {% list %}
 
