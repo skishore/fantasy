@@ -38,17 +38,28 @@ const check = (actual: Agreement, state: State): string | null => {
 }
 
 const check_and_update = (
-    actual: Agreement | void, state: State): string | null => {
+    actual: Agreement[] | void, state: State): string | null => {
   if (!actual) return null;
-  const error = check(actual, state);
-  if (error) return error;
-  Object.assign(state.agreement, actual);
+  const checks = actual.map((x) => check(x, state));
+  const okay = actual.filter((x, i) => !checks[i]);
+  if (okay.length === 0) return checks.sort()[0];
+  Object.assign(state.agreement, merge(okay));
   return null;
 }
 
 const check_rule = (rule: Rule, state: State): string | null => {
   if (rule.checks.length === 0) return null;
   return check(rule.checks[0].agreement, state);
+}
+
+const merge = (agreements: Agreement[]): Agreement => {
+  const first = agreements[0] || {};
+  if (agreements.length <= 1) return first;
+  const result: Agreement = {};
+  Object.keys(first)
+      .filter((x) => agreements.every((y) => y[x] === first[x]))
+      .forEach((x) => result[x] = first[x]);
+  return result;
 }
 
 const note = (derivation: Derivation, error: string, state: State): Issue => {
@@ -90,7 +101,8 @@ const recurse = (derivation: Derivation, state: State): Derivation => {
     replacement ? (modified = replacement) : (top_level_issue = null);
   }
   if (modified.type !== 'node') throw Error('Invalid node replacement!');
-  check_and_update((modified.rule.checks[0] || {}).agreement, state);
+  const check = modified.rule.checks[0];
+  if (check) check_and_update([check.agreement], state);
 
   // Correct agreement issues in each of the rule node's children.
   const rule = modified.rule;

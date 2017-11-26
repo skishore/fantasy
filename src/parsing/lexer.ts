@@ -16,7 +16,7 @@ interface Lexer {
 }
 
 interface Match {
-  agreement?: Agreement,
+  agreement?: Agreement[],
   score: number,
   text: string,
   value: any,
