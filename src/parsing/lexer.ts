@@ -16,9 +16,9 @@ interface Lexer {
 }
 
 interface Match {
-  tenses?: Tense[],
+  data?: any,
   score: number,
-  text: string,
+  tenses?: Tense[],
   value: any,
 }
 
@@ -65,10 +65,10 @@ const Lexer = {format_error, swap_quotes};
 
 class CharacterLexer implements Lexer {
   join(matches: Match[]) {
-    return matches.map((x) => x.text).join('');
+    return matches.map((x) => x.value).join('');
   }
   lex(input: string) {
-    const match = (x: string): Match => ({score: 0, text: x, value: x});
+    const match = (x: string): Match => ({score: 0, value: x});
     return Array.from(input).map<Token>((x, i) => ({
       input,
       range: [i, i + 1],
@@ -116,17 +116,18 @@ class MooLexer implements Lexer {
     this.lexer = moo.compile(config);
   }
   join(matches: Match[]) {
-    return matches.map((x) => x.text).join('');
+    return matches.map((x) => x.data).join('');
   }
   lex(input: string) {
     const result: Token[] = [];
     for (const token of moo_tokens(input, this.lexer)) {
-      const match: Match = {score: 0, text: token.text, value: token.value};
+      const {offset, text, type, value} = token;
+      const match: Match = {data: text, score: 0, value};
       result.push({
         input,
-        range: [token.offset, token.offset + token.text.length],
-        text_matches: {[token.text]: match},
-        type_matches: {[token.type]: match},
+        range: [offset, offset + text.length],
+        text_matches: {[text]: match},
+        type_matches: {[type]: match},
       });
     }
     return result;
@@ -138,13 +139,13 @@ class MooLexer implements Lexer {
     if (value && value.some !== text) return null;
     const tokens = moo_tokens(text, this.lexer);
     if (tokens.length !== 1) return null;
-    return {some: {score: 0, text: tokens[0].text, value: tokens[0].value}};
+    return {some: {data: tokens[0].text, score: 0, value: tokens[0].value}};
   }
   unlex_type(type: string, value: Option<any>) {
     if (!value || typeof value.some !== 'string') return null;
     const tokens = moo_tokens(value.some, this.lexer);
     if (tokens.length !== 1 || tokens[0].type !== type) return null;
-    return {some: {score: 0, text: tokens[0].text, value: tokens[0].value}};
+    return {some: {data: tokens[0].text, score: 0, value: tokens[0].value}};
   }
   static string: MooConfig = [
     {match: /"[^"]*"/, value: (x) => JSON.parse(x)},

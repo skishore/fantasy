@@ -19,8 +19,10 @@ const print = (derivation: Derivation, depth?: number): string => {
   if (empty(derivation)) return '';
   const padding = Array(depth || 0).fill('  ').join('');
   if (derivation.type === 'leaf') {
+    const token = derivation.leaf.token;
     const lhs = Grammar.print_term(derivation.leaf.term);
-    return `${padding}${lhs} -> ${debug(derivation.leaf.match.text)}`;
+    const text = token && token.input.substr(token.range[0], token.range[1]);
+    return `${padding}${lhs} -> ${debug(text)}`;
   } else {
     const rhs = derivation.rule.rhs;
     const lines = [`${padding}${derivation.rule.lhs}:`]
