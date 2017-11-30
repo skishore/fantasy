@@ -91,6 +91,7 @@ const split = (word: string): string[] => {
   });
   const last = pieces[pieces.length - 1];
   if (last === 'n') pieces[pieces.length - 1] = 'x';
+  if (last === 'a') pieces[pieces.length - 1] = 'z';
   if (last !== 'n') pieces.push('e');
   assert(pieces.every((x) => !!TRANSLITERATIONS[x]));
   return pieces;

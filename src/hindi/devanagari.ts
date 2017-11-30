@@ -89,6 +89,7 @@ const TRANSLITERATIONS: Map<string[]> = {
   n: ['n', 'm', ''],
   x: ['n', 'm', 'in', 'ih', ''],
   y: ['y', ''],
+  z: ['a', 'e', 'i', 'o', 'u', ''],
 };
 
 const VOWELS: Map<string> = {

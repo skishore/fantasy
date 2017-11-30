@@ -13,7 +13,7 @@ const compute_alignments = () => {
     counts[x] = {};
     TRANSLITERATIONS[x].forEach((y) => counts[x][y] = 0);
   });
-  const data: string = fs.readFileSync('combined.txt', 'utf-8');
+  const data: string = fs.readFileSync('datasets/combined.txt', 'utf-8');
   const pairs = data.split('\n').filter((x) => !!x && x[0] !== '/');
   for (const pair of pairs) {
     const [latin, hindi] = pair.split('\t');
