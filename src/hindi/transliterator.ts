@@ -1,103 +1,96 @@
 import {assert, flatten} from '../lib/base';
-import {NUKTAS, SYMBOLS, TRANSLITERATIONS, VOWELS, VOWEL_SIGNS} from './devanagari';
+import {LOG_FREQUENCIES} from './frequencies';
+import {is_bindu, is_consonant, is_vowel} from './wx';
 
-interface Syllable {bindu?: true, consonants: string[], vowel?: string};
-
-const align = (hindi: string, latin: string): [string, string][] | null => {
-  const pieces = split(hindi);
-  const memo: ([number, [string, string]] | null)[] =
-      Array((latin.length + 1) * (pieces.length + 1)).fill(null);
-  for (let i = 0; i < pieces.length; i++) {
-    for (let j = 0; j <= latin.length; j++) {
-      const head = i * (latin.length + 1) + j;
-      if (!memo[head] && (i || j)) continue;
-      for (const option of TRANSLITERATIONS[pieces[i]]) {
-        if (latin.substring(j, j + option.length) !== option) continue;
-        const tail = (i + 1) * (latin.length + 1) + j + option.length;
-        memo[tail] = [head, [pieces[i], option]];
-      }
-    }
-  }
-  let current = memo[memo.length - 1];
-  const result: [string, string][] = [];
-  while (current) {
-    result.push(current[1]);
-    current = memo[current[0]];
-  }
-  return result.length < pieces.length ? null : result.reverse();
-}
-
-const bindu = (ch: string): boolean =>
-    ch === SYMBOLS.anusvara || ch === SYMBOLS.chandrabindu;
-
-const consonant = (ch: string): boolean => {
-  const code = ch.charCodeAt(0);
-  return ('क'.charCodeAt(0) <= code && code <= 'ह'.charCodeAt(0)) ||
-         ('क़'.charCodeAt(0) <= code && code <= 'य़'.charCodeAt(0));
-}
+interface Syllable {bindu?: true, consonants: string[], vowel: string};
 
 const cross = (xs: string[], ys: string[]): string[] =>
     flatten(xs.map((x) => ys.map((y) => x + y)));
 
-const parse_consonants = (word: string, i: number): [number, string[]] => {
-  const result = [];
-  while (i < word.length) {
-    const item = word[i++];
-    assert(consonant(item), () => word);
-    result.push((word[i] === SYMBOLS.nukta ? NUKTAS[item] : null) || item);
-    if (word[i] === SYMBOLS.nukta) i += 1;
-    if (word[i] !== SYMBOLS.virama) break;
-    i += 1;
+const parse_consonants = (wx: string, i: number): [number, string[]] => {
+  const consonants = [];
+  while (is_consonant(wx[i])) {
+    const ch = wx[i++];
+    if (wx[i] === 'Z') {
+      const nukta = `${ch}${wx[i++]}`;
+      consonants.push(LOG_FREQUENCIES[nukta] ? nukta : ch);
+    } else {
+      consonants.push(ch);
+    }
   }
-  return [i, result];
+  return [i, consonants];
 }
 
-const syllables = (word: string): Syllable[] => {
+const syllables = (wx: string): Syllable[] => {
   let i = 0;
   const result = [];
-  while (i < word.length) {
+  while (i < wx.length) {
     const last_position = i;
-    const syllable: Syllable = {consonants: []};
-    if (consonant(word[i])) {
-      [i, syllable.consonants] = parse_consonants(word, i);
-    }
-    const vowel = word[i];
-    if (VOWELS.hasOwnProperty(vowel) || !!VOWEL_SIGNS[vowel]) {
-      const half = !!VOWEL_SIGNS[vowel];
-      assert(!(half && syllable.consonants.length === 0));
-      if (!half && syllable.consonants.length > 0) {
-        result.push(syllable);
-        continue;
-      }
-      [i, syllable.vowel] = [i + 1, VOWEL_SIGNS[vowel] || vowel];
-    }
-    if (bindu(word[i])) {
-      [i, syllable.bindu] = [i + 1, true];
-    }
-    assert(i > last_position, () => `Devanagari error: ${word[i]} (${word})`);
-    assert(syllable.consonants.length > 0 || !!syllable.vowel, () => word);
+    const syllable: Syllable = {consonants: [], vowel: 'a'};
+    [i, syllable.consonants] = parse_consonants(wx, i);
+    assert(i === wx.length || is_vowel(wx[i]), () => wx);
+    if (is_vowel(wx[i])) syllable.vowel = wx[i++];
+    if (is_bindu(wx[i])) syllable.bindu = !!wx[i++] || true;
+    assert(i > last_position, () => `Invalid WX character: ${wx[i]} (${wx})`);
+    assert(syllable.consonants.length > 0 || !!syllable.vowel, () => wx);
     result.push(syllable);
   }
   return result;
 }
 
-const split = (word: string): string[] => {
+const split = (wx: string): string[] => {
   const pieces: string[] = [];
-  syllables(word).forEach((x, i) => {
+  syllables(wx).forEach((x, i) => {
+    const vowel = x.consonants.length === 0;
     x.consonants.forEach((y) => pieces.push(y));
-    if (i > 0 && x.consonants.length === 0) pieces.push('y');
-    pieces.push(x.vowel || 'a');
-    if (x.bindu) pieces.push('n');
+    if (i > 0 && vowel) pieces.push('yx');
+    pieces.push(!vowel && x.vowel === 'a' ? 'ax' : x.vowel);
+    if (x.bindu) pieces.push('nx');
   });
   const last = pieces[pieces.length - 1];
-  if (last === 'n') pieces[pieces.length - 1] = 'x';
-  if (last === 'a') pieces[pieces.length - 1] = 'z';
-  if (last !== 'n') pieces.push('e');
-  assert(pieces.every((x) => !!TRANSLITERATIONS[x]));
+  if (last === 'ax') pieces[pieces.length - 1] = 'ay';
+  if (last === 'nx') pieces[pieces.length - 1] = 'ny';
+  if (last !== 'nx') pieces.push('zy');
+  assert(pieces.every((x) => !!LOG_FREQUENCIES[x]));
   return pieces;
 }
 
+const viterbi = (latin: string, wx: string): number => {
+  const row = latin.length + 1;
+  const pieces = split(wx).map((x) => Object.entries(LOG_FREQUENCIES[x]));
+  const memo: number[] = Array(row * (pieces.length + 1)).fill(-Infinity);
+  memo[0] = 0;
+  for (let i = 0; i < pieces.length; i++) {
+    for (let j = 0; j <= latin.length; j++) {
+      const head = i * row + j;
+      if (memo[head] === -Infinity) continue;
+      for (const [option, score] of pieces[i]) {
+        if (latin.substring(j, j + option.length) !== option) continue;
+        const tail = (i + 1) * row + j + option.length;
+        memo[tail] = Math.max(memo[tail], memo[head] + score);
+      }
+    }
+  }
+  return memo[memo.length - 1];
+}
+
+/*
 const transliterate = (word: string): string[] =>
     split(word).map((x) => TRANSLITERATIONS[x]).reduce(cross, ['']);
+*/
 
-export {align, split, transliterate};
+export {split};
+
+/*
+declare const require: any;
+const fs = require('fs');
+const data: string = fs.readFileSync('datasets/wx.txt', 'utf-8');
+for (const line of data.split('\n')) {
+  const [count, wx] = line.split(' ');
+  if (!line || !wx || is_bindu(wx[0])) continue;
+  if (wx.replace(/M/g, 'z').includes('zz')) continue;
+  if (Array.from('qHVY@_\xd9').some((x) => wx.includes(x))) continue;
+  if (Array.from(wx).some((x) => '0' <= x && x <= '9')) continue;
+  console.log(`${count} ${wx} -> ${split(wx).join(' ')}`);
+}
+*/

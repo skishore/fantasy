@@ -35,6 +35,23 @@ Array.from(EXTRA.slice(0, -1)).forEach((x) => VOWEL_TO_CHAR[x] = x);
 VOWEL_TO_CHAR['अ'] = '';
 const CHAR_TO_VOWEL = reverse_dict(VOWEL_TO_CHAR);
 
+// Some basic helpers for recognizing classes of WX-encoded characters.
+
+const CONSONANT_I = LATIN.indexOf('k');
+const CONSONANT_J = LATIN.indexOf('q');
+
+const is_bindu = (ch: string): boolean => ch === 'M' || ch === 'z';
+
+const is_consonant = (ch: string): boolean => {
+  const index = LATIN.indexOf(ch);
+  return CONSONANT_I <= index && index < CONSONANT_J;
+}
+
+const is_vowel = (ch: string): boolean => {
+  const index = LATIN.indexOf(ch);
+  return 0 <= index && index < CONSONANT_I;
+}
+
 // Now we implement the logic for transliteration from Hindi to WX and back.
 
 const hindi_to_wx = (hindi: string): string => {
@@ -78,4 +95,4 @@ const wx_to_hindi = (wx: string): string => {
   return result.join('');
 }
 
-export {hindi_to_wx, wx_to_hindi};
+export {hindi_to_wx, is_bindu, is_consonant, is_vowel, wx_to_hindi};
