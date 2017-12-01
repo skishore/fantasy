@@ -2,10 +2,52 @@ import {assert, flatten} from '../lib/base';
 import {LOG_FREQUENCIES} from './frequencies';
 import {is_bindu, is_consonant, is_vowel} from './wx';
 
-interface Syllable {bindu?: true, consonants: string[], vowel: string};
+// Prepare a set of "hash keys" that will allow us to match input Latin text
+// with possible transliterations of a given WX-encoded Hindi word.
+
+const disemvowel = (latin: string): string => latin.replace(/[aeiou]/ig, '');
+
+const unique = <T>(xs: T[]): T[] => {
+  let last: T | null = null;
+  return xs.slice().sort().filter((x, i) => {
+    if (i > 0 && x === last) return false;
+    return !!(last = x) || true;
+  });
+}
+
+const DROPPED_PIECES = ['ny', 'zy'];
+const DROPPED_LATINS = unique(flatten(DROPPED_PIECES.map(
+    (x) => Object.keys(LOG_FREQUENCIES[x]))));
+
+const HASH_KEYS: {[wx: string]: string[]} = {};
+Object.entries(LOG_FREQUENCIES).forEach(([k, v]) =>
+    HASH_KEYS[k] = unique(Object.keys(v).map(disemvowel)));
+DROPPED_PIECES.forEach((x) => HASH_KEYS[x] = ['']);
 
 const cross = (xs: string[], ys: string[]): string[] =>
     flatten(xs.map((x) => ys.map((y) => x + y)));
+
+const hash_keys_from_latin = (latin: string): string[] => {
+  let disemvowelled = disemvowel(latin);
+  if (disemvowelled[0] !== latin[0]) disemvowelled = `*${disemvowelled}`;
+  const n = disemvowelled.length;
+  return DROPPED_LATINS.filter((x) => disemvowelled.endsWith(x))
+                       .map((x) => disemvowelled.slice(0, n - x.length));
+}
+
+const hash_keys_from_wx = (wx: string): string[] => {
+  const pieces = split(wx);
+  assert(pieces.length > 0);
+  const disemvowelled = pieces.map((x) => HASH_KEYS[x]);
+  if (disemvowel(pieces[0]).length === 0) {
+    disemvowelled.unshift(['*']);
+  }
+  return disemvowelled.reduce(cross, ['']);
+}
+
+// The main transliteration logic follows.
+
+interface Syllable {bindu?: true, consonants: string[], vowel: string};
 
 const parse_consonants = (wx: string, i: number): [number, string[]] => {
   const consonants = [];
@@ -74,23 +116,31 @@ const viterbi = (latin: string, wx: string): number => {
   return memo[memo.length - 1];
 }
 
-/*
-const transliterate = (word: string): string[] =>
-    split(word).map((x) => TRANSLITERATIONS[x]).reduce(cross, ['']);
-*/
+// We wrap the transliteration logic in a simple interface.
 
-export {split};
-
-/*
-declare const require: any;
-const fs = require('fs');
-const data: string = fs.readFileSync('datasets/wx.txt', 'utf-8');
-for (const line of data.split('\n')) {
-  const [count, wx] = line.split(' ');
-  if (!line || !wx || is_bindu(wx[0])) continue;
-  if (wx.replace(/M/g, 'z').includes('zz')) continue;
-  if (Array.from('qHVY@_\xd9').some((x) => wx.includes(x))) continue;
-  if (Array.from(wx).some((x) => '0' <= x && x <= '9')) continue;
-  console.log(`${count} ${wx} -> ${split(wx).join(' ')}`);
+class Transliterator {
+  private lookup: {[key: string]: string[]};
+  constructor(words: string[]) {
+    this.lookup = {};
+    for (const wx of words) {
+      for (const key of hash_keys_from_wx(wx)) {
+        (this.lookup[key] = this.lookup[key] || []).push(wx);
+      }
+    }
+  }
+  transliterate(latin: string): string[] {
+    latin = latin.toLowerCase();
+    const pairs: [string, number][] = [];
+    const visited: {[wx: string]: boolean} = {};
+    for (const key of hash_keys_from_latin(latin)) {
+      for (const wx of this.lookup[key] || []) {
+        if (visited[wx]) continue;
+        visited[wx] = true;
+        pairs.push([wx, viterbi(latin, wx)]);
+      }
+    }
+    return pairs.sort((x, y) => y[1] - x[1]).map((x) => x[0]);
+  }
 }
-*/
+
+export {Transliterator};
