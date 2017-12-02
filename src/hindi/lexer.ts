@@ -5,15 +5,18 @@ import {Entry} from './vocabulary'
 
 const equal = (a: any, b: any): boolean => {
   if (a === b) return true;
+  if (!a || !b) return false;
   if (typeof a !== 'object' || typeof b !== 'object') return false;
   return subset(a, b) && subset(b, a);
 }
 
-const render = (entry: Entry, score: number): Match =>
-    ({data: entry, score, tenses: entry.tenses, value: entry.value});
+const render = (entry: Entry, score: number): Match => {
+  if (!entry.tenses) return {data: entry, score, value: entry.value};
+  return {data: entry, score, tenses: entry.tenses, value: entry.value};
+}
 
 const subset = (a: Tense, b: Tense): boolean => {
-  return Object.keys(a).every((x) => equal(a, b));
+  return Object.keys(a).every((x) => equal(a[x], b[x]));
 }
 
 class HindiLexer implements Lexer {
@@ -57,9 +60,10 @@ class HindiLexer implements Lexer {
       // they will be given other text and type matches.
       x.text_matches = {};
       x.type_matches = {token: match};
-      this.transliterator.transliterate(text).forEach((y) => {
-        this.lookup_by_wx[y].forEach((z, i) => {
-          const match = render(z, /*score=*/-i);
+      const transliterations = this.transliterator.transliterate(text);
+      transliterations.reverse().forEach((y, i) => {
+        this.lookup_by_wx[y].forEach((z) => {
+          const match = render(z, /*score=*/transliterations.length - i - 1);
           x.text_matches[z.head] = match;
           x.type_matches[z.type] = match;
         });
@@ -83,10 +87,15 @@ class HindiLexer implements Lexer {
     return entry ? {some: render(entry, /*score=*/0)} : null;
   }
   unlex_type(type: string, value: Option<any>) {
-    const types = {_: ['_', 'whitespace'], token: ['identifier']};
+    const subtypes = {_: ['_', 'whitespace'], token: ['identifier']};
     if (type === '_' || type === 'token') {
       if (!value || typeof value.some !== 'string') return null;
-      return this.lexer.unlex_text(value.some, /*value=*/null);
+      const subtypes = type === '_' ? ['_', 'whitespace'] : ['identifier'];
+      for (const subtype of subtypes) {
+        const result = this.lexer.unlex_type(subtype, value);
+        if (result) return {some: {data: value.some, score: 0, value}};
+      }
+      return null;
     }
     let entries = this.lookup_by_type[type] || [];
     if (value) entries = entries.filter((x) => equal(x.value, value.some));

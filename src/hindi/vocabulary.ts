@@ -29,7 +29,7 @@ const kPronounTenses: Tense[] = [
   {number: 'singular', person: 'third'},
   {number: 'plural', person: 'first'},
   {number: 'plural', person: 'second', tone: 'casual'},
-  {number: 'plural', person: 'second', tone: 'casual'},
+  {number: 'plural', person: 'second', tone: 'formal'},
   {number: 'plural', person: 'third'},
 ];
 
@@ -130,26 +130,6 @@ const verb = (value: string, spec: string): Entry[] => {
   return rollup(zip(latins, tenses, wxs), 'verb', value);
 }
 
-const Vocabulary = {adjective, copula, noun, particle, verb};
+const Vocabulary = {adjective, copula, noun, particle, pronoun, verb};
 
 export {Entry, Vocabulary};
-
-// A basic test of the Hindi declension logic.
-import {debug} from '../lib/base';
-import {wx_to_hindi} from './wx';
-const vocabulary = flatten([
-  adjective('bad', 'kharab/KarAb'),
-  adjective('large', 'bara/baDZA'),
-  copula('hoon/hUz hai/hE . hain/hEM ho/ho hain/hEM .'),
-  noun('apple', 'seb/seb . . sebo/seboM', 'masculine'),
-  noun('boy', 'larka/ladZakA larke/ladZake . larko/ladZakoM', 'masculine'),
-  particle('this', 'yeh/yah', 'determiner'),
-  particle('that', 'voh/vah', 'determiner'),
-  pronoun('main/mEM tu/wU voh/vah hum/ham tum/wum aap/Ap voh/vah'),
-  verb('eat', 'khana/KAnA'),
-  verb('sleep', 'sona/sonA'),
-]);
-vocabulary.forEach((x) => {
-  const hindi = wx_to_hindi(x.wx);
-  console.log(debug({hindi, latin: x.latin, type: x.type, value: x.value}));
-});
