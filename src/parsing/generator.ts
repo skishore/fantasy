@@ -1,4 +1,4 @@
-import {Option} from '../lib/base';
+import {Option, sample} from '../lib/base';
 import {Derivation} from './derivation';
 import {Grammar, Rule, Term} from './grammar';
 import {Lexer, Match, Token} from './lexer';
@@ -57,10 +57,6 @@ const generate_from_term = (
                         : memo.grammar.lexer.unlex_type(type, value);
   if (!result) return null;
   return {type: 'leaf', leaf: {match: result.some, term}, value};
-}
-
-const sample = <T>(xs: T[]): T | null => {
-  return xs.length === 0 ? null : xs[Math.floor(Math.random() * xs.length)];
 }
 
 // The public interface of this module is currently a single static method.
