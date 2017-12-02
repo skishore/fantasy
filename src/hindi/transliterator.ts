@@ -1,4 +1,5 @@
 import {assert, flatten} from '../lib/base';
+import {Trie} from '../lib/trie';
 import {LOG_FREQUENCIES} from './frequencies';
 import {is_bindu, is_consonant, is_vowel} from './wx';
 
@@ -119,21 +120,22 @@ const viterbi = (latin: string, wx: string): number => {
 // We wrap the transliteration logic in a simple interface.
 
 class Transliterator {
-  private lookup: {[key: string]: string[]};
+  private trie: Trie<string,string>;
   constructor(words: string[]) {
-    this.lookup = {};
+    this.trie = new Trie();
     for (const wx of words) {
       for (const key of hash_keys_from_wx(wx)) {
-        (this.lookup[key] = this.lookup[key] || []).push(wx);
+        this.trie.add(key, wx);
       }
     }
+    this.trie.compress();
   }
   transliterate(latin: string): string[] {
     latin = latin.toLowerCase();
     const pairs: [string, number][] = [];
     const visited: {[wx: string]: boolean} = {};
     for (const key of hash_keys_from_latin(latin)) {
-      for (const wx of this.lookup[key] || []) {
+      for (const wx of this.trie.get(key)) {
         if (visited[wx]) continue;
         visited[wx] = true;
         pairs.push([wx, viterbi(latin, wx)]);
