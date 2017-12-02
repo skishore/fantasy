@@ -3,15 +3,18 @@ import {Tense} from '../parsing/lexer';
 
 interface Entry {
   head: string,
+  latin: string,
   tenses?: Tense[],
   type: string,
   value: string,
   wx: string,
 }
 
-type Gender = 'feminine' | 'masculine';
-
 // Boilerplate helpers needed to support the core declension routines.
+
+interface Case {latin: string, tenses: Tense[], wx: string}
+
+type Gender = 'feminine' | 'masculine';
 
 const kNounTenses: Tense[] = [
   {case: 'direct', number: 'singular'},
@@ -44,95 +47,109 @@ const kMasculineTenses = kNounTenses.map((x) => [{...x, ...kMasculine}]);
 
 const kPronounSemantics: Tense = {first: 'i', second: 'you', third: 'they'};
 
-const rollup = (cases: Tense[][], texts: string[],
-                type: string, value: string): Entry[] => {
+const rollup = (cases: Case[], type: string, value: string): Entry[] => {
+  const lookup: {[wx: string]: Entry} = {};
   const result: Entry[] = [];
-  if (texts.length !== cases.length) {
-    const [x, y, z] = [cases.length, texts.length, texts.join(', ')];
-    assert(false, () => `Expected ${x} ${type} cases; got ${y}: ${z}`);
-  }
-  const head = texts[0];
-  const lookup: {[text: string]: Entry} = {};
-  let text = head;
-  assert(!!head && head !== '.', () => `Invalid ${type} head word: ${head}`);
-  texts.forEach((x, i) => {
-    const tenses = cases[i];
-    text = x === '.' ? text : x;
-    if (!lookup[text]) {
-      result.push({head, type, value, wx: x});
-      lookup[text] = result[result.length - 1];
-    }
-    if (tenses.length > 0) {
-      const target = (lookup[text].tenses = lookup[text].tenses || []);
-      tenses.forEach((x) => target.push(x));
+  cases.forEach((x) => {
+    const entry = lookup[x.wx];
+    if (!entry) {
+      result.push({...x, head: cases[0].wx, type, value});
+      lookup[x.wx] = result[result.length - 1];
+    } else {
+      assert(entry.latin === x.latin, () => `Ambiguous Latin for: ${x.wx}`);
+      x.tenses.forEach((x) => (entry.tenses || []).push(x));
     }
   });
   return result;
 }
 
+const split = (spec: string): [string[], string[]] => {
+  let last: string = '';
+  const parts = spec.split(' ');
+  assert(parts.length > 0 && parts[0] !== '.', () => `Invalid spec: ${spec}`);
+  const pairs = parts.map((x) => (x === '.' ? last : (last = x)).split('/'));
+  assert(pairs.every((x) => x.length === 2), () => `Invalid spec: ${spec}`);
+  return [pairs.map((x) => x[0]), pairs.map((x) => x[1])];
+}
+
+const zip = (latins: string[], tenses: Tense[][], wxs: string[]): Case[] => {
+  assert(latins.length === tenses.length && tenses.length === wxs.length,
+         () => `Invalid cases: ${latins.join(' ')}`);
+  return latins.map((x, i) => ({latin: x, tenses: tenses[i], wx: wxs[i]}));
+}
+
 // Helpers for generating declined adjectives, nouns, and verbs.
 
-const adjective = (value: string, text: string): Entry[] => {
+const adjective = (value: string, spec: string): Entry[] => {
+  const [latin, wx] = split(spec).map((x) => x[0]);
   const tenses: Tense[][] = [[0], [1, 2, 3]].map(
       (x) => x.map((y) => kMasculineTenses[y][0]));
   tenses.push([kFeminine]);
-  if (text.endsWith('A')) {
-    const root = text.slice(0, -1);
-    return rollup(tenses, [text, `${root}e`, `${root}I`], 'adjective', value);
+  if (latin.endsWith('a') && wx.endsWith('A')) {
+    const latins = ['a', 'e', 'i'].map((x) => `${latin.slice(0, -1)}${x}`);
+    const wxs = ['A', 'e', 'I'].map((x) => `${wx.slice(0, -1)}${x}`);
+    return rollup(zip(latins, tenses, wxs), 'adjective', value);
   } else {
-    return rollup([[]], [text], 'adjective', value);
+    return rollup([{latin, tenses: [], wx}], 'adjective', value);
   }
 }
 
-const copula = (text: string): Entry[] => {
+const copula = (spec: string): Entry[] => {
+  const [latins, wxs] = split(spec);
   const tenses = kPronounTenses.map((x) => [x]);
-  return rollup(tenses, text.split(' '), 'copula', 'be');
+  return rollup(zip(latins, tenses, wxs), 'copula', 'be');
 }
 
-const noun = (value: string, text: string, gender: Gender): Entry[] => {
+const noun = (value: string, spec: string, gender: Gender): Entry[] => {
+  const [latins, wxs] = split(spec);
   const tenses = gender === 'feminine' ? kFeminineTenses : kMasculineTenses;
-  return rollup(tenses, text.split(' '), 'noun', value);
+  return rollup(zip(latins, tenses, wxs), 'noun', value);
 }
 
-const particle = (value: string, text: string, type: string): Entry[] => {
-  return [{head: text, type, value, wx: text}];
+const particle = (value: string, spec: string, type: string): Entry[] => {
+  const [latin, wx] = split(spec).map((x) => x[0]);
+  return [{head: wx, latin, type, value, wx}];
 }
 
-const pronoun = (text: string): Entry[] => {
+const pronoun = (spec: string): Entry[] => {
+  const [latins, wxs] = split(spec);
   const tenses = kPronounTenses.map((x) => [x]);
-  const entries = rollup(tenses, text.split(' '), 'pronoun', '');
+  const entries = rollup(zip(latins, tenses, wxs), 'pronoun', '');
   entries.forEach((x) => x.value = kPronounSemantics[x.tenses![0].person]);
   assert(entries.every((x) => !!x.value));
   return entries;
 }
 
-const verb = (value: string, text: string): Entry[] => {
-  assert(text.endsWith('nA'), () => `Invalid infinitive: ${text}`);
-  const root = text.slice(0, -2);
+const verb = (value: string, spec: string): Entry[] => {
+  const [latin, wx] = split(spec).map((x) => x[0]);
+  assert(latin.endsWith('na') && wx.endsWith('nA'),
+         () => `Invalid infinitive: ${latin}`);
+  const latins = ['tha', 'the', 'thi'].map((x) => `${latin.slice(0, -2)}${x}`);
+  const wxs = ['wA', 'we', 'wI'].map((x) => `${wx.slice(0, -2)}${x}`);
   const tenses = kVerbTenses.map((x) => [x]);
-  const texts = [`${root}wA`, `${root}we`, `${root}wI`];
-  return rollup(tenses, texts, 'verb', value);
+  return rollup(zip(latins, tenses, wxs), 'verb', value);
 }
 
-export {adjective, noun};
+const Vocabulary = {adjective, copula, noun, particle, verb};
+
+export {Entry, Vocabulary};
 
 // A basic test of the Hindi declension logic.
 import {debug} from '../lib/base';
 import {wx_to_hindi} from './wx';
 const vocabulary = flatten([
-  adjective('bad', 'KarAb'),
-  adjective('large', 'baDZA'),
-  copula('hUz hE . hEM ho hEM .'),
-  noun('apple', 'seb . . seboM', 'masculine'),
-  noun('boy', 'ladZakA ladZake . ladZakoM', 'masculine'),
-  particle('this', 'yah', 'determiner'),
-  particle('that', 'vah', 'determiner'),
-  pronoun('mEM wU vah ham wum Ap vah'),
-  verb('eat', 'KAnA'),
-  verb('sleep', 'sonA'),
+  adjective('bad', 'kharab/KarAb'),
+  adjective('large', 'bara/baDZA'),
+  copula('hoon/hUz hai/hE . hain/hEM ho/ho hain/hEM .'),
+  noun('apple', 'seb/seb . . sebo/seboM', 'masculine'),
+  noun('boy', 'larka/ladZakA larke/ladZake . larko/ladZakoM', 'masculine'),
+  particle('this', 'yeh/yah', 'determiner'),
+  particle('that', 'voh/vah', 'determiner'),
+  pronoun('main/mEM tu/wU voh/vah hum/ham tum/wum aap/Ap voh/vah'),
+  verb('eat', 'khana/KAnA'),
+  verb('sleep', 'sona/sonA'),
 ]);
 vocabulary.forEach((x) => {
-  const head = wx_to_hindi(x.head);
   const hindi = wx_to_hindi(x.wx);
-  console.log(debug({head, hindi, type: x.type, value: x.value}));
+  console.log(debug({hindi, latin: x.latin, type: x.type, value: x.value}));
 });
