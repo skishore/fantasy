@@ -1,16 +1,20 @@
 declare const process: any;
 
+import {transliterator} from './hindi/transliterator';
 import {wx} from './hindi/wx';
 import {template} from './lib/template';
 import {trie} from './lib/trie';
 import {compiler} from './parsing/compiler';
+import {corrector} from './parsing/corrector';
 import {generator} from './parsing/generator';
 import {Test} from './test';
 
 const kTestCases = {
   compiler,
+  corrector,
   generator,
   template,
+  transliterator,
   trie,
   wx,
 };

@@ -2,7 +2,6 @@ import {Compiler} from '../../src/parsing/compiler';
 import {Derivation} from '../../src/parsing/derivation';
 import {Generator} from '../../src/parsing/generator';
 import {Grammar} from '../../src/parsing/grammar';
-import {Parser} from '../../src/parsing/parser';
 import {Test} from '../test';
 
 const run = (grammar: Grammar, value: any): string[] | null => {
@@ -13,7 +12,7 @@ const run = (grammar: Grammar, value: any): string[] | null => {
 
 const generator: Test = {
   generative_grammar_works: () => {
-    const input = `
+    const data = `
       # Our generator test is a simple grammar for parsing Hindi noun phrases.
 
       @{% const lexer = require('../parsing/lexer'); %}
@@ -46,7 +45,7 @@ const generator: Test = {
       PT_noun -> 'aadmi' {% (= 'man') %}
       PT_noun -> 'aurat' {% (= 'woman') %}
     `;
-    const grammar = Grammar.from_code(Compiler.compile(input));
+    const grammar = Grammar.from_code(Compiler.compile(data));
     const generate = (value: any) => run(grammar, value);
     Test.assert_eq(generate({noun: 'man'}), ['aadmi']);
     Test.assert_eq(generate({count: 2, noun: 'man'}), ['do', 'aadmi']);
@@ -55,7 +54,7 @@ const generator: Test = {
                    ['bare', 'chote', 'aurat']);
   },
   random_generation_works: () => {
-    const input = `
+    const data = `
       # Our randomness test parses some simple S-expressions.
 
       @{% const lexer = require('../parsing/lexer'); %}
@@ -75,7 +74,7 @@ const generator: Test = {
       part -> 'a' {% (= 'a') %}
       part -> 'b' {% (= 'b') %}
     `;
-    const grammar = Grammar.from_code(Compiler.compile(input));
+    const grammar = Grammar.from_code(Compiler.compile(data));
     const generate = (value: any) => run(grammar, value);
     const maybe = generate(['a', ['a', 'b']]);
     if (!maybe) throw Error(`Unable to generate S-expression!`);
