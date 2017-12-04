@@ -26,7 +26,7 @@ item -> "@" _ %block {% (d) => ({type: 'block', block: d[2]}) %}
       | "@" "lexer" _ %block {% (d) => ({type: 'lexer', lexer: d[3]}) %}
       | word "[" words "]" _ "-" ">" _ rules {% (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]}) %}
       | word _ "-" ">" _ rules  {% (d) => ({type: 'rules', name: d[0], rules: d[5]}) %}
-      | "@" "enable_generation" {% (d) => ({type: 'setting', setting: 'generative'}) %}
+      | "@" "templated" {% (d) => ({type: 'setting', setting: 'templated'}) %}
 
 rules -> list[rule, "|"] {% (d) => d[0] %}
 

@@ -23,7 +23,7 @@ interface Metadata {
 
 type Modifier = '?' | '*' | '+' | null;
 
-interface Settings {generative?: boolean};
+interface Settings {templated?: boolean};
 
 // The public interface of this file follows.
 
@@ -31,17 +31,17 @@ const build_base_case = (
     modifier: Modifier, score: number, settings: Settings): string => {
   score = modifier === '+' ? score : 0;
   const transform = `builtin_base_cases['${modifier}']`;
-  return settings.generative ? `(= ${transform}) (! ${score})` : transform;
+  return settings.templated ? `(= ${transform}) (! ${score})` : transform;
 }
 
 const build_recursive = (
     modifier: Modifier, score: number, settings: Settings): string => {
   const transform = `builtin_recursives['${modifier}']`;
-  return settings.generative ? `(= ${transform}) (! ${score})` : transform;
+  return settings.templated ? `(= ${transform}) (! ${score})` : transform;
 }
 
 const generate_header = (settings: Settings): string => {
-  return settings.generative ? `
+  return settings.templated ? `
 const template = require('../lib/template');
 
 const builtin_base_cases = {
@@ -72,7 +72,7 @@ const parse = (input: string | void, modifiers: Modifier[],
                settings: Settings): Metadata => {
   const result = {scores: Array(modifiers.length).fill(0), suffix: ''};
   if (!input) return result;
-  if (!settings.generative) {
+  if (!settings.templated) {
     result.suffix = `, transform: ${input}`;
     return result;
   }

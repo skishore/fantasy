@@ -2,9 +2,7 @@
 
 @{% const include = require('../hindi/include'); %}
 
-@enable_generation
-
-@lexer {% include.lexer %}
+@templated @lexer {% include.lexer %}
 
 # The main body of the grammar.
 

@@ -24,7 +24,6 @@ exports.lexer = new lexer.MooLexer({
   whitespace: {match: /\s+/, value: () => null},
   _: /./,
 });
-
 exports.rules = [
   {lhs: "main", rhs: ["_", "items", "_"], transform: (d) => d[1]},
   {lhs: "items$macro$1$modifier$1", rhs: [], transform: builtin_base_cases['*']},
@@ -36,7 +35,7 @@ exports.rules = [
   {lhs: "item", rhs: [{text: "@"}, {text: "lexer"}, "_", {type: "block"}], transform: (d) => ({type: 'lexer', lexer: d[3]})},
   {lhs: "item", rhs: ["word", {text: "["}, "words", {text: "]"}, "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]})},
   {lhs: "item", rhs: ["word", "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'rules', name: d[0], rules: d[5]})},
-  {lhs: "item", rhs: [{text: "@"}, {text: "enable_generation"}], transform: (d) => ({type: 'setting', setting: 'generative'})},
+  {lhs: "item", rhs: [{text: "@"}, {text: "templated"}], transform: (d) => ({type: 'setting', setting: 'templated'})},
   {lhs: "rules$macro$1$modifier$1", rhs: [], transform: builtin_base_cases['*']},
   {lhs: "rules$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: "|"}, "_", "rule"]},
   {lhs: "rules$macro$1$modifier$1", rhs: ["rules$macro$1$modifier$1", "rules$macro$1$modifier$1$subexpression$1"], transform: builtin_recursives['*']},
@@ -77,5 +76,5 @@ exports.rules = [
   {lhs: "_$subexpression$1", rhs: ["_", {type: "whitespace"}]},
   {lhs: "_", rhs: ["_$subexpression$1"], transform: (d) => null},
 ];
-
 exports.start = "main";
+exports.templated = false;

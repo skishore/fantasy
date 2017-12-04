@@ -13,9 +13,7 @@ const corrector: Test = {
 
       @{% const lexer = require('../parsing/lexer'); %}
 
-      @enable_generation
-
-      @lexer {% new lexer.MooLexer({
+      @templated @lexer {% new lexer.MooLexer({
         identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
         whitespace: {match: /\s+/, value: () => null},
         _: /./,

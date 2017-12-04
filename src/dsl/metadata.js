@@ -24,7 +24,6 @@ exports.lexer = new lexer.MooLexer({
   whitespace: /\s+/,
   _: /./,
 });
-
 exports.rules = [
   {lhs: "main$modifier$1", rhs: [], transform: builtin_base_cases['*']},
   {lhs: "main$modifier$1$subexpression$1", rhs: ["_", "item"]},
@@ -69,5 +68,5 @@ exports.rules = [
   {lhs: "_$modifier$1", rhs: [{type: "whitespace"}], transform: builtin_recursives['?']},
   {lhs: "_", rhs: ["_$modifier$1"], transform: (d) => d[0] || ''},
 ];
-
 exports.start = "main";
+exports.templated = false;

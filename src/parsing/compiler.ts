@@ -31,6 +31,7 @@ interface CompiledGrammar {
   lexer?: string;
   rules: CompiledRule[];
   start?: string;
+  templated: boolean;
 }
 
 interface CompiledRule {
@@ -44,7 +45,7 @@ interface Environment {
   counts: {[name: string]: number};
   macros: {[name: string]: {args: string[], rules: RuleNode[]}};
   result: CompiledGrammar;
-  settings: {generative?: true};
+  settings: {templated?: true};
 }
 
 type Term = string | {text: string} | {type: string};
@@ -128,7 +129,8 @@ const build_term = (lhs: string, expr: ExprNode, score: number,
 const evaluate = (items: ItemNode[]): CompiledGrammar => {
   const settings: Environment['settings'] = {};
   items.forEach((x) => x.type === 'setting' && (settings[x.setting] = true));
-  const result = {blocks: [Metadata.generate_header(settings)], rules: []};
+  const blocks = [Metadata.generate_header(settings)];
+  const result = {blocks, rules: [], templated: !!settings.templated};
   const env = {bindings: {}, counts: {}, macros: {}, result, settings};
   items.forEach((x) => evaluate_item(x, env));
   return validate(result);
@@ -159,12 +161,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 ${grammar.blocks.map((x) => x.trim()).join('\n\n')}
 
 exports.lexer = ${grammar.lexer.trim()};
-
 exports.rules = [
   ${grammar.rules.map(generate_rule).join(',\n  ')},
 ];
-
 exports.start = ${JSON.stringify(grammar.start)};
+exports.templated = ${JSON.stringify(grammar.templated)};
   `.trim() + '\n';
 }
 

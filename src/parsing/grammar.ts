@@ -1,6 +1,12 @@
 import {Lexer, Tense} from './lexer';
 
 // A Grammar is a list of rules along with an index to access them.
+//
+// A "templated" grammar uses template syntax to define reversible transforms
+// so that the same grammar rules can be used for parsing and generation.
+// Scoring and syntax checking are only supported for templated grammars. See
+// "test/lib/template.ts" for example templates and see "src/dsl/metadata.ts"
+// for the syntax for defining templated grammar metadata.
 
 interface Grammar {
   by_name: {[name: string]: Rule[]},
@@ -8,6 +14,7 @@ interface Grammar {
   max_index: number,
   rules: Rule[],
   start: string,
+  templated: boolean,
 }
 
 interface Rule {
@@ -38,6 +45,7 @@ interface GrammarSpec {
   lexer: Lexer,
   rules: RuleSpec[];
   start: string;
+  templated: boolean,
 }
 
 interface RuleSpec {
@@ -88,13 +96,7 @@ const from_file = cached((filename: string): Grammar => {
 });
 
 const from_spec = (grammar: GrammarSpec): Grammar => {
-  const result: Grammar = {
-    by_name: {},
-    lexer: grammar.lexer,
-    max_index: 0,
-    rules: [],
-    start: grammar.start,
-  };
+  const result: Grammar = {...grammar, by_name: {}, max_index: 0, rules: []};
   grammar.rules.forEach((x) => {
     const base = {score: 0, syntaxes: []};
     const transform = coerce_transform(x.transform, x.rhs.length);

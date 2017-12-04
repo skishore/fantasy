@@ -18,7 +18,6 @@ const builtin_recursives = {
 const include = require('../hindi/include');
 
 exports.lexer = include.lexer;
-
 exports.rules = [
   {lhs: "main", rhs: ["_", "noun_phrase", "_"], transform: new template.Template("$1",[false,false,false])},
   {lhs: "noun_phrase$modifier$1", rhs: [], transform: builtin_base_cases["?"], score: 0},
@@ -33,5 +32,5 @@ exports.rules = [
   {lhs: "_$subexpression$1", rhs: ["_", {type: "token"}]},
   {lhs: "_", rhs: ["_$subexpression$1"], score: -1},
 ];
-
 exports.start = "main";
+exports.templated = true;
