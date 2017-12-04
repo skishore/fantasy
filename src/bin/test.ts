@@ -5,6 +5,7 @@ const fs = require('fs');
 const commander = require('../external/commander');
 
 import {debug} from '../lib/base';
+import {Corrector} from '../parsing/corrector';
 import {Derivation} from '../parsing/derivation';
 import {Grammar} from '../parsing/grammar';
 import {Parser} from '../parsing/parser';
@@ -24,20 +25,41 @@ const readEntireStream = (stream: any): Promise<string> => {
   });
 }
 
+const verbose_correct =
+    (derivation: Derivation, grammar: Grammar, input: string): void => {
+  console.error(`Original input: ${JSON.stringify(input)}`);
+  const correction = Corrector.correct(derivation, grammar);
+  console.error(`Corrected text: ${JSON.stringify(correction.output)}`);
+  for (const issue of correction.issues) {
+    const [i, j] = issue.range;
+    const text = issue.input.substring(i, j);
+    console.error(`- At ${i}:${j} ${JSON.stringify(text)}: ${issue.error}`);
+  }
+}
+
+const verbose_parse = (grammar: Grammar, input: string): Derivation => {
+  const parser = new Parser(grammar);
+  console.error(parser.debug());
+  for (const token of grammar.lexer.lex(input)) {
+    console.error();
+    parser.feed(token);
+    console.error(parser.debug());
+  }
+  const derivation = parser.result();
+  console.error('\nDerivation:');
+  console.error(Derivation.print(derivation, /*depth=*/1));
+  console.error();
+  console.error(debug(derivation.value!.some));
+  return derivation;
+}
+
 readEntireStream(fs.createReadStream(commander.args[0]))
   .then((data) => Grammar.from_code(data))
-  .then((grammar): [Grammar, Parser] => [grammar, new Parser(grammar)])
-  .then(([grammar, parser]) => {
+  .then((grammar) => {
     const input = commander.args[1].join(' ');
-    console.error(parser.debug());
-    for (const token of grammar.lexer.lex(input)) {
+    const derivation = verbose_parse(grammar, input);
+    if (grammar.templated) {
       console.error();
-      parser.feed(token);
-      console.error(parser.debug());
+      verbose_correct(derivation, grammar, input);
     }
-    const result = parser.result();
-    console.error('\nDerivation:');
-    console.error(Derivation.print(result, /*depth=*/1));
-    console.error();
-    console.error(debug(result.value));
   }).catch((error) => console.error(error.stack));

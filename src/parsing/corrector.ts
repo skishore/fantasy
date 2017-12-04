@@ -68,7 +68,7 @@ const note = (derivation: Derivation, error: string, state: State): Issue => {
   const last = tokens[tokens.length - 1];
   const range: [number, number] = [tokens[0].range[0], last.range[1]];
   state.issues.push({error, input: last.input, range});
-  return state.issues[state.issues.length];
+  return state.issues[state.issues.length - 1];
 }
 
 const recurse = (derivation: Derivation, state: State): Derivation => {

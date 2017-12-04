@@ -3,11 +3,18 @@ import {Lexer, MooLexer, Match, Tense} from '../parsing/lexer';
 import {Transliterator} from './transliterator'
 import {Entry} from './vocabulary'
 
+const agree = (a: Tense, b: Tense): boolean => {
+  return Object.keys(a).filter((x) => b.hasOwnProperty(x))
+                       .every((x) => a[x] === b[x]);
+}
+
 const equal = (a: any, b: any): boolean => {
   if (a === b) return true;
   if (!a || !b) return false;
   if (typeof a !== 'object' || typeof b !== 'object') return false;
-  return subset(a, b) && subset(b, a);
+  const [keys_a, keys_b] = [Object.keys(a), Object.keys(b)];
+  return keys_a.length === keys_b.length &&
+         keys_a.every((x) => equal(a[x], b[x]));
 }
 
 const render = (entry: Entry, score: number): Match => {
@@ -15,8 +22,9 @@ const render = (entry: Entry, score: number): Match => {
   return {data: entry, score, tenses: entry.tenses, value: entry.value};
 }
 
-const subset = (a: Tense, b: Tense): boolean => {
-  return Object.keys(a).every((x) => equal(a[x], b[x]));
+const text = (x: string | Entry, i: number): string => {
+  if (typeof x === 'string') return x;
+  return i === 0 ? `${x.latin[0].toUpperCase()}${x.latin.slice(1)}` : x.latin;
 }
 
 class HindiLexer implements Lexer {
@@ -40,8 +48,7 @@ class HindiLexer implements Lexer {
     this.transliterator = new Transliterator(words);
   }
   join(matches: Match[]) {
-    const text = (x: string | Entry) => typeof x === 'string' ? x : x.latin;
-    return matches.map((x) => text(x.data)).join('');
+    return matches.map((x, i) => text(x.data, i)).join('');
   }
   lex(input: string) {
     return this.lexer.lex(input).map((x) => {
@@ -76,7 +83,7 @@ class HindiLexer implements Lexer {
     const entry = sample(entries.filter((x) => {
       if (!equal(x.value, match.value)) return false;
       const tenses = x.tenses;
-      return !tenses || tenses.some((y) => subset(tense, y));
+      return !tenses || tenses.some((y) => agree(tense, y));
     }));
     return entry ? {some: render(entry, /*score=*/0)} : null;
   }
