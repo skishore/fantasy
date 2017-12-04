@@ -9,8 +9,9 @@ import {Lexer, Match, Token} from './lexer';
 type Next = {leaf: Leaf, token: true} | {state: State, token: false};
 
 interface State {
+  candidates?: [State, Next][],
   cursor: number,
-  next?: Next[],
+  next?: Next,
   prev?: State,
   rule: Rule,
   score?: number,
@@ -27,7 +28,7 @@ const derive_state = (state: State): Derivation => {
   const xs: Derivation[] = [];
   let current: State = state;
   for (let i = current.cursor; i--;) {
-    const next = current.next![0];
+    const next = current.next!;
     xs.push(next.token ? derive_leaf(next.leaf) : derive_state(next.state));
     current = current.prev!;
   }
@@ -39,8 +40,10 @@ const derive_state = (state: State): Derivation => {
 const make_state = (rule: Rule, start: number, wanted_by: State[]): State =>
     ({cursor: 0, rule, start, wanted_by});
 
-const print_state = (state: State): string =>
-    `{${Grammar.print_rule(state.rule, state.cursor)}}, from: ${state.start}`;
+const print_state = (state: State): string => {
+  const suffix = `, from: ${state.start} (score: ${state.score})`;
+  return `{${Grammar.print_rule(state.rule, state.cursor)}}${suffix}`;
+}
 
 // A Column is a list of states all which all end at the same token index.
 
@@ -50,22 +53,28 @@ interface Column {
   states: State[],
   structures: {
     completed: {[name: string]: State[]},
-    map: Map<number,Next[]>,
+    map: Map<number,[State, Next][]>,
     scannable: State[],
     wanted: {[name: string]: State[]},
   },
   token?: Token,
 }
 
-const advance_state = (map: Map<number,Next[]>, max_index: number,
-                       prev: State, states: State[]): Next[] => {
+const advance_state = (map: Map<number,[State, Next][]>, max_index: number,
+                       prev: State, states: State[]): [State, Next][] => {
   const key = prev.cursor + prev.rule.index + prev.start * max_index;
   const existing = map.get(key);
   if (existing) return existing;
-  const new_state = {...prev, cursor: prev.cursor + 1, next: [], prev};
-  map.set(key, new_state.next);
+  const new_state = {
+    candidates: [],
+    cursor: prev.cursor + 1,
+    rule: prev.rule,
+    start: prev.start,
+    wanted_by: prev.wanted_by,
+  };
+  map.set(key, new_state.candidates);
   states.push(new_state);
-  return new_state.next;
+  return new_state.candidates;
 }
 
 const fill_column = (column: Column) => {
@@ -82,7 +91,8 @@ const fill_column = (column: Column) => {
       const next: Next = {state, token: false};
       const wanted_by = state.wanted_by;
       for (let j = wanted_by.length; j--;) {
-        advance_state(map, max_index, wanted_by[j], states).push(next);
+        const prev = wanted_by[j];
+        advance_state(map, max_index, prev, states).push([prev, next]);
       }
       if (state.start === column.index) {
         const lhs = state.rule.lhs;
@@ -100,9 +110,9 @@ const fill_column = (column: Column) => {
         wanted[term].push(state);
         const nulls = completed[term] || [];
         if (nulls.length > 0) {
-          const next = advance_state(map, max_index, state, states);
+          const advanced = advance_state(map, max_index, state, states);
           for (let j = nulls.length; j--;) {
-            next.push({state: nulls[j], token: false});
+            advanced.push([state, {state: nulls[j], token: false}]);
           }
         }
       } else {
@@ -165,7 +175,7 @@ const next_column = (prev: Column, token: Token): Column => {
                                 token.type_matches[term.type];
     if (!!match) {
       const next: Next = {leaf: {match, term, token}, token: true};
-      advance_state(map, max_index, state, column.states).push(next);
+      advance_state(map, max_index, state, column.states).push([state, next]);
     }
   }
   column.token = token;
@@ -175,20 +185,22 @@ const next_column = (prev: Column, token: Token): Column => {
 const score_state = (state: State): number => {
   if (state.score != null) return state.score;
   if (state.cursor === 0) return state.score = state.rule.score;
-  const next = state.next!;
-  let best_nexti: Next | null = null;
+  const candidates = state.candidates!;
+  let best_candi: [State, Next] | null = null;
   let best_score = -Infinity;
-  for (let i = next.length; i--;) {
-    const nexti = next[i];
-    const score = nexti.token ? nexti.leaf.match.score
-                              : score_state(nexti.state);
+  for (let i = candidates.length; i--;) {
+    const [prev, next] = candidates[i];
+    const next_score = next.token ? next.leaf.match.score
+                                  : score_state(next.state);
+    const score = score_state(prev) + next_score;
     if (score > best_score) {
-      best_nexti = nexti;
+      best_candi = candidates[i];
       best_score = score;
     }
   }
-  state.next = [best_nexti!];
-  return state.score = best_score + score_state(state.prev!);
+  candidates.length = 0;
+  [state.prev, state.next] = best_candi!;
+  return state.score = best_score;
 }
 
 // A Parser allows us to parse token sequences with a grammar. Constructing a
