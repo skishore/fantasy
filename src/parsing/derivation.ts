@@ -21,7 +21,7 @@ const print = (derivation: Derivation, depth?: number): string => {
   if (derivation.type === 'leaf') {
     const token = derivation.leaf.token;
     const lhs = Grammar.print_term(derivation.leaf.term);
-    const text = token && token.input.substr(token.range[0], token.range[1]);
+    const text = token && token.input.slice(token.range[0], token.range[1]);
     return `${padding}${lhs} -> ${debug(text)}`;
   } else {
     const rhs = derivation.rule.rhs;

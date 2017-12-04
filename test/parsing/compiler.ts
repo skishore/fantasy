@@ -32,7 +32,7 @@ const compiler: Test = {
   },
 };
 
-['bootstrapped', 'metadata', 'template'].forEach((x) => {
+['bootstrapped', 'hindi', 'metadata', 'template'].forEach((x) => {
   compiler[`${x}_grammar_compiles`] = () => {
     const input = read(`src/dsl/${x}.ne`);
     const output = read(`src/dsl/${x}.js`);
