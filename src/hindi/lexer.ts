@@ -70,7 +70,7 @@ class HindiLexer implements Lexer {
       const transliterations = this.transliterator.transliterate(text);
       transliterations.reverse().forEach((y, i) => {
         this.lookup_by_wx[y].forEach((z) => {
-          const match = render(z, /*score=*/transliterations.length - i - 1);
+          const match = render(z, /*score=*/i + 1 - transliterations.length);
           x.text_matches[z.head] = match;
           x.type_matches[z.type] = match;
         });

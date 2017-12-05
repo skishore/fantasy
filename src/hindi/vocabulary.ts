@@ -6,7 +6,7 @@ interface Entry {
   latin: string,
   tenses?: Tense[],
   type: string,
-  value: string,
+  value: any,
   wx: string,
 }
 
@@ -47,7 +47,7 @@ const kMasculineTenses = kNounTenses.map((x) => [{...x, ...kMasculine}]);
 
 const kPronounSemantics: Tense = {first: 'i', second: 'you', third: 'they'};
 
-const rollup = (cases: Case[], type: string, value: string): Entry[] => {
+const rollup = (cases: Case[], type: string, value: any): Entry[] => {
   const lookup: {[wx: string]: Entry} = {};
   const result: Entry[] = [];
   cases.forEach((x) => {
@@ -103,7 +103,22 @@ const copula = (spec: string): Entry[] => {
 const noun = (value: string, spec: string, gender: Gender): Entry[] => {
   const [latins, wxs] = split(spec);
   const tenses = gender === 'feminine' ? kFeminineTenses : kMasculineTenses;
-  return rollup(zip(latins, tenses, wxs), 'noun', value);
+  const cases = zip(latins, tenses, wxs);
+  const entries = cases.map((x) => flatten(x.tenses.map((y) =>
+      rollup([{...x, tenses: [y]}], `noun_${y.case}_${y.number}`, value))));
+  entries.push(rollup(zip(latins, tenses, wxs), 'noun', value));
+  // TODO(skishore): These two lines that replace the head values of the
+  // noun subcategories are a dirty hack to support correction for them.
+  const head = entries[entries.length - 1][0].head;
+  return flatten(entries).map((x) => { x.head = head; return x; });
+}
+
+const number = (spec: string): Entry[] => {
+  const [latins, wxs] = split(spec);
+  return flatten(latins.map((x, i) => {
+    const tenses = [{number: i === 1 ? 'singular' : 'plural'}];
+    return rollup([{latin: x, tenses, wx: wxs[i]}], 'number', i);
+  }));
 }
 
 const particle = (value: string, spec: string, type: string): Entry[] => {
@@ -130,6 +145,6 @@ const verb = (value: string, spec: string): Entry[] => {
   return rollup(zip(latins, tenses, wxs), 'verb', value);
 }
 
-const Vocabulary = {adjective, copula, noun, particle, pronoun, verb};
+const Vocabulary = {adjective, copula, noun, number, particle, pronoun, verb};
 
 export {Entry, Vocabulary};

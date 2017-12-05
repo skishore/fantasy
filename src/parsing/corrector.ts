@@ -40,9 +40,9 @@ const check = (actual: Tense, state: State): string | null => {
 const check_and_update = (
     actual: Tense[] | void, state: State): string | null => {
   if (!actual) return null;
-  const checks = actual.map((x) => check(x, state));
-  const okay = actual.filter((x, i) => !checks[i]);
-  if (okay.length === 0) return checks.sort()[0];
+  const xs = actual.map((x) => check(x, state));
+  const okay = actual.filter((x, i) => !xs[i]);
+  if (okay.length === 0) return xs.sort((a, b) => a!.length - b!.length)[0];
   Object.assign(state.tense, merge(okay));
   return null;
 }

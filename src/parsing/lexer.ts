@@ -147,6 +147,14 @@ class MooLexer implements Lexer {
     if (tokens.length !== 1 || tokens[0].type !== type) return null;
     return {some: {data: tokens[0].text, score: 0, value: tokens[0].value}};
   }
+  static float: MooConfig = {
+    match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/,
+    value: (x) => parseFloat(x),
+  };
+  static integer: MooConfig = {
+    match: /-?(?:[0-9]|[1-9][0-9]+)\b/,
+    value: (x) => parseInt(x, 10),
+  };
   static string: MooConfig = [
     {match: /"[^"]*"/, value: (x) => JSON.parse(x)},
     {match: /'[^']*'/, value: (x) => JSON.parse(swap_quotes(x))},

@@ -4,9 +4,9 @@
 
 @lexer {% new lexer.MooLexer({
   boolean: {match: /(?:false|true)\b/, value: (x) => x === 'true'},
-  float: {match: /-?(?:[0-9]|[1-9][0-9]+)(?:\.[0-9]+)\b/, value: (x) => parseFloat(x, 10)},
+  float: lexer.MooLexer.float,
   identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
-  integer: {match: /-?(?:[0-9]|[1-9][0-9]+)\b/, value: (x) => parseInt(x, 10)},
+  integer: lexer.MooLexer.integer,
   string: lexer.MooLexer.string,
   whitespace: {match: /\s+/, value: () => null},
   _: /./,

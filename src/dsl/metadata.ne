@@ -5,7 +5,8 @@
 
 @lexer {% new lexer.MooLexer({
   close: ')',
-  integer: {match: /-?(?:[0-9]|[1-9][0-9]+)\b/, value: (x) => parseInt(x, 10)},
+  float: lexer.MooLexer.float,
+  integer: lexer.MooLexer.integer,
   string: lexer.MooLexer.string,
   whitespace: /\s+/,
   _: /./,
@@ -32,10 +33,12 @@ check -> element (_ element):* {% list %}
 element -> '{' _ tokens _ '}' {% (d) => `{${d[2]}}` %}
          | '$' %integer {% (d) => d[1] %}
 
+number -> (%float | %integer) {% (d) => d[0][0] %}
+
 scores -> score score_suffix:* {% (d) => [d[0]].concat(d[1]) %}
 
-score -> %integer {% (d) => d[0] %}
-       | %integer _ "*" _ "$" %integer {% (d) => ({i: d[5], score: d[0]}) %}
+score -> number {% (d) => d[0] %}
+       | number _ "*" _ "$" %integer {% (d) => ({i: d[5], score: d[0]}) %}
 
 score_suffix -> _ "+" _ score {% (d) => d[3] %}
               | _ "-" _ score {% (d) => typeof d[3] === 'number' ? -d[3] : {i: d[3].i, score: -d[3].score} %}
@@ -43,6 +46,6 @@ score_suffix -> _ "+" _ score {% (d) => d[3] %}
 tokens -> token (_ token):* {% (d) => `${d[0]}${d[1].map((x) => x.join('')).join('')}` %}
 
 token -> %string {% (d) => JSON.stringify(d[0]) %}
-       | (%integer | %_) {% (d) => `${d[0][0]}` %}
+       | (%float | %integer | %_) {% (d) => `${d[0][0]}` %}
 
 _ -> %whitespace:? {% (d) => d[0] || '' %}
