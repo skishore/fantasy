@@ -37,10 +37,13 @@ exprs -> list_whitespace[expr] {% (d) => d[0] %}
        | %keyword {% (d) => [] %}
 
 expr -> "$" word {% (d) => ({type: 'binding', name: d[1]}) %}
-      | word "[" list[term, ","] "]" {% (d) => ({type: 'macro', name: d[0], terms: d[2]}) %}
+      | word "[" list[arg, ","] "]" {% (d) => ({type: 'macro', args: d[2], name: d[0]}) %}
       | expr _ ":" _ modifier {% (d) => ({type: 'modifier', base: d[0], modifier: d[4]}) %}
       | "(" _ rules _ ")" {% (d) => ({type: 'subexpression', rules: d[2]}) %}
       | term {% (d) => ({type: 'term', term: d[0]}) %}
+
+arg -> "$" word {% (d) => ({type: 'binding', name: d[1]}) %}
+     | term {% (d) => ({type: 'term', term: d[0]}) %}
 
 term -> word {% (d) => d[0] %}
       | %string {% (d) => ({text: d[0]}) %}

@@ -5,6 +5,10 @@ import {Parser} from './parser';
 
 // The output of the bootstrapped grammar is a list of ItemNode values.
 
+type ArgNode =
+  {type: 'binding', name: string} |
+  {type: 'term', term: Term};
+
 type ItemNode =
   {type: 'block', block: string} |
   {type: 'lexer', lexer: string} |
@@ -16,7 +20,7 @@ type RuleNode = {exprs: ExprNode[], metadata?: string};
 
 type ExprNode =
   {type: 'binding', name: string} |
-  {type: 'macro', name: string, terms: Term[]} |
+  {type: 'macro', args: ArgNode[], name: string} |
   {type: 'modifier', base: ExprNode, modifier: Modifier} |
   {type: 'subexpression', rules: RuleNode[]} |
   {type: 'term', term: Term};
@@ -72,20 +76,21 @@ const build_binding = (name: string, env: Environment): Term => {
   return env.bindings[name];
 }
 
-const build_macro = (lhs: string, name: string, terms: Term[],
+const build_macro = (lhs: string, args: ArgNode[], name: string,
                      env: Environment): Term => {
   const symbol = add_symbol(lhs, 'macro', env);
   const macro = env.macros[name];
   if (!macro) throw new Error(`Unbound macro: ${name}`);
   const n = macro.args.length;
-  if (terms.length !== n) {
-    throw new Error(`${name} got ${terms.length} argments; expected: ${n}`);
+  if (args.length !== n) {
+    throw new Error(`${name} got ${args.length} argments; expected: ${n}`);
   }
   const bindings = Object.assign({}, env.bindings);
   const child = Object.assign({}, env, {bindings});
-  for (let i = 0; i < n; i++) {
-    child.bindings[macro.args[i]] = terms[i];
-  }
+  args.forEach((x, i) => {
+    const term = x.type === 'binding' ? build_binding(x.name, env) : x.term;
+    child.bindings[macro.args[i]] = term;
+  });
   macro.rules.forEach((x) => add_rules(symbol, x, child));
   return symbol;
 }
@@ -118,7 +123,7 @@ const build_term = (lhs: string, expr: ExprNode, score: number,
   assert(score === 0 || expr.type === 'modifier');
   switch (expr.type) {
     case 'binding': return build_binding(expr.name, env);
-    case 'macro': return build_macro(lhs, expr.name, expr.terms, env);
+    case 'macro': return build_macro(lhs, expr.args, expr.name, env);
     case 'modifier': return build_modifier(
         lhs, expr.base, expr.modifier, score, env);
     case 'subexpression': return build_subexpression(lhs, expr.rules, env);
