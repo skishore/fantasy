@@ -88,7 +88,7 @@ const parse = (input: string | void, modifiers: Modifier[],
       });
       result.suffix += `, score: ${score}`;
     } else if (item.type === 'syntax') {
-      result.suffix += parse_syntaxes(item.syntaxes);
+      result.suffix += parse_syntaxes(item.syntaxes, modifiers.length);
     } else if (item.type === 'template') {
       result.suffix += parse_template(item.template, modifiers);
     }
@@ -96,20 +96,21 @@ const parse = (input: string | void, modifiers: Modifier[],
   return result;
 }
 
-const parse_syntax = (input: SyntaxNode): string => {
+const parse_syntax = (input: SyntaxNode, n: number): string => {
   const syntax: Syntax = {indices: [], tense: {}};
-  for (const element of input) {
-    if (typeof element === 'number') {
-      syntax.indices.push(element);
+  for (const x of input) {
+    if (typeof x === 'number') {
+      if (!(0 <= x && x < n)) throw new Error(`Index out of bounds: $${x}`);
+      syntax.indices.push(x);
       continue;
     }
-    syntax.tense = <any>(new Template(element).merge([]));
+    syntax.tense = <any>(new Template(x).merge([]));
   }
   return JSON.stringify(syntax);
 }
 
-const parse_syntaxes = (input: SyntaxNode[]): string => {
-  return `, syntaxes: [${input.map(parse_syntax).join(', ')}]`;
+const parse_syntaxes = (input: SyntaxNode[], n: number): string => {
+  return `, syntaxes: [${input.map((x) => parse_syntax(x, n)).join(', ')}]`;
 }
 
 const parse_template = (input: string, modifiers: Modifier[]): string => {

@@ -11,6 +11,7 @@ const vocabulary = flatten([
   copula('hoon/hUz hai/hE . hain/hEM ho/ho hain/hEM .'),
   noun('apple', 'seb/seb . . sebo/seboM', 'masculine'),
   noun('boy', 'larka/ladZakA larke/ladZake . larko/ladZakoM', 'masculine'),
+  noun('boss', 'malik/mAlik . . maliko/mAlikoM', 'masculine'),
   noun('girl', 'larki/ladZakI . larkiya/ladZakiyA larkiyo/ladZakiyoM', 'feminine'),
   number('sifar/siPZar ek/ek do/xo theen/wIn char/cAr panch/pAzc'),
   particle('this', 'yeh/yah', 'determiner'),
