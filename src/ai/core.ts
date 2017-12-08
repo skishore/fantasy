@@ -1,27 +1,54 @@
-// This file contains basic primitives that can be used along with the "Do"
-// framework to build up complex agents..
+// In this file, we define some primitive agents that can be used along with
+// the "Do" framework to build up complex behavior.
 
-import {None, Option, Uid, assert, clone} from '../lib/base';
-import {Action, Agent, Response, Update} from './agent';
-import {Do} from './do';
-import {Defaults} from './registry';
-import {Field, Semantics} from './types';
+import {Option, clone} from '../lib/base';
+import {Agent, Response, Semantics, Signals, Uid, Update} from './agent';
 
 type Reduce<T> = (value: T, update: Update) => Option<T>;
 
-const r = Defaults.responses;
+const Ask = (frame: string, value: any) => Respond({frame, value}, 'ask');
 
-const Respond = (response: Response): Agent<None> => {
-  let responded = false;
+const Block = (): Agent<null> => Agent();
+
+const Hear = (frame: string): Agent<any> => {
+  let value: Option<any> = null;
   return Agent({
     process: (update) => {
-      const matched = update.type === 'response' &&
-                      update.value.uid === response.uid;
+      if (update.type !== 'heard' || update.semantics.frame !== frame) {
+        return {matched: false, updated: false};
+      }
+      value = {some: update.semantics.value};
+      return {matched: true, updated: true};
+    },
+    respond: () => [{type: 'listen', frame}],
+    value: () => clone(value),
+  });
+}
+
+const Match = (): Agent<null> => State(null, (value, update) =>
+    update.type === 'processed' && update.signals.matched ?
+    {some: {some: null}} : null);
+
+const NoMatch = (): Agent<null> => State(null, (value, update) =>
+    update.type === 'processed' && !update.signals.matched ?
+    {some: {some: null}} : null);
+
+const Optional = <T>(agent: Agent<T>): Agent<Option<T>> => {
+  const value = (): Option<Option<T>> => ({some: agent.value()});
+  return Object.assign({}, agent, {value});
+}
+
+const Respond = (semantics: Semantics, type: 'ask' | 'say'): Agent<null> => {
+  let responded = false;
+  const uid = Uid();
+  return Agent({
+    process: (update) => {
+      const matched = update.type === 'spoke' && update.uid === uid;
       responded = responded || matched;
       return {matched, updated: matched};
     },
-    respond: () => responded ? [] : [clone(response)],
-    value: () => responded ? {some: None} : None,
+    respond: () => responded ? [] : [clone({semantics, type, uid})],
+    value: () => responded ? {some: null} : null,
   });
 }
 
@@ -38,67 +65,38 @@ const State = <T>(initial: Option<T>, fn: Reduce<Option<T>>): Agent<T> => {
   });
 }
 
-// Finally, we define some higher-level agents that are built using the Do
-// framework and the primitives above to accomplish some common subtask.
+const Say = (frame: string, value: any) => Respond({frame, value}, 'say');
 
-const Ask = (semantics: Semantics): Agent<None> =>
-    Respond({action: 'ask', semantics, uid: Uid()});
+const WaitOneTurn = (): Agent<null> => State(null, (value, update) =>
+    update.type === 'processed' && !value ?
+    {some: {some: null}} : null);
 
-const GetField = <T>(field: Field<T>): Agent<T> =>
-  State<T>(None, (value, update) => {
-    if (update.type !== 'utterance') return None;
-    if (update.value.frame !== field.frame) return None;
-    return update.value.slots.hasOwnProperty(field.slot) ?
-           {some: {some: update.value.slots[field.slot]}} : None;
-  });
+// Finally, we define a type-safe mechanism for using the agents above.
+// Clients define a "frame" type S mapping frame names to their value types,
+// and then call register<S>() to get a registry of agent primitives.
 
-const HangUp = (semantics: Semantics): Agent<None> =>
-    Respond({action: 'hang-up', semantics, uid: Uid()});
+interface Registry<S> {
+  Ask: <T extends keyof S>(frame: T, value: S[T]) => Agent<null>,
+  Block: () => Agent<null>,
+  Hear: <T extends keyof S>(frame: T) => Agent<S[T]>,
+  Match: () => Agent<null>,
+  NoMatch: () => Agent<null>,
+  Optional: <T>(agent: Agent<T>) => Agent<Option<T>>,
+  Say: <T extends keyof S>(frame: T, value: S[T]) => Agent<null>,
+  WaitOneTurn: () => Agent<null>,
+};
 
-const Optional = <T>(agent: Agent<T>): Agent<Option<T>> => {
-  const value = (): Option<Option<T>> => ({some: agent.value()});
-  return Object.assign({}, agent, {value});
-}
-
-const RequestField = <T>(field: Field<T>): Agent<T> => Do((x) => {
-  const m_value = x.bind(Optional(GetField(field)));
-  while (!m_value) {
-    x.bind(Optional(WaitForMatch()));
-    for (let count = 0; ; count++) {
-      x.bind(Ask(r.RequestField({count, field})));
-      x.bind(WaitOneTurn());
-    }
-  }
-  x.fork(Say(r.AcknowledgeField({field, value: m_value.some})));
-  return m_value.some;
-});
-
-const Say = (semantics: Semantics): Agent<None> =>
-    Respond({action: 'say', semantics, uid: Uid()});
-
-const Wait = (): Agent<None> => Agent();
-
-const WaitForMatch = (): Agent<None> =>
-    State(None, (value, update) =>
-        update.type === 'signals' && update.value.matched ?
-        {some: {some: None}} : None);
-
-const WaitOneTurn = (): Agent<None> =>
-    State(None, (value, update) =>
-        update.type === 'signals' && !value ?
-        {some: {some: None}} : None);
-
-const core = {
+const registry = {
   Ask,
-  Do,
-  GetField,
-  HangUp,
+  Block,
+  Hear,
+  Match,
+  NoMatch,
   Optional,
-  RequestField,
   Say,
-  Wait,
-  WaitForMatch,
   WaitOneTurn,
 };
 
-export {core};
+const register = <S>(): Registry<S> => registry;
+
+export {register};

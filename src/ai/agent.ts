@@ -1,17 +1,12 @@
-// This file contains core types used to define the agent AI system.
+import {Option} from '../lib/base';
 
-import {None, Option, Uid} from '../lib/base';
-import {Semantics} from './types';
+// A simple uid generation framework.
 
-type Action = 'ask' | 'hang-up' | 'say';
-interface Response {action: Action, semantics: Semantics, uid: Uid}
+type Uid = number & {uid: true};
 
-interface Signals {matched: boolean, updated: boolean};
+const Uid: () => Uid = (() => { let uid = 0; return () => <Uid>uid++; })();
 
-type Update =
-  {type: 'utterance', value: Semantics} |
-  {type: 'response', value: Response} |
-  {type: 'signals', value: Signals};
+// The core agent types.
 
 interface Agent<T> {
   process: (update: Update) => Signals,
@@ -19,13 +14,28 @@ interface Agent<T> {
   value: () => Option<T>,
 };
 
+type Response =
+  {type: 'ask' | 'say', semantics: Semantics, uid: Uid} |
+  {type: 'listen', frame: string};
+
+interface Semantics {frame: string, value: any};
+
+type Signals = {matched: boolean, updated: boolean};
+
+type Update =
+  {type: 'heard', semantics: Semantics} |
+  {type: 'processed', signals: Signals} |
+  {type: 'spoke', uid: Uid};
+
+// A helper used to instantiate agents.
+
 const Agent = <T>(extra?: Partial<Agent<T>>): Agent<T> => {
-  const agent: Agent<T> = {
+  return {
     process: (update) => ({matched: false, updated: false}),
     respond: () => [],
-    value: () => None,
+    value: () => null,
+    ...extra,
   };
-  return extra ? Object.assign(agent, extra) : agent;
 }
 
-export {Action, Agent, Response, Signals, Update};
+export {Agent, Response, Semantics, Signals, Update, Uid};

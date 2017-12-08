@@ -1,7 +1,9 @@
 declare const require: any;
 const util = require('util');
 
-type Option<T> = {some: T} | null;
+type Option<T> = Some<T> | null;
+
+interface Some<T> {some: T}
 
 const assert = (condition: boolean, message?: () => string) => {
   if (!condition) throw Error(message ? message() : undefined);

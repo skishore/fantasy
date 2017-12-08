@@ -1,4 +1,4 @@
-import {None, Option, assert, clone} from '../lib/base';
+import {Option, assert, clone} from '../lib/base';
 import {Agent, Response, Signals, Update} from './agent';
 
 // Our type-safe "Do" agent framework is based on the treating agents as a
@@ -55,7 +55,7 @@ type Event =
 
 type State<T> = {events: Event[], value: Option<T>};
 
-const State = <T>(): State<T> => ({events: [], value: None});
+const State = <T>(): State<T> => ({events: [], value: null});
 
 // During the processing of an individual update, we will track a stack
 // representing our current execution context. Each element in the stack is
@@ -99,8 +99,8 @@ const typeguard = <U>(value: any): value is Block<U> => {
 const Do = <T>(block: Block<T>): Agent<T> => {
   const state = State<T>();
   const stack: Context[] = [];
-  let context = <Context><any>None;
-  let current: Update | None = None;
+  let context = <Context><any>null;
+  let current: Update | null = null;
 
   const bind = <U>(agent: Agent<U>): U => {
     const saved = replay(context, {type: 'bind', value: agent});
@@ -145,27 +145,27 @@ const Do = <T>(block: Block<T>): Agent<T> => {
   // Runs a given block with a given state context. Returns true if any block
   // element processed the latest update (incluing binds, forks, and joins).
   const run = <T>(block: Block<T>, state: State<T>,
-                  update: Update | None): Signals => {
+                  update: Update | null): Signals => {
     assert(!context || context.index === context.signals.length + 1);
     context = {index: 0, signals: [], state};
-    current = update || None;
+    current = update || null;
     stack.push(context);
     try {
       state.value = {some: block(root)};
     } catch (error) {
       if (!error.deferred) throw error;
-      state.value = None;
+      state.value = null;
     }
     stack.pop();
     assert(context.index === context.signals.length);
     const matched = context.signals.some((x) => x.matched);
     const updated = context.signals.some(
         (x, i) => x.updated && context.state.events[i].type !== 'fork');
-    context = stack[stack.length - 1] || None;
+    context = stack[stack.length - 1] || null;
     return {matched, updated};
   }
 
-  run(block, state, None);
+  run(block, state, null);
 
   return {
     process: (update) => run(block, state, update),
