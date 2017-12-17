@@ -1,11 +1,26 @@
-import {Option, assert, flatten, group, sample} from '../lib/base';
-import {Lexer, MooLexer, Match, Tense} from '../parsing/lexer';
+import {Option, assert, flatten, sample} from '../lib/base';
+import {Lexer, MooLexer, Match, Tense, Token} from '../parsing/lexer';
 import {Transliterator} from './transliterator'
 import {Entry} from './vocabulary'
 
 const agree = (a: Tense, b: Tense): boolean => {
   return Object.keys(a).filter((x) => b.hasOwnProperty(x))
                        .every((x) => a[x] === b[x]);
+}
+
+const argmaxes = <T>(xs: T[], fn: (x: T) => number): T[] => {
+  let best_score = -Infinity;
+  const result = [];
+  for (const x of xs) {
+    const score = fn(x);
+    if (score < best_score) continue;
+    if (score > best_score) {
+      best_score = score;
+      result.length = 0;
+    }
+    result.push(x);
+  }
+  return result;
 }
 
 const equal = (a: any, b: any): boolean => {
@@ -15,6 +30,30 @@ const equal = (a: any, b: any): boolean => {
   const [keys_a, keys_b] = [Object.keys(a), Object.keys(b)];
   return keys_a.length === keys_b.length &&
          keys_a.every((x) => equal(a[x], b[x]));
+}
+
+const group = <T>(xs: T[], fn: (x: T) => string[]): {[key: string]: T[]} => {
+  const result: {[key: string]: T[]} = {};
+  for (const x of xs) {
+    for (const key of fn(x)) {
+      (result[key] = result[key] || []).push(x);
+    }
+  }
+  return result;
+}
+
+const populate = (entry: Entry, offset: number, token: Token): void => {
+  const dummy = {score: -Infinity};
+  for (const [text, base] of entry.texts) {
+    const score = base + offset;
+    if ((token.text_matches[text] || dummy).score >= score) continue;
+    token.text_matches[text] = render(entry, score);
+  }
+  for (const [type, base] of entry.types) {
+    const score = base + offset;
+    if ((token.type_matches[type] || dummy).score >= score) continue;
+    token.type_matches[type] = render(entry, score);
+  }
 }
 
 const render = (entry: Entry, score: number): Match => {
@@ -31,6 +70,7 @@ class HindiLexer implements Lexer {
   private entries: Entry[];
   private lexer: Lexer;
   private lookup_by_head: {[head: string]: Entry[]};
+  private lookup_by_text: {[text: string]: Entry[]};
   private lookup_by_type: {[type: string]: Entry[]};
   private lookup_by_wx: {[wx: string]: Entry[]};
   private transliterator: Transliterator;
@@ -41,9 +81,10 @@ class HindiLexer implements Lexer {
       whitespace: {match: /\s+/, value: () => null},
       _: /./,
     });
-    this.lookup_by_head = group(entries, (x) => x.head);
-    this.lookup_by_type = group(entries, (x) => x.type);
-    this.lookup_by_wx = group(entries, (x) => x.wx);
+    this.lookup_by_head = group(entries, (x) => [x.head]);
+    this.lookup_by_text = group(entries, (x) => Array.from(x.texts.keys()));
+    this.lookup_by_type = group(entries, (x) => Array.from(x.types.keys()));
+    this.lookup_by_wx = group(entries, (x) => [x.wx]);
     const words = entries.map((x) => x.wx);
     this.transliterator = new Transliterator(words);
   }
@@ -67,14 +108,8 @@ class HindiLexer implements Lexer {
       // they will be given other text and type matches.
       x.text_matches = {};
       x.type_matches = {token: match};
-      const transliterations = this.transliterator.transliterate(text);
-      transliterations.reverse().forEach((y, i) => {
-        this.lookup_by_wx[y].forEach((z) => {
-          const match = render(z, /*score=*/i + 1 - transliterations.length);
-          x.text_matches[z.head] = match;
-          x.type_matches[z.type] = match;
-        });
-      });
+      this.transliterator.transliterate(text).forEach((y, i) =>
+          this.lookup_by_wx[y].forEach((z) => populate(z, -i, x)));
       return x;
     });
   }
@@ -88,9 +123,9 @@ class HindiLexer implements Lexer {
     return entry ? {some: render(entry, /*score=*/0)} : null;
   }
   unlex_text(text: string, value: Option<any>) {
-    let entries = this.lookup_by_head[text] || [];
+    let entries = this.lookup_by_text[text] || [];
     if (value) entries = entries.filter((x) => equal(x.value, value.some));
-    const entry = sample(entries);
+    const entry = sample(argmaxes(entries, (x) => x.texts.get(text)!));
     return entry ? {some: render(entry, /*score=*/0)} : null;
   }
   unlex_type(type: string, value: Option<any>) {
@@ -106,7 +141,7 @@ class HindiLexer implements Lexer {
     }
     let entries = this.lookup_by_type[type] || [];
     if (value) entries = entries.filter((x) => equal(x.value, value.some));
-    const entry = sample(entries);
+    const entry = sample(argmaxes(entries, (x) => x.types.get(type)!));
     return entry ? {some: render(entry, /*score=*/0)} : null;
   }
 }

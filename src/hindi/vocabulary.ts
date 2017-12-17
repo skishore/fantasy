@@ -5,7 +5,8 @@ interface Entry {
   head: string,
   latin: string,
   tenses?: Tense[],
-  type: string,
+  texts: Map<string, number>,
+  types: Map<string, number>,
   value: any,
   wx: string,
 }
@@ -47,18 +48,21 @@ const kMasculineTenses = kNounTenses.map((x) => [{...x, ...kMasculine}]);
 
 const kPronounSemantics: Tense = {first: 'i', second: 'you', third: 'they'};
 
+const map = (x: string) => new Map([[x, 0]]);
+
 const rollup = (cases: Case[], type: string, value: any): Entry[] => {
+  const head = cases[0].wx;
   const lookup: {[wx: string]: Entry} = {};
   const result: Entry[] = [];
   cases.forEach((x) => {
-    const entry = lookup[x.wx];
+    let entry = lookup[x.wx];
     if (!entry) {
-      result.push({...x, head: cases[0].wx, type, value});
-      lookup[x.wx] = result[result.length - 1];
-    } else {
-      assert(entry.latin === x.latin, () => `Ambiguous Latin for: ${x.wx}`);
-      x.tenses.forEach((x) => (entry.tenses || []).push(x));
+      result.push({...x, head, texts: new Map(), types: map(type), value});
+      entry = lookup[x.wx] = result[result.length - 1];
+      cases.forEach((y) => entry.texts.set(y.latin, -0.5));
     }
+    x.tenses.forEach((y) => (entry.tenses || []).push(y));
+    entry.texts.set(x.latin, 0);
   });
   return result;
 }
@@ -75,6 +79,7 @@ const split = (spec: string): [string[], string[]] => {
 const zip = (latins: string[], tenses: Tense[][], wxs: string[]): Case[] => {
   assert(latins.length === tenses.length && tenses.length === wxs.length,
          () => `Invalid cases: ${latins.join(' ')}`);
+  tenses = tenses.map((x) => x.slice());
   return latins.map((x, i) => ({latin: x, tenses: tenses[i], wx: wxs[i]}));
 }
 
@@ -104,13 +109,19 @@ const noun = (value: string, spec: string, gender: Gender): Entry[] => {
   const [latins, wxs] = split(spec);
   const tenses = gender === 'feminine' ? kFeminineTenses : kMasculineTenses;
   const cases = zip(latins, tenses, wxs);
-  const entries = cases.map((x) => flatten(x.tenses.map((y) =>
-      rollup([{...x, tenses: [y]}], `noun_${y.case}_${y.number}`, value))));
-  entries.push(rollup(zip(latins, tenses, wxs), 'noun', value));
-  // TODO(skishore): These two lines that replace the head values of the
-  // noun subcategories are a dirty hack to support correction for them.
-  const head = entries[entries.length - 1][0].head;
-  return flatten(entries).map((x) => { x.head = head; return x; });
+  const entries = rollup(zip(latins, tenses, wxs), 'noun', value);
+  for (let i = 0; i < 2; i++) {
+    const subcases = cases.slice(2*i, 2*i + 2);
+    rollup(subcases, 'noun', value).forEach((x) => {
+      x.types = new Map();
+      subcases.forEach((y) => {
+        const type = `noun_${y.tenses[0].case}_${y.tenses[0].number}`;
+        x.types.set(type, x.wx === y.wx ? 0 : -0.5);
+      });
+      entries.push(x);
+    });
+  }
+  return entries;
 }
 
 const number = (spec: string): Entry[] => {
@@ -121,9 +132,11 @@ const number = (spec: string): Entry[] => {
   }));
 }
 
-const particle = (value: string, spec: string, type: string): Entry[] => {
+const particle = (value: string, spec: string,
+                  type: string, tenses?: Tense[]): Entry[] => {
   const [latin, wx] = split(spec).map((x) => x[0]);
-  return [{head: wx, latin, type, value, wx}];
+  const [texts, types] = [map(latin), map(type)];
+  return [{head: wx, latin, tenses, texts, types, value, wx}];
 }
 
 const pronoun = (spec: string): Entry[] => {

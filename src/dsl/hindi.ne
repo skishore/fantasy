@@ -4,50 +4,62 @@
 
 @templated @lexer {% include.lexer %}
 
-# The main body of the grammar.
+# The main body of the grammar, a list of supported intents.
 
-main -> _ subject _ verb_phrase _ {% (= {subject: $1, predicate: $3}) %}
+main -> (%token s):? intent (s %token):? {% (= $1) %}
 
-# Adjective-phrase modeling.
+intent -> how_are_you {% (= {how_are_you: true}) %}
+        | i_am_good {% (= {i_am_good: true}) %}
+        | i_want {% (= {i_want: $0}) %}
+        | my_name_is {% (= {my_name_is: $0}) %}
+        | whats_your_name {% (= {whats_your_name: true}) %}
+
+# Implementations of each of the supported intents.
+
+how_are_you -> 'aap' _ 'kaise' _ 'hai'
+             | 'kya' _ 'haal' _ 'hai'
+
+i_am_good -> 'main' _ good _ 'hoon'
+
+i_want -> 'main' _ object _ 'letha' {% (= $2) (? $0 $4) %}
+
+my_name_is -> 'main' name 'hoon' {% (= $1) %}
+            | 'mera' _ 'naam' name 'hai' {% (= $3) (? $2 $4 $0) %}
+
+whats_your_name -> 'aap' _ 'kaun' _ 'ho'
+                 | 'aapka' _ 'naam' _ 'kya' _ 'hai' {% (? $2 $0 $4 $6) %}
+
+# General adjective- and noun-phrase modeling.
 
 adjective_phrase -> maybe_adjective_phrase %adjective {% (= [...$0, $1]) %}
+
 maybe_adjective_phrase -> adjective_phrase _ {% (= $0) %} | null
 
-# Noun-phrase modeling.
+maybe_determiner -> %determiner _ {% (= $0) %} | null {% (= {}) %}
 
-noun_phrase[X] -> maybe_determiner maybe_adjective_phrase $X {%
-  (= {determiner: $0, modifiers: $1, ...$2})
-  (? $2 $0 $1)
-%}
-| maybe_determiner %number _ maybe_adjective_phrase %noun {%
+noun_phrase[X, Y] -> maybe_determiner %number _ maybe_adjective_phrase %noun {%
   (= {count: $1, determiner: $0, modifiers: $3, noun: $4})
   (? $1 $4 $0 $3)
 %}
+| maybe_determiner maybe_adjective_phrase $X {%
+  (= {count: 'singular', determiner: $0, modifiers: $1, noun: $2})
+  (? $2 $0 $1)
+%}
+| maybe_determiner maybe_adjective_phrase $Y {%
+  (= {count: 'plural', determiner: $0, modifiers: $1, noun: $2})
+  (? $2 $0 $1) (! -0.1)
+%}
 
-maybe_determiner -> %determiner _ {% (= $0) %} | null
+object -> noun_phrase[%noun_oblique_singular, %noun_oblique_plural] {%
+  (= $0) (? {case: 'oblique', person: 'third'} $0)
+%}
+| %pronoun {% (= {pronoun: $0}) %}
 
-noun_direct ->
-  %noun_direct_singular {% (= {count: 'singular', noun: $0}) %} |
-  %noun_direct_plural {% (= {count: 'plural', noun: $0}) (! -0.1) %} |
-  %noun_oblique_singular {% (= {count: 'singular', noun: $0}) (! -0.2) %} |
-  %noun_oblique_plural {% (= {count: 'plural', noun: $0}) (! -0.3) %}
+# Simple auxiliary helpers.
 
-noun_oblique ->
-  %noun_oblique_singular {% (= {count: 'singular', noun: $0}) %} |
-  %noun_oblique_plural {% (= {count: 'plural', noun: $0}) (! -0.1) %} |
-  %noun_direct_singular {% (= {count: 'singular', noun: $0}) (! -0.2) %} |
-  %noun_direct_plural {% (= {count: 'plural', noun: $0}) (! -0.3) %}
+good -> 'accha' | 'theek'
 
-object -> noun_phrase[noun_oblique] {% (= $0) (? {case: 'oblique', person: 'third'} $0) %}
-        | %pronoun {% (= {pronoun: $0}) %}
+name -> s %token s {% (= $1) %}
 
-subject -> noun_phrase[noun_direct] {% (= $0) (? {case: 'direct', person: 'third'} $0) %}
-         | %pronoun {% (= {pronoun: $0}) %}
-
-# Verb-phrase modeling.
-
-verb_phrase -> object _ %copula {% (= {verb: 'be', object: $0}) (? $2) %}
-             | adjective_phrase _ %copula {% (= {verb: 'be', object: $0}) %}
-
-_ -> null | _ %_ | s %token s {% (! -10) %}
-s -> null | s %_
+_ -> %_ | _ %_ | s %token s {% (! -10) %}
+s -> %_ | s %_

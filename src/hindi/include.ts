@@ -6,7 +6,10 @@ const {adjective, copula, noun, number, particle, pronoun, verb} = Vocabulary;
 
 const vocabulary = flatten([
   adjective('bad', 'kharab/KarAb'),
+  adjective('good', 'accha/acCA'),
+  adjective('how', 'kaisa/kEsA'),
   adjective('large', 'bara/baDZA'),
+  adjective('okay', 'theek/TIk'),
   adjective('small', 'chota/cotA'),
   copula('hoon/hUz hai/hE . hain/hEM ho/ho hain/hEM .'),
   noun('apple', 'seb/seb . . sebo/seboM', 'masculine'),
@@ -16,8 +19,10 @@ const vocabulary = flatten([
   number('sifar/siPZar ek/ek do/xo theen/wIn char/cAr panch/pAzc'),
   particle('this', 'yeh/yah', 'determiner'),
   particle('that', 'voh/vah', 'determiner'),
+  particle('who', 'kaun/kOn', 'who'),
   pronoun('main/mEM tu/wU voh/vah hum/ham tum/wum aap/Ap voh/vah'),
   verb('eat', 'khana/KAnA'),
+  verb('take', 'lena/lenA'),
   verb('sleep', 'sona/sonA'),
 ]);
 
