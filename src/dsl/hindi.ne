@@ -10,19 +10,21 @@ main -> _ subject _ verb_phrase _ {% (= {subject: $1, predicate: $3}) %}
 
 # Adjective-phrase modeling.
 
-adjective_phrase -> adjective_phrase _ %adjective {% (= [...$0, $2]) %}
-adjective_phrase -> %adjective {% (= [$0]) %}
+adjective_phrase -> maybe_adjective_phrase %adjective {% (= [...$0, $1]) %}
+maybe_adjective_phrase -> adjective_phrase _ {% (= $0) %} | null
 
 # Noun-phrase modeling.
 
-noun_phrase[X] -> %determiner:? _ adjective_phrase:? _ $X {%
-  (= {determiner: $0, modifiers: $2, ...$4})
-  (? $4 $0 $2)
+noun_phrase[X] -> maybe_determiner maybe_adjective_phrase $X {%
+  (= {determiner: $0, modifiers: $1, ...$2})
+  (? $2 $0 $1)
 %}
-| %determiner:? _ %number _ adjective_phrase:? _ %noun {%
-  (= {count: $2, determiner: $0, modifiers: $4, noun: $6})
-  (? $2 $6 $0 $4)
+| maybe_determiner %number _ maybe_adjective_phrase %noun {%
+  (= {count: $1, determiner: $0, modifiers: $3, noun: $4})
+  (? $1 $4 $0 $3)
 %}
+
+maybe_determiner -> %determiner _ {% (= $0) %} | null
 
 noun_direct ->
   %noun_direct_singular {% (= {count: 'singular', noun: $0}) %} |

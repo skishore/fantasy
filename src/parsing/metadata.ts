@@ -96,21 +96,31 @@ const parse = (input: string | void, modifiers: Modifier[],
   return result;
 }
 
-const parse_syntax = (input: SyntaxNode, n: number): string => {
+const parse_syntax = (input: SyntaxNode): Syntax => {
   const syntax: Syntax = {indices: [], tense: {}};
   for (const x of input) {
     if (typeof x === 'number') {
-      if (!(0 <= x && x < n)) throw new Error(`Index out of bounds: $${x}`);
       syntax.indices.push(x);
-      continue;
+    } else {
+      syntax.tense = <any>(new Template(x).merge([]));
     }
-    syntax.tense = <any>(new Template(x).merge([]));
   }
-  return JSON.stringify(syntax);
+  return syntax;
 }
 
 const parse_syntaxes = (input: SyntaxNode[], n: number): string => {
-  return `, syntaxes: [${input.map((x) => parse_syntax(x, n)).join(', ')}]`;
+  const marked: boolean[] = Array(n).fill(false);
+  const syntaxes = input.map(parse_syntax);
+  for (const syntax of syntaxes) {
+    for (const i of syntax.indices) {
+      if (!(0 <= i && i < n)) throw new Error(`Index out of bounds: $${i}`);
+      if (marked[i]) throw new Error(`Index appears multiple times: $${i}`);
+      marked[i] = true;
+    }
+  }
+  const unmarked = marked.map((x, i) => x ? -1 : i).filter((x) => x >= 0);
+  unmarked.forEach((x) => syntaxes.push({indices: [x], tense: {}}));
+  return `, syntaxes: [${syntaxes.map((x) => JSON.stringify(x)).join(', ')}]`;
 }
 
 const parse_template = (input: string, modifiers: Modifier[]): string => {
