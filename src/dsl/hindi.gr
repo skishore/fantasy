@@ -1,0 +1,196 @@
+# Top-level intents.
+
+.hello (= true)
+= namaste
+
+.my_name_is
+= $main^ %token hoon^ (= $1)
+= $mera^ nam* %token hai^ (= $2)
+
+.order_drink
+= $drink (= $0)
+= $main?^ $noun $pioonga^ (= $1)
+= $mujhko? $drink $chahiye (= $1)
+
+.order_food
+= $food (= $0)
+= $main?^ $noun $khaoonga^ (= $1)
+= $mujhko? $food $chahiye (= $1)
+
+.what_do_you_want_to_eat (= true)
+= ap?^ kya khana? chahte^ hain^ ?
+= $apko? kya $khana? chahiye ?
+= $apko? $main?^ kya $la sakta hoon^ ? (> 0.5)
+= $main?^ $apko? kya $la sakta hoon^ ? (> 0.5)
+
+.whats_your_name (= true)
+= ap^ kaun ho^ ?
+= $apka^ nam* kya hai^ ?
+
+# Adjective and noun phrases.
+
+adjectives (= [...$0, $1])
+= $adjectives? %adjective
+
+drink (= $0)
+= NOUN[%drink_singular, %drink_plural, %drink]
+
+food (= $0)
+= NOUN[%food_singular, %food_plural, %food]
+
+noun (= $0)
+= NOUN[%noun_singular, %noun_plural, %noun]
+= $drink
+= $food
+
+NOUN[x, y, z]
+= %determiner?^ $adjectives?^ NOUN_TOKEN[@x, @y]*
+  (= {determiner: $0, modifiers: $1, ...$2})
+= %determiner?^ %number* $adjectives?^ @z*
+  (= {count: $1, determiner: $0, modifiers: $2, noun: $3})
+
+NOUN_TOKEN[x, y]
+= @x (= {count: 'singular', noun: $0})
+= @y (= {count: 'plural', noun: $0}) (< -0.25)
+
+# Simple substitutions.
+
+chahiye
+= chahiye
+= dijie
+
+khana
+= khana
+= khane ke liye
+
+khaoonga
+= khaoonga
+= loonga
+
+la
+= de
+= la
+= madat kar
+
+pioonga
+= loonga
+= pioonga
+
+# Pronouns in various forms.
+
+apka
+= apka
+< ap ka
+< ap
+
+apko
+= apko
+< ap ko
+< ap
+
+main
+= ham
+= main
+< hame
+< hamko
+< mujhe
+< mujhko
+
+mera
+= hamara
+= mera
+< hamka
+< ham ka
+< mujhka
+< mujh ka
+
+mujhko
+= hame
+= hamko
+= mujhe
+= mujhko
+< ham
+< ham ko
+< main
+< mujh ko
+
+# The base vocabulary, including several classes of words.
+
+@{%
+
+const {flatten} = require('../lib/base');
+const {HindiLexer} = require('../hindi/lexer');
+const {Vocabulary} = require('../hindi/vocabulary');
+
+const {adjective, copula, noun, number, particle, pronoun, verb} = Vocabulary;
+
+const vocabulary = flatten([
+  adjectives(`
+    meaning | word
+    --------|-------------
+        bad | kharab/KarAb
+       good | accha/acCA
+      large | bara/baDZA
+       okay | thik/TIk
+      small | chota/cotA
+  `),
+  nouns(`
+    category | meaning | singular      | plural        | gender
+    ---------|---------|---------------|---------------|-------
+       drink | tea     | chai/cAy      | <             | f
+           ^ | water   | pani/pAnI     | <             | m
+        food | apple   | seb/seb       | <             | m
+           ^ | bread   | pav/pAv       | <             | m
+      person | boy     | larka/ladZakA | larke/ladZake | m
+           ^ | girl    | larki/ladZakI | <             | f
+           ^ | man     | admi/AxmI     | <             | m
+           ^ | woman   | aurat/Oraw    | <             | f
+  `),
+  numbers(`
+    meaning | word
+    --------|-------------
+          0 | sifar/siPZar
+          1 | ek/ek
+          2 | do/xo
+          3 | tin/wIn
+          4 | char/cAr
+          5 | panch/pAzc
+          6 | chah/caH
+          7 | sat/sAw
+          8 | ath/AT
+          9 | nau/nO
+  `),
+  particles(`
+      category | meaning | word       | declines
+    -----------|---------|------------|---------
+    determiner | that    | voh/vah    | n
+             ^ | this    | yeh/yah    | n
+      question | how     | kaisa/kEsA | y
+             ^ | who     | kaun/kOn   | n
+  `),
+  pronouns(`
+    # The "role" column encodes person, number, and, for the 2nd person, tone.
+    # The tone is either i (intimate), c (casual), or f (formal).
+
+    role | direct   | genitive        | dative (1)   | dative (2)  | copula
+    -----|----------|-----------------|--------------|-------------|---------
+     1s. | main/mEM | mera/merA       | mujhko/muJko | mujhe/muJe  | hoon/hUz
+     2si | tu/wU    | tera/werA       | tujhko/wuJko | tujhe/wuJe  | hai/hE
+     3s. | voh/vah  | uska/uskA       | usko/usko    | use/use     | ^
+     1p. | ham/ham  | hamara/hamArA   | hamko/hamko  | hame/hame   | hain/hEM
+     2pc | tum/wum  | tumhara/wumhArA | tumko/wumko  | tumhe/wumhe | ho/ho
+     2pf | ap/Ap    | apka/apkA       | apko/apko    | <           | ^
+     3p. | voh/vah  | uska/uskA       | unko/unko    | usne/usne   | hai/hE
+  `),
+  verbs(`
+     meaning | word
+    ---------|-----------
+      to eat | khana/KAnA
+    to sleep | sona/sonA
+     to take | lena/lenA
+  `),
+]);
+
+%}
+
+@lexer {% new HindiLexer(vocabulary) %}
