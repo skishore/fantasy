@@ -14,7 +14,7 @@ interface Grammar {
   max_index: number,
   rules: Rule[],
   start: string,
-  templated: boolean,
+  templated?: boolean,
 }
 
 interface Rule {
@@ -45,7 +45,7 @@ interface GrammarSpec {
   lexer: Lexer,
   rules: RuleSpec[];
   start: string;
-  templated: boolean,
+  templated?: boolean,
 }
 
 interface RuleSpec {

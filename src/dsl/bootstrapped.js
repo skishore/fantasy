@@ -17,7 +17,7 @@ const lexer = require('../parsing/lexer');
 
 exports.lexer = new lexer.MooLexer({
   block: {match: /{%[^]*?[%]}/, value: (x) => x.slice(2, -2).trim()},
-  comment: {match: /#.*$/, value: (x) => null},
+  comment: {match: /#.*$/, value: () => null},
   keyword: {match: 'null', value: () => null},
   identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
   string: lexer.MooLexer.string,
@@ -35,14 +35,13 @@ exports.rules = [
   {lhs: "item", rhs: [{text: "@"}, {text: "lexer"}, "_", {type: "block"}], transform: (d) => ({type: 'lexer', lexer: d[3]})},
   {lhs: "item", rhs: ["word", {text: "["}, "words", {text: "]"}, "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]})},
   {lhs: "item", rhs: ["word", "_", {text: "-"}, {text: ">"}, "_", "rules"], transform: (d) => ({type: 'rules', name: d[0], rules: d[5]})},
-  {lhs: "item", rhs: [{text: "@"}, {text: "templated"}], transform: (d) => ({type: 'setting', setting: 'templated'})},
   {lhs: "rules$macro$1$modifier$1", rhs: [], transform: builtin_base_cases['*']},
   {lhs: "rules$macro$1$modifier$1$subexpression$1", rhs: ["_", {text: "|"}, "_", "rule"]},
   {lhs: "rules$macro$1$modifier$1", rhs: ["rules$macro$1$modifier$1", "rules$macro$1$modifier$1$subexpression$1"], transform: builtin_recursives['*']},
   {lhs: "rules$macro$1", rhs: ["rule", "rules$macro$1$modifier$1"], transform: (d) => [d[0]].concat(d[1].map((x) => x[3]))},
   {lhs: "rules", rhs: ["rules$macro$1"], transform: (d) => d[0]},
   {lhs: "rule", rhs: ["exprs"], transform: (d) => ({exprs: d[0]})},
-  {lhs: "rule", rhs: ["exprs", "_", {type: "block"}], transform: (d) => ({exprs: d[0], metadata: d[2]})},
+  {lhs: "rule", rhs: ["exprs", "_", {type: "block"}], transform: (d) => ({exprs: d[0], transform: d[2]})},
   {lhs: "exprs$macro$1$modifier$1", rhs: [], transform: builtin_base_cases['*']},
   {lhs: "exprs$macro$1$modifier$1$subexpression$1", rhs: ["_", "expr"]},
   {lhs: "exprs$macro$1$modifier$1", rhs: ["exprs$macro$1$modifier$1", "exprs$macro$1$modifier$1$subexpression$1"], transform: builtin_recursives['*']},
@@ -79,4 +78,3 @@ exports.rules = [
   {lhs: "_", rhs: ["_$subexpression$1"], transform: (d) => null},
 ];
 exports.start = "main";
-exports.templated = false;

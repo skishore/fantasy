@@ -4,7 +4,7 @@
 
 @lexer {% new lexer.MooLexer({
   block: {match: /{%[^]*?[%]}/, value: (x) => x.slice(2, -2).trim()},
-  comment: {match: /#.*$/, value: (x) => null},
+  comment: {match: /#.*$/, value: () => null},
   keyword: {match: 'null', value: () => null},
   identifier: /[a-zA-Z_][a-zA-Z0-9_]*/,
   string: lexer.MooLexer.string,
@@ -26,12 +26,11 @@ item -> "@" _ %block {% (d) => ({type: 'block', block: d[2]}) %}
       | "@" "lexer" _ %block {% (d) => ({type: 'lexer', lexer: d[3]}) %}
       | word "[" words "]" _ "-" ">" _ rules {% (d) => ({type: 'macro', name: d[0], rules: d[8], args: d[2]}) %}
       | word _ "-" ">" _ rules  {% (d) => ({type: 'rules', name: d[0], rules: d[5]}) %}
-      | "@" "templated" {% (d) => ({type: 'setting', setting: 'templated'}) %}
 
 rules -> list[rule, "|"] {% (d) => d[0] %}
 
 rule -> exprs {% (d) => ({exprs: d[0]}) %}
-      | exprs _ %block {% (d) => ({exprs: d[0], metadata: d[2]}) %}
+      | exprs _ %block {% (d) => ({exprs: d[0], transform: d[2]}) %}
 
 exprs -> list_whitespace[expr] {% (d) => d[0] %}
        | %keyword {% (d) => [] %}

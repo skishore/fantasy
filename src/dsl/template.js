@@ -60,4 +60,3 @@ exports.rules = [
   {lhs: "_", rhs: ["_$modifier$1"], transform: () => null},
 ];
 exports.start = "main";
-exports.templated = false;

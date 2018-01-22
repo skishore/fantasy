@@ -1,6 +1,5 @@
 import {assert} from '../lib/base';
 import {Grammar} from './grammar';
-import {Metadata} from './metadata';
 import {Parser} from './parser';
 
 // The output of the bootstrapped grammar is a list of ItemNode values.
@@ -13,10 +12,9 @@ type ItemNode =
   {type: 'block', block: string} |
   {type: 'lexer', lexer: string} |
   {type: 'macro', name: string, rules: RuleNode[], args: string[]} |
-  {type: 'rules', name: string, rules: RuleNode[]} |
-  {type: 'setting', setting: keyof Environment['settings']};
+  {type: 'rules', name: string, rules: RuleNode[]};
 
-type RuleNode = {exprs: ExprNode[], metadata?: string};
+type RuleNode = {exprs: ExprNode[], transform?: string};
 
 type ExprNode =
   {type: 'binding', name: string} |
@@ -35,13 +33,12 @@ interface CompiledGrammar {
   lexer?: string;
   rules: CompiledRule[];
   start?: string;
-  templated: boolean;
 }
 
 interface CompiledRule {
   lhs: string;
   rhs: Term[];
-  suffix: string,
+  transform?: string,
 }
 
 interface Environment {
@@ -49,7 +46,6 @@ interface Environment {
   counts: {[name: string]: number};
   macros: {[name: string]: {args: string[], rules: RuleNode[]}};
   result: CompiledGrammar;
-  settings: {templated?: true};
 }
 
 type Term = string | {text: string} | {type: string};
@@ -57,12 +53,8 @@ type Term = string | {text: string} | {type: string};
 // The core compiler logic is a series of operations on the env state.
 
 const add_rules = (lhs: string, rule: RuleNode, env: Environment): void => {
-  const modifiers = rule.exprs.map(
-      (x) => x.type === 'modifier' ? x.modifier : null);
-  const metadata = Metadata.parse(rule.metadata, modifiers, env.settings);
-  const rhs = rule.exprs.map(
-      (x, i) => build_term(lhs, x, metadata.scores[i], env));
-  env.result.rules.push({lhs, rhs, suffix: metadata.suffix});
+  const rhs = rule.exprs.map((x, i) => build_term(lhs, x, env));
+  env.result.rules.push({lhs, rhs, transform: rule.transform});
 }
 
 const add_symbol = (lhs: string, suffix: string, env: Environment): string => {
@@ -96,8 +88,7 @@ const build_macro = (lhs: string, args: ArgNode[], name: string,
 }
 
 const build_modifier = (lhs: string, base: ExprNode, modifier: Modifier,
-                        score: number, env: Environment): Term => {
-  const metadata = '(d) => d[0].concat([d[1]])';
+                        env: Environment): Term => {
   const symbol = add_symbol(lhs, 'modifier', env);
   const term: ExprNode = {type: 'term', term: symbol};
   const rules: RuleNode[] =
@@ -105,8 +96,8 @@ const build_modifier = (lhs: string, base: ExprNode, modifier: Modifier,
       modifier === '*' ? [{exprs: []}, {exprs: [term, base]}] :
       modifier === '+' ? [{exprs: [base]}, {exprs: [term, base]}] : [];
   assert(rules.length === 2, () => `Invalid modifier: ${modifier}`);
-  rules[0].metadata = Metadata.build_base_case(modifier, score, env.settings);
-  rules[1].metadata = Metadata.build_recursive(modifier, score, env.settings);
+  rules[0].transform = `builtin_base_cases['${modifier}']`;
+  rules[1].transform = `builtin_recursives['${modifier}']`;
   rules.forEach((x) => add_rules(symbol, x, env));
   return symbol;
 }
@@ -118,25 +109,19 @@ const build_subexpression = (lhs: string, rules: RuleNode[],
   return symbol;
 }
 
-const build_term = (lhs: string, expr: ExprNode, score: number,
-                    env: Environment): Term => {
-  assert(score === 0 || expr.type === 'modifier');
+const build_term = (lhs: string, expr: ExprNode, env: Environment): Term => {
   switch (expr.type) {
     case 'binding': return build_binding(expr.name, env);
     case 'macro': return build_macro(lhs, expr.args, expr.name, env);
-    case 'modifier': return build_modifier(
-        lhs, expr.base, expr.modifier, score, env);
+    case 'modifier': return build_modifier(lhs, expr.base, expr.modifier, env);
     case 'subexpression': return build_subexpression(lhs, expr.rules, env);
     case 'term': return expr.term;
   }
 }
 
 const evaluate = (items: ItemNode[]): CompiledGrammar => {
-  const settings: Environment['settings'] = {};
-  items.forEach((x) => x.type === 'setting' && (settings[x.setting] = true));
-  const blocks = [Metadata.generate_header(settings)];
-  const result = {blocks, rules: [], templated: !!settings.templated};
-  const env = {bindings: {}, counts: {}, macros: {}, result, settings};
+  const result = {blocks: [], rules: []};
+  const env = {bindings: {}, counts: {}, macros: {}, result};
   items.forEach((x) => evaluate_item(x, env));
   return validate(result);
 }
@@ -163,6 +148,17 @@ const generate = (grammar: CompiledGrammar): string => {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 
+const builtin_base_cases = {
+  '?': (d) => null,
+  '*': (d) => d,
+  '+': (d) => d,
+};
+const builtin_recursives = {
+  '?': (d) => d[0],
+  '*': (d) => d[0].concat([d[1]]),
+  '+': (d) => d[0].concat([d[1]]),
+};
+
 ${grammar.blocks.map((x) => x.trim()).join('\n\n')}
 
 exports.lexer = ${grammar.lexer.trim()};
@@ -170,13 +166,13 @@ exports.rules = [
   ${grammar.rules.map(generate_rule).join(',\n  ')},
 ];
 exports.start = ${JSON.stringify(grammar.start)};
-exports.templated = ${JSON.stringify(grammar.templated)};
   `.trim() + '\n';
 }
 
 const generate_rule = (rule: CompiledRule): string => {
   const rhs = `[${rule.rhs.map(generate_term).join(', ')}]`;
-  return `{lhs: ${JSON.stringify(rule.lhs)}, rhs: ${rhs}${rule.suffix}}`;
+  const suffix = rule.transform ? `, transform: ${rule.transform}` : '';
+  return `{lhs: ${JSON.stringify(rule.lhs)}, rhs: ${rhs}${suffix}}`;
 }
 
 const generate_term = (term: Term): string => {
