@@ -38,6 +38,7 @@ interface CompiledGrammar {
 interface CompiledRule {
   lhs: string;
   rhs: Term[];
+  score?: number,
   transform?: string,
 }
 
@@ -123,7 +124,7 @@ const evaluate = (items: ItemNode[]): CompiledGrammar => {
   const result = {blocks: [], rules: []};
   const env = {bindings: {}, counts: {}, macros: {}, result};
   items.forEach((x) => evaluate_item(x, env));
-  return validate(result);
+  return result;
 }
 
 const evaluate_item = (item: ItemNode, env: Environment): void => {
@@ -171,8 +172,11 @@ exports.start = ${JSON.stringify(grammar.start)};
 
 const generate_rule = (rule: CompiledRule): string => {
   const rhs = `[${rule.rhs.map(generate_term).join(', ')}]`;
-  const suffix = rule.transform ? `, transform: ${rule.transform}` : '';
-  return `{lhs: ${JSON.stringify(rule.lhs)}, rhs: ${rhs}${suffix}}`;
+  const suffixes = [
+    rule.score ? `, score: ${rule.score}` : '',
+    rule.transform ? `, transform: ${rule.transform}` : '',
+  ];
+  return `{lhs: ${JSON.stringify(rule.lhs)}, rhs: ${rhs}${suffixes.join('')}}`;
 }
 
 const generate_term = (term: Term): string => {
@@ -210,8 +214,11 @@ class Compiler {
   static compile(input: string): string {
     const grammar = Grammar.from_file('../dsl/bootstrapped');
     const ast = Parser.parse(grammar, input).value!.some;
-    return generate(evaluate(ast));
+    return Compiler.generate(evaluate(ast));
+  }
+  static generate(grammar: CompiledGrammar): string {
+    return generate(validate(grammar));
   }
 }
 
-export {Compiler};
+export {CompiledGrammar, CompiledRule, Compiler};

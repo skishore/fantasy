@@ -2,11 +2,22 @@ import {Lexer, Tense} from './lexer';
 
 // A Grammar is a list of rules along with an index to access them.
 //
-// A "templated" grammar uses template syntax to define reversible transforms
-// so that the same grammar rules can be used for parsing and generation.
-// Scoring and syntax checking are only supported for templated grammars. See
-// "test/lib/template.ts" for example templates and see "src/dsl/metadata.ts"
-// for the syntax for defining templated grammar metadata.
+// A single grammar can either be used for parsing or for text generation.
+// The 'score' and 'transform' fields have different interpretations for these
+// two different types of grammars:
+//
+//  - For parsing, the overall score of a parse tree is the sum of the scores
+//    of the rules used in the tree. For generation, it is the product.
+//
+//  - For parsing, transforms merge child semantics to yield parent semantics:
+//
+//      transform: (x: any[]) => any
+//
+//    For generation, transforms split parent semantics to produce candidate
+//    child semantics lists. Child semantics that are not constrained are
+//    assigned 'undefined' in these candidate lists:
+//
+//      transform: (x: any) => any[][]
 
 interface Grammar {
   by_name: {[name: string]: Rule[]},
@@ -23,7 +34,7 @@ interface Rule {
   rhs: Term[],
   score: number,
   syntaxes: Syntax[],
-  transform: Transform,
+  transform: Function,
 }
 
 interface Syntax {
@@ -32,11 +43,6 @@ interface Syntax {
 }
 
 type Term = string | {text: string} | {type: string};
-
-type Transform = {
-  merge: (d: any[]) => any,
-  split: (d: any) => {[index: number]: any}[],
-}
 
 // The output of the compiler is a GrammarSpec, a grammar without redundant
 // index fields like by_name or max_index.
@@ -53,7 +59,7 @@ interface RuleSpec {
   rhs: Term[],
   score?: number,
   syntaxes?: Syntax[],
-  transform?: Transform | Transform['merge'],
+  transform?: Function,
 }
 
 // Finally, we implement some helpers for making use of grammars.
@@ -64,22 +70,6 @@ const cached = <T>(fn: (x: string) => T): ((x: string) => T) => {
   const cache: {[x: string]: T} = {};
   return (x: string) => cache[x] || (cache[x] = fn(x));
 }
-
-const coerce_transform = (
-    input: RuleSpec['transform'] | void, size: number): Transform => {
-  if (!input) return default_transform(size);
-  const transform = <Transform>input;
-  if (transform.merge && transform.split) return transform;
-  return {
-    merge: <Transform['merge']>input,
-    split: () => { throw new Error('split is unimplemented!'); },
-  };
-}
-
-const default_transform = (size: number): Transform => ({
-  merge: (d) => d,
-  split: (d) => d instanceof Array && d.length === size ? [d] : [],
-});
 
 const from_code = cached((code: string): Grammar => {
   return from_spec(<GrammarSpec>((x) => {
@@ -99,7 +89,7 @@ const from_spec = (grammar: GrammarSpec): Grammar => {
   const result: Grammar = {...grammar, by_name: {}, max_index: 0, rules: []};
   grammar.rules.forEach((x) => {
     const base = {score: 0, syntaxes: []};
-    const transform = coerce_transform(x.transform, x.rhs.length);
+    const transform = x.transform || ((d: any) => d);
     const rule: Rule = {...base, ...x, index: result.max_index, transform};
     (result.by_name[x.lhs] = result.by_name[x.lhs] || []).push(rule);
     result.max_index += x.rhs.length + 1;

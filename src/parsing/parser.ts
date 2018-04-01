@@ -33,7 +33,7 @@ const derive_state = (state: State): Derivation => {
     current = current.prev!;
   }
   const values = xs.reverse().map((x) => x.value!.some);
-  const value = {some: state.rule.transform.merge(values)};
+  const value = {some: state.rule.transform(values)};
   return {type: 'node', rule: state.rule, value, xs};
 }
 

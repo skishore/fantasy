@@ -23,12 +23,12 @@ const generate_from_memo = (
 
 const generate_from_rule = (
     memo: Memo, rule: Rule, value: Option<any>): Derivation | null => {
-  const candidates = value ? rule.transform.split(value.some) : [[]];
+  const candidates: any[][] = value ? rule.transform(value.some) : [[]];
   const options: Derivation[] = [];
   for (const candidate of candidates) {
     const xs: Derivation[]= [];
     for (let i = 0; i < rule.rhs.length; i++) {
-      const child = candidate.hasOwnProperty(i) ? {some: candidate[i]} : null;
+      const child = candidate[i] == null ? null : {some: candidate[i]};
       const term = generate_from_memo(memo, rule.rhs[i], child);
       if (term) { xs.push(term); } else break;
     }
@@ -60,6 +60,7 @@ const generate_from_term = (
 }
 
 // The public interface of this module is currently a single static method.
+// TODO(skishore): Make use of rule scores here.
 
 const generate = (grammar: Grammar, value: any): Derivation | null => {
   const memo: Memo = {grammar, saved: {}};
