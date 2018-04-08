@@ -49,7 +49,7 @@ directives -> (_ '(' directive ')'):* {% (d) => d[0].map((x) => x[2]) %}
 
 directive -> '>' _ number {% (d) => ({type: 'score-gen', score: d[2]}) %}
            | '<' _ number {% (d) => ({type: 'score-par', score: d[2]}) %}
-           | '=' token:+ {% (d) => ({type: 'template', template: d[1].join('').trim()}) %}
+           | '=' token:+ {% (d) => ({type: 'template', template: d[1]}) %}
 
 number -> (%float | %integer) {% (d) => d[0][0] %}
 

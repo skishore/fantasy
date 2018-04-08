@@ -10,7 +10,7 @@ import {Template} from '../lib/template';
 type DirectiveNode =
   {type: 'score-gen', score: number} |
   {type: 'score-par', score: number} |
-  {type: 'template', template: string};
+  {type: 'template', template: string[]};
 
 type ExprNode =
   {type: 'binding', name: string} |
@@ -46,7 +46,17 @@ interface Environment {
   result: Both<CompiledGrammar>;
 }
 
-interface Rule {base: Both<CompiledRule>, template?: string, type: Sign};
+interface Metadata {
+  indices: number[],
+  optional: boolean[],
+}
+
+interface Rule {
+  base: Both<CompiledRule>,
+  metadata: Both<Metadata>,
+  template?: string[],
+  type: Sign,
+};
 
 type Mark = '-' | '^' | '*';
 
@@ -100,7 +110,9 @@ const add_rhs = (lhs: string, rhs: RhsNode, env: Environment): void => {
   if (mid == null) throw Error(`Null rule: ${lhs} -> ${JSON.stringify(rhs)}`);
 
   // TODO(skishore): Handle the '-' | '^' | '*' syntax-checking marks here.
-  const rule: Rule = {base: gen(() => ({lhs, rhs: []})), type: rhs.type};
+  const base = gen<CompiledRule>(() => ({lhs, rhs: []}));
+  const metadata = gen<Metadata>(() => ({indices: [], optional: []}));
+  const rule: Rule = {base, metadata, type: rhs.type};
   rhs.directives.forEach((x) => add_directive(x, rule));
   const fn = (text: string) => text ? rule.base.gen.rhs.push({text}) : 0;
   const terms = expressions.map((x) => build_term(x.expr, env));
@@ -119,17 +131,16 @@ const add_rhs = (lhs: string, rhs: RhsNode, env: Environment): void => {
 }
 
 const add_rule = (rule: Rule, env: Environment): void => {
-  // TODO(skishore): Check that the template string is valid.
-  // TODO(skishore): Pass optional information into the template.
-  // TODO(skishore): Correct template indices for puncutation / kSpace terms.
-  const str = Lexer.swap_quotes(rule.template || '');
-  const template = `new Template(${JSON.stringify(str)})`;
   if (rule.type !== '<') {
-    const base = rule.template ? {transform: `${template}.split`} : {};
+    const n = rule.base.gen.rhs.length;
+    const template = create_template(rule.metadata.gen, n, rule.template);
+    const base = template ? {transform: `${template}.split`} : {};
     env.result.gen.rules.push({...base, ...rule.base.gen});
   }
   if (rule.type !== '>') {
-    const base = rule.template ? {transform: `${template}.merge`} : {};
+    const n = rule.base.par.rhs.length;
+    const template = create_template(rule.metadata.par, n, rule.template);
+    const base = template ? {transform: `${template}.merge`} : {};
     env.result.par.rules.push({...base, ...rule.base.par});
   }
 }
@@ -140,8 +151,12 @@ const add_symbol = (rule: RuleNode, env: Environment): void => {
   if (root) {
     const gen = {lhs: kRoot, rhs: [name]}
     const par = {lhs: kRoot, rhs: [kSpace, name, kSpace]};
-    const template = `{${JSON.stringify(name)}: $0}`;
-    add_rule({base: {gen, par}, template, type: '='}, env);
+    const metadata = {
+      gen: {indices: [0], optional: [false]},
+      par: {indices: [1], optional: [false]},
+    };
+    const template = [`{${JSON.stringify(name)}: `, '$', '0', '}'];
+    add_rule({base: {gen, par}, metadata, template, type: '='}, env);
   }
   const period: TermNode = {type: 'punctuation', punctuation: '.'};
   rule.rhs.forEach((x) => {
@@ -155,6 +170,15 @@ const add_symbol = (rule: RuleNode, env: Environment): void => {
 const add_terms = (terms: Term[], j: number, optional: boolean,
                    rule: Rule, env: Environment): void => {
   assert(!!terms[j], () => `Invalid fragment index: ${j}`);
+
+  // Update the index-tracking metadata for this rule.
+  const offset = optional ? 0 : j;
+  rule.metadata.gen.indices.push(rule.base.gen.rhs.length + offset);
+  rule.metadata.par.indices.push(rule.base.par.rhs.length + offset);
+  rule.metadata.gen.optional.push(optional);
+  rule.metadata.par.optional.push(optional);
+
+  // Update the generative and parsing CompiledRules for this rule.
   if (optional) {
     const term = build_option(terms, j, env);
     rule.base.gen.rhs.push(term);
@@ -205,7 +229,8 @@ const build_option = (terms: Term[], j: number, env: Environment): Term => {
 
   // Add the non-null rules for this symbol.
   const base = gen<CompiledRule>(() => ({lhs: symbol, rhs: []}));
-  const rule: Rule = {base, template: `$${j}`, type: '='};
+  const metadata = gen<Metadata>(() => ({indices: [j], optional: [false]}));
+  const rule: Rule = {base, metadata, template: ['$', '0'], type: '='};
   terms.forEach((x, i) => {
     rule.base.gen.rhs.push(x);
     rule.base.par.rhs.push(i === j ? x : kSpace);
@@ -221,6 +246,25 @@ const build_term = (expr: ExprNode, env: Environment): Term => {
     case 'macro': return build_macro(expr.args, expr.name, env);
     case 'term': return expr.term;
   }
+}
+
+const create_template = (metadata: Metadata, n: number,
+                         terms: string[] | void): string | void => {
+  if (!terms) return;
+  const max = metadata.indices.length;
+  const optional = Array(n).fill(true);
+  metadata.optional.forEach((x, i) => {
+    if (!x) optional[metadata.indices[i]] = false;
+  });
+  const shifted = terms.map((x, i) => {
+    if (i === 0 || terms[i - 1] !== '$') return x;
+    const index = parseInt(x, 10);
+    if (!(0 <= index && index < max)) throw new Error(`Invalid index: $${x}`);
+    return `${metadata.indices[index]}`;
+  });
+  const template = Lexer.swap_quotes(shifted.join('')).trim();
+  new Template(template, optional);
+  return `new Template(${JSON.stringify(template)}, [${optional.join(', ')}])`;
 }
 
 const evaluate = (items: ItemNode[]): Both<CompiledGrammar> => {

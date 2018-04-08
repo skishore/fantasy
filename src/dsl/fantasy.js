@@ -75,7 +75,7 @@ exports.rules = [
   {lhs: "directive", rhs: [{text: "<"}, "_", "number"], transform: (d) => ({type: 'score-par', score: d[2]})},
   {lhs: "directive$modifier$1", rhs: ["token"], transform: builtin_base_cases['+']},
   {lhs: "directive$modifier$1", rhs: ["directive$modifier$1", "token"], transform: builtin_recursives['+']},
-  {lhs: "directive", rhs: [{text: "="}, "directive$modifier$1"], transform: (d) => ({type: 'template', template: d[1].join('').trim()})},
+  {lhs: "directive", rhs: [{text: "="}, "directive$modifier$1"], transform: (d) => ({type: 'template', template: d[1]})},
   {lhs: "number$subexpression$1", rhs: [{type: "float"}]},
   {lhs: "number$subexpression$1", rhs: [{type: "integer"}]},
   {lhs: "number", rhs: ["number$subexpression$1"], transform: (d) => d[0][0]},
