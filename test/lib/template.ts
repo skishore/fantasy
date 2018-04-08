@@ -22,6 +22,10 @@ const template: Test = {
     const template = new Template(pattern);
     Test.assert_eq(template.merge([]), {bool: false, num: 42, str: 'is'});
   },
+  merge_realizes_dict_with_string_keys: () => {
+    const template = new Template('{"key": $0}', optional(1));
+    Test.assert_eq(template.merge(['value']), {key: 'value'});
+  },
   merge_realizes_list: () => {
     const pattern = '[42, "is", false]';
     const template = new Template(pattern);

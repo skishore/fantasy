@@ -1,5 +1,5 @@
-import {assert} from '../lib/base';
-import {Grammar} from './grammar';
+import {assert, clone} from '../lib/base';
+import {Grammar, Term} from './grammar';
 import {Parser} from './parser';
 
 // The output of the bootstrapped grammar is a list of ItemNode values.
@@ -49,7 +49,20 @@ interface Environment {
   result: CompiledGrammar;
 }
 
-type Term = string | {text: string} | {type: string};
+// Some basic transforms used for rules with modifiers ('?' | '*' | '+').
+
+const kPrelude = `
+const builtin_base_cases = {
+  '?': (d) => null,
+  '*': (d) => d,
+  '+': (d) => d,
+};
+const builtin_recursives = {
+  '?': (d) => d[0],
+  '*': (d) => d[0].concat([d[1]]),
+  '+': (d) => d[0].concat([d[1]]),
+};
+  `;
 
 // The core compiler logic is a series of operations on the env state.
 
@@ -78,8 +91,7 @@ const build_macro = (lhs: string, args: ArgNode[], name: string,
   if (args.length !== n) {
     throw new Error(`${name} got ${args.length} argments; expected: ${n}`);
   }
-  const bindings = Object.assign({}, env.bindings);
-  const child = Object.assign({}, env, {bindings});
+  const child: Environment = {...env, bindings: {...env.bindings}};
   args.forEach((x, i) => {
     const term = x.type === 'binding' ? build_binding(x.name, env) : x.term;
     child.bindings[macro.args[i]] = term;
@@ -121,7 +133,7 @@ const build_term = (lhs: string, expr: ExprNode, env: Environment): Term => {
 }
 
 const evaluate = (items: ItemNode[]): CompiledGrammar => {
-  const result = {blocks: [], rules: []};
+  const result = {blocks: [kPrelude], rules: []};
   const env = {bindings: {}, counts: {}, macros: {}, result};
   items.forEach((x) => evaluate_item(x, env));
   return result;
@@ -139,26 +151,15 @@ const evaluate_item = (item: ItemNode, env: Environment): void => {
 }
 
 const generate = (grammar: CompiledGrammar): string => {
-  grammar = JSON.parse(JSON.stringify(grammar));
   if (!grammar.lexer) {
-    grammar.blocks.unshift(`const lexer = require('../src/nearley/lexer');`);
+    grammar = clone(grammar);
+    grammar.blocks.unshift(`const lexer = require('../parsing/lexer');`);
     grammar.lexer = 'new lexer.CharacterLexer()';
   }
   return `
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-
-const builtin_base_cases = {
-  '?': (d) => null,
-  '*': (d) => d,
-  '+': (d) => d,
-};
-const builtin_recursives = {
-  '?': (d) => d[0],
-  '*': (d) => d[0].concat([d[1]]),
-  '+': (d) => d[0].concat([d[1]]),
-};
 
 ${grammar.blocks.map((x) => x.trim()).join('\n\n')}
 
@@ -187,7 +188,7 @@ const generate_term = (term: Term): string => {
   } else if ((<any>term).type) {
     return `{type: ${JSON.stringify((<any>term).type)}}`;
   }
-  throw Error(`Unexpected term: ${term}`);
+  throw Error(`Unexpected term: ${JSON.stringify(term)}`);
 }
 
 const validate = (grammar: CompiledGrammar): CompiledGrammar => {

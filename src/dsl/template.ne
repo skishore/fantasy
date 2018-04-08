@@ -23,7 +23,7 @@ template -> (dict | list | primitive | variable) {% (d) => d[0][0] %}
 dict -> '{' _ commas[dict_item] _ '}' {% (d) => d[2] %}
       | '{' _ '}' {% () => [] %}
 
-dict_item -> %identifier ':' _ template {% (d) => [d[0], d[3]] %}
+dict_item -> key ':' _ template {% (d) => [d[0], d[3]] %}
            | '.' '.' '.' variable {% (d) => d[3] %}
 
 list -> '[' _ commas[list_item] _ ']' {% (d) => d[2] %}
@@ -36,8 +36,10 @@ variable -> '$' %integer {% (d) => ({index: d[1]}) %}
 
 # Primitives and whitespace.
 
-primitive -> (%boolean | number | %string) {% (d) => d[0][0] %}
+key -> (%identifier | %string) {% (d) => d[0][0] %}
 
 number -> (%float | %integer) {% (d) => d[0][0] %}
+
+primitive -> (%boolean | number | %string) {% (d) => d[0][0] %}
 
 _ -> %whitespace:? {% () => null %}

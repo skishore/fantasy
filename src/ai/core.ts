@@ -35,7 +35,7 @@ const NoMatch = (): Agent<null> => State(null, (value, update) =>
 
 const Optional = <T>(agent: Agent<T>): Agent<Option<T>> => {
   const value = (): Option<Option<T>> => ({some: agent.value()});
-  return Object.assign({}, agent, {value});
+  return {...agent, value};
 }
 
 const Respond = (semantics: Semantics, type: 'ask' | 'say'): Agent<null> => {

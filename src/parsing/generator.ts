@@ -26,7 +26,7 @@ const generate_from_rule = (
   const candidates: any[][] = value ? rule.transform(value.some) : [[]];
   const options: Derivation[] = [];
   for (const candidate of candidates) {
-    const xs: Derivation[]= [];
+    const xs: Derivation[] = [];
     for (let i = 0; i < rule.rhs.length; i++) {
       const child = candidate[i] == null ? null : {some: candidate[i]};
       const term = generate_from_memo(memo, rule.rhs[i], child);

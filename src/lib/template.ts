@@ -64,7 +64,7 @@ const cross = (xs: Assignment[], ys: Assignment[]): Assignment[] => {
   const result = [];
   for (const x of xs) {
     for (const y of ys) {
-      result.push(Object.assign({}, x, y));
+      result.push({...x, ...y});
     }
   }
   return result;
@@ -224,7 +224,7 @@ const optional = (template: TemplateData): boolean => {
   if (template instanceof Array) {
     return template.every((x) => x instanceof Array ?
         optional(x[1]) : x.optional);
-  } else if (typeof template === "object") {
+  } else if (typeof template === 'object') {
     return template.optional;
   }
   return true;
