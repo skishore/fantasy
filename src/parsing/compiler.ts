@@ -1,5 +1,5 @@
 import {assert, clone} from '../lib/base';
-import {Grammar, Term} from './grammar';
+import {Grammar, Syntax, Term} from './grammar';
 import {Parser} from './parser';
 
 // The output of the bootstrapped grammar is a list of ItemNode values.
@@ -39,6 +39,7 @@ interface CompiledRule {
   lhs: string;
   rhs: Term[];
   score?: number,
+  syntaxes?: Syntax[],
   transform?: string,
 }
 
@@ -175,6 +176,7 @@ const generate_rule = (rule: CompiledRule): string => {
   const rhs = `[${rule.rhs.map(generate_term).join(', ')}]`;
   const suffixes = [
     rule.score ? `, score: ${rule.score}` : '',
+    rule.syntaxes ? `, syntaxes: ${JSON.stringify(rule.syntaxes)}` : '',
     rule.transform ? `, transform: ${rule.transform}` : '',
   ];
   return `{lhs: ${JSON.stringify(rule.lhs)}, rhs: ${rhs}${suffixes.join('')}}`;

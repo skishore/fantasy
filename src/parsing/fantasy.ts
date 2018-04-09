@@ -1,6 +1,6 @@
 import {assert} from '../lib/base';
 import {CompiledGrammar, CompiledRule, Compiler} from './compiler';
-import {Grammar, Term} from './grammar';
+import {Grammar, Syntax, Term} from './grammar';
 import {Lexer} from './lexer';
 import {Parser} from './parser';
 import {Template} from '../lib/template';
@@ -54,6 +54,7 @@ interface Metadata {
 interface Rule {
   base: Both<CompiledRule>,
   metadata: Both<Metadata>,
+  syntaxes?: Syntax[],
   template?: string[],
   type: Sign,
 };
@@ -109,10 +110,10 @@ const add_rhs = (lhs: string, rhs: RhsNode, env: Environment): void => {
   const mid = indices.filter((x) => x >= 0)[0];
   if (mid == null) throw Error(`Null rule: ${lhs} -> ${JSON.stringify(rhs)}`);
 
-  // TODO(skishore): Handle the '-' | '^' | '*' syntax-checking marks here.
   const base = gen<CompiledRule>(() => ({lhs, rhs: []}));
   const metadata = gen<Metadata>(() => ({indices: [], optional: []}));
-  const rule: Rule = {base, metadata, type: rhs.type};
+  const syntaxes = create_syntaxes(expressions.map((x) => x.mark));
+  const rule: Rule = {base, metadata, syntaxes, type: rhs.type};
   rhs.directives.forEach((x) => add_directive(x, rule));
   const fn = (text: string) => text ? rule.base.gen.rhs.push({text}) : 0;
   const terms = expressions.map((x) => build_term(x.expr, env));
@@ -132,16 +133,10 @@ const add_rhs = (lhs: string, rhs: RhsNode, env: Environment): void => {
 
 const add_rule = (rule: Rule, env: Environment): void => {
   if (rule.type !== '<') {
-    const n = rule.base.gen.rhs.length;
-    const template = create_template(rule.metadata.gen, n, rule.template);
-    const base = template ? {transform: `${template}.split`} : {};
-    env.result.gen.rules.push({...base, ...rule.base.gen});
+    env.result.gen.rules.push(create_rule(rule, 'gen'));
   }
   if (rule.type !== '>') {
-    const n = rule.base.par.rhs.length;
-    const template = create_template(rule.metadata.par, n, rule.template);
-    const base = template ? {transform: `${template}.merge`} : {};
-    env.result.par.rules.push({...base, ...rule.base.par});
+    env.result.par.rules.push(create_rule(rule, 'par'));
   }
 }
 
@@ -248,16 +243,33 @@ const build_term = (expr: ExprNode, env: Environment): Term => {
   }
 }
 
-const create_template = (metadata: Metadata, n: number,
-                         terms: string[] | void): string | void => {
-  if (!terms) return;
+const create_rule = (rule: Rule, type: 'gen' | 'par'): CompiledRule => {
+  const base = {...rule.base[type]};
+  const metadata = rule.metadata[type];
+  if (rule.syntaxes && rule.syntaxes.length > 0) {
+    base.syntaxes = rule.syntaxes.map(
+        (x) => ({...x, indices: x.indices.map((y) => metadata.indices[y])}));
+  }
+  if (rule.template) {
+    const template = create_template(metadata, base.rhs.length, rule.template);
+    base.transform = `${template}.${type === 'gen' ? 'split' : 'merge'}`;
+  }
+  return base;
+}
+
+const create_syntaxes = (marks: Mark[]): Syntax[] => {
+  const indices: number[] = [];
+  marks.forEach((x, i) => { if (x === '*') indices.push(i); });
+  marks.forEach((x, i) => { if (x === '^') indices.push(i); });
+  return indices.length === 0 ? [] : [{indices, tense: {}}];
+}
+
+const create_template = (metadata: Metadata, n: number, xs: string[]) => {
   const max = metadata.indices.length;
   const optional = Array(n).fill(true);
-  metadata.optional.forEach((x, i) => {
-    if (!x) optional[metadata.indices[i]] = false;
-  });
-  const shifted = terms.map((x, i) => {
-    if (i === 0 || terms[i - 1] !== '$') return x;
+  metadata.optional.forEach((x, i) => optional[metadata.indices[i]] = x);
+  const shifted = xs.map((x, i) => {
+    if (i === 0 || xs[i - 1] !== '$') return x;
     const index = parseInt(x, 10);
     if (!(0 <= index && index < max)) throw new Error(`Invalid index: $${x}`);
     return `${metadata.indices[index]}`;
