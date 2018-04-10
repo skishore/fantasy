@@ -65,6 +65,16 @@ type Sign = '<' | '=' | '>';
 
 const [kRoot, kSpace] = ['$', '_'];
 
+const kPrelude = `
+const template = require('../lib/template');
+const lexer = require('../parsing/lexer');
+
+const Template = template.Template;
+
+const bind_gen = (x) => x.split.bind(x);
+const bind_par = (x) => x.merge.bind(x);
+  `;
+
 // The core compiler logic is a series of operations on the env state.
 
 const add_block = (block: string, env: Environment): void => {
@@ -252,7 +262,7 @@ const create_rule = (rule: Rule, type: 'gen' | 'par'): CompiledRule => {
   }
   if (rule.template) {
     const template = create_template(metadata, base.rhs.length, rule.template);
-    base.transform = `${template}.${type === 'gen' ? 'split' : 'merge'}`;
+    base.transform = `bind_${type}(${template})`;
   }
   return base;
 }
@@ -281,7 +291,7 @@ const create_template = (metadata: Metadata, n: number, xs: string[]) => {
 
 const evaluate = (items: ItemNode[]): Both<CompiledGrammar> => {
   const result: Both<CompiledGrammar> =
-      gen(() => ({blocks: [], rules: [], start: kRoot}));
+      gen(() => ({blocks: [kPrelude], rules: [], start: kRoot}));
   const env: Environment = {bindings: {}, exists: {}, macros: {}, result};
 
   // Add macro rules first so that regular rules can reference them.
@@ -330,5 +340,16 @@ export {Fantasy};
 
 declare const require: any;
 const fs = require('fs');
-const input = fs.readFileSync('src/dsl/hindi.gr');
-console.log(Fantasy.compile(input).gen);
+import {Corrector} from './corrector';
+import {Derivation} from './derivation';
+import {MooLexer} from './lexer';
+import {Generator} from './generator';
+const input = fs.readFileSync('src/dsl/hindi.gr', {encoding: 'utf8'});
+const output = Fantasy.compile(input);
+const grammar = Grammar.from_code(output.gen);
+const derivation = Generator.generate(grammar, {whats_your_name: true});
+if (derivation) {
+  console.log(Derivation.print(derivation));
+  console.log();
+  console.log(new MooLexer({}).join(Derivation.matches(derivation)));
+}
