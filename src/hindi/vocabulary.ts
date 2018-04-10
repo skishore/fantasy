@@ -161,3 +161,51 @@ const verb = (value: string, spec: string): Entry[] => {
 const Vocabulary = {adjective, copula, noun, number, particle, pronoun, verb};
 
 export {Entry, Vocabulary};
+
+// The table parsing code follows.
+
+const parse_table = <T>(example: T, table: string): T[] => {
+  // Split the table into lines and validate the header.
+  const lines = table.split('\n').map((x) => x.trim())
+  const valid = lines.filter((x) => x.length !== 0 && x[0] !== '#');
+  if (valid.length < 3) throw Error(`Invalid table:\n${table}`);
+  const columns = valid[0].split('|').map((x) => x.trim());
+  const keys = Object.keys(example);
+  if (keys.length !== columns.length ||
+      keys.some((x) => columns.indexOf(x) < 0)) {
+    const expected = `(expected: ${keys.join(', ')})`;
+    throw Error(`Invalid header: ${columns.join(', ')} ${expected}`);
+  }
+  // Return a value for each entry of the actual table.
+  const grid = valid.slice(2).map((x) => x.split('|').map((y) => y.trim()));
+  return grid.map((x, i) => {
+    if (x.length !== columns.length) {
+      throw Error(`Invalid line: ${valid[i + 2]}`);
+    }
+    const result: any = {};
+    for (let j = 0; j < x.length; j++) {
+      if (x[j] === '<') x[j] = x[j - 1];
+      if (x[j] === '^') x[j] = grid[i - 1][j];
+      if (!x[j]) throw Error(`Invalid line: ${valid[i + 2]}`);
+      result[columns[j]] = x[j];
+    }
+    return result;
+  });
+}
+
+const base = {role: '', direct: '', genitive: '', copula: ''};
+const entry = {...base, 'dative (1)': '', 'dative (2)': ''};
+const entries = parse_table(entry, `
+  # The "role" column encodes person, number, and, for the 2nd person, tone.
+  # The tone is either i (intimate), c (casual), or f (formal).
+
+  role | direct   | genitive        | dative (1)   | dative (2)  | copula
+  -----|----------|-----------------|--------------|-------------|---------
+   1s. | main/mEM | mera/merA       | mujhko/muJko | mujhe/muJe  | hoon/hUz
+   2si | tu/wU    | tera/werA       | tujhko/wuJko | tujhe/wuJe  | hai/hE
+   3s. | voh/vah  | uska/uskA       | usko/usko    | use/use     | ^
+   1p. | ham/ham  | hamara/hamArA   | hamko/hamko  | hame/hame   | hain/hEM
+   2pc | tum/wum  | tumhara/wumhArA | tumko/wumko  | tumhe/wumhe | ho/ho
+   2pf | ap/Ap    | apka/apkA       | apko/apko    | <           | ^
+   3p. | voh/vah  | uska/uskA       | unko/unko    | usne/usne   | hai/hE
+`);
