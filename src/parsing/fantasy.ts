@@ -1,6 +1,7 @@
 import {assert} from '../lib/base';
 import {CompiledGrammar, CompiledRule, Compiler} from './compiler';
 import {Grammar, Term} from './grammar';
+import {Lexer} from './lexer';
 import {Parser} from './parser';
 import {Template} from '../lib/template';
 
@@ -30,7 +31,7 @@ type RhsNode = {type: Sign, terms: TermNode[], directives: DirectiveNode[]};
 type RuleNode = {directives: DirectiveNode[], lhs: LhsNode, rhs: RhsNode[]};
 
 type TermNode =
-  {type: 'expr', expr: ExprNode, mark: '-' | '^' | '*', optional: boolean} |
+  {type: 'expr', expr: ExprNode, mark: Mark, optional: boolean} |
   {type: 'punctuation', punctuation: string};
 
 // This compiler converts those items into the CompiledGrammar output format,
@@ -79,41 +80,50 @@ const add_macro = (rule: RuleNode, env: Environment): void => {
 }
 
 const add_rhs = (lhs: string, rhs: RhsNode, env: Environment): void => {
-  const expressions: ExprNode[] = [];
+  const expressions: {expr: ExprNode, mark: Mark, optional: boolean}[] = [];
   const punctuation: string[] = [''];
 
   // Collect interleaved expression and punctuation terms. There will always
   // be one more punctuation term than there is expression terms.
   for (const term of rhs.terms) {
     if (term.type === 'expr') {
-      expressions.push(term.expr);
+      expressions.push(term);
       punctuation.push('');
     } else {
       punctuation.push(`${punctuation.pop()}${term.punctuation}`);
     }
   }
 
-  // TODO(skishore): Handle the '-' | '^' | '*' marks here.
-  // TODO(skishore): Handle optional terms here.
+  // Find a central required term around which to build this rule.
+  const indices = expressions.map((x, i) => !x.optional ? i : -1)
+  const mid = indices.filter((x) => x >= 0)[0];
+  if (mid == null) throw Error(`Null rule: ${lhs} -> ${JSON.stringify(rhs)}`);
+
+  // TODO(skishore): Handle the '-' | '^' | '*' syntax-checking marks here.
   const rule: Rule = {base: gen(() => ({lhs, rhs: []})), type: rhs.type};
   rhs.directives.forEach((x) => add_directive(x, rule));
-  const text = punctuation[0];
-  if (text) rule.base.gen.rhs.push({text});
-  const terms = expressions.map((x) => build_term(x, env));
-  terms.forEach((x, i) => {
+  const fn = (text: string) => text ? rule.base.gen.rhs.push({text}) : 0;
+  const terms = expressions.map((x) => build_term(x.expr, env));
+  fn(punctuation[0]);
+  for (let i = 0; i < mid; i++) {
     const text = punctuation[i + 1] || ' ';
-    rule.base.gen.rhs.push(x);
-    rule.base.gen.rhs.push({text});
-    rule.base.par.rhs.push(x);
-    rule.base.par.rhs.push(kSpace);
-  });
-  if (!punctuation.pop()) rule.base.gen.rhs.pop();
-  rule.base.par.rhs.pop();
+    add_terms([terms[i], {text}], 0, expressions[i].optional, rule, env);
+  }
+  add_terms([terms[mid]], 0, /*optional=*/false, rule, env);
+  for (let i = mid + 1; i < terms.length; i++) {
+    const text = punctuation[i] || ' ';
+    add_terms([{text}, terms[i]], 1, expressions[i].optional, rule, env);
+  }
+  fn(punctuation.pop()!);
   add_rule(rule, env);
 }
 
 const add_rule = (rule: Rule, env: Environment): void => {
-  const template = `new Template(${JSON.stringify(rule.template)})`;
+  // TODO(skishore): Check that the template string is valid.
+  // TODO(skishore): Pass optional information into the template.
+  // TODO(skishore): Correct template indices for puncutation / kSpace terms.
+  const str = Lexer.swap_quotes(rule.template || '');
+  const template = `new Template(${JSON.stringify(str)})`;
   if (rule.type !== '<') {
     const base = rule.template ? {transform: `${template}.split`} : {};
     env.result.gen.rules.push({...base, ...rule.base.gen});
@@ -142,6 +152,21 @@ const add_symbol = (rule: RuleNode, env: Environment): void => {
   });
 }
 
+const add_terms = (terms: Term[], j: number, optional: boolean,
+                   rule: Rule, env: Environment): void => {
+  assert(!!terms[j], () => `Invalid fragment index: ${j}`);
+  if (optional) {
+    const term = build_option(terms, j, env);
+    rule.base.gen.rhs.push(term);
+    rule.base.par.rhs.push(term);
+  } else {
+    for (let i = 0; i < terms.length; i++) {
+      rule.base.gen.rhs.push(terms[i]);
+      rule.base.par.rhs.push(i === j ? terms[i] : kSpace);
+    }
+  }
+}
+
 const build_binding = (name: string, env: Environment): Term => {
   if (!env.bindings[name]) throw Error(`Unknown binding: @${name}`);
   return env.bindings[name];
@@ -157,15 +182,35 @@ const build_macro = (args: ExprNode[], name: string,
     throw new Error(`${name} got ${args.length} argments; expected: ${n}`);
   }
   const terms = args.map((x) => build_term(x, env));
-  const symbol = `${name}[${terms.map(Grammar.print_term).join(', ')}]`;
+  const symbol = `${name}[${str(terms)}]`;
   if (env.exists[symbol]) return symbol;
 
   // Add rules needed for this new macro instantiation.
-  const bindings = Object.assign({}, env.bindings);
-  const child = Object.assign({}, env, {bindings});
+  const child: Environment = {...env, bindings: {...env.bindings}};
   terms.forEach((x, i) => child.bindings[macro.args[i]] = x);
   const lhs: LhsNode = {name: symbol, root: false, type: 'symbol'};
   add_symbol({...macro.rule, lhs}, child);
+  env.exists[symbol] = true;
+  return symbol;
+}
+
+const build_option = (terms: Term[], j: number, env: Environment): Term => {
+  // Compute a symbol for this optional list of consecutive terms.
+  const symbol = `(${str(terms)})?`;
+  if (env.exists[symbol]) return symbol;
+
+  // Add the null rules for this symbol.
+  env.result.gen.rules.push({lhs: symbol, rhs: []});
+  env.result.par.rules.push({lhs: symbol, rhs: []});
+
+  // Add the non-null rules for this symbol.
+  const base = gen<CompiledRule>(() => ({lhs: symbol, rhs: []}));
+  const rule: Rule = {base, template: `$${j}`, type: '='};
+  terms.forEach((x, i) => {
+    rule.base.gen.rhs.push(x);
+    rule.base.par.rhs.push(i === j ? x : kSpace);
+  });
+  add_rule(rule, env);
   env.exists[symbol] = true;
   return symbol;
 }
@@ -207,9 +252,11 @@ const evaluate = (items: ItemNode[]): Both<CompiledGrammar> => {
 
 const gen = <T>(fn: () => T): Both<T> => ({gen: fn(), par: fn()});
 
-const map = <T,U>(fn: (x: T) => U, xs: Both<T>): Both<U> => {
-  return {gen: fn(xs.gen), par: fn(xs.par)};
-}
+const map = <T,U>(fn: (x: T) => U, xs: Both<T>): Both<U> =>
+    ({gen: fn(xs.gen), par: fn(xs.par)});
+
+const str = (terms: Term[]): string =>
+    Lexer.swap_quotes(terms.map(Grammar.print_term).join(', '));
 
 // The public Fantasy interface - for now, a single pure function.
 
