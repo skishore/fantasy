@@ -2,6 +2,7 @@ declare const process: any;
 
 import {transliterator} from './hindi/transliterator';
 import {wx} from './hindi/wx';
+import {lexer} from './lib/lexer';
 import {template} from './lib/template';
 import {trie} from './lib/trie';
 import {compiler} from './parsing/compiler';
@@ -14,6 +15,7 @@ const kTestCases = {
   compiler,
   corrector,
   generator,
+  lexer,
   parser,
   template,
   transliterator,
