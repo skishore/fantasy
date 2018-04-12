@@ -1,6 +1,5 @@
 import {assert} from './base';
-import {Grammar} from '../parsing/grammar';
-import {Parser} from '../parsing/parser';
+import {Lexer, Token} from './lexer';
 
 interface Assignment {[index: number]: Value};
 
@@ -230,29 +229,92 @@ const optional = (template: TemplateData): boolean => {
   return true;
 }
 
-// Load the grammar used to parse template expressions.
+// Logic for parsing template expressions.
 
-const validate = (template: TemplateData, optional: boolean[]): void => {
-  if (template instanceof Array) {
-    return template.forEach((x) => x instanceof Array ?
-        validate(x[1], optional) : validate(x, optional));
-  } else if (typeof template === 'object') {
-    if (!(0 <= template.index && template.index < optional.length)) {
-      throw new Error(`Index out of bounds: $${template.index}`);
+const parse_literal = (
+    lexer: Lexer, optional: boolean[], token: Token): TemplateData => {
+  const {text, type} = token;
+  if (text === 'false' || text === 'true') return text === 'true';
+  if (text === '$') return parse_variable(lexer, optional);
+  if (type === 'num') return parseFloat(text);
+  if (type === 'str') return token.value;
+  throw token.error(`Invalid template literal: ${text}`);
+}
+
+const parse_recursive = (
+    lexer: Lexer, optional: boolean[], token: Token): TemplateList => {
+  // Deal with trivial cases: error on unused braces, and return on empty.
+  const {text, type} = token;
+  const result: TemplateList = [];
+  if ((text !== '[' && text !== '{') || type !== 'open') {
+    throw token.error(`Unexpected brace: ${text}`);
+  } else if (lexer.peek().type === 'close') {
+    lexer.next();
+    return result;
+  }
+
+  while (true) {
+    if (lexer.maybe_match('.')) {
+      // Spreads can appear in both lists and dictionaries.
+      Array.from('..$').forEach((x) => lexer.match(x));
+      result.push(parse_variable(lexer, optional));
+    } else if (text === '[') {
+      // Square braces are used to construct list-valued TemplateLists.
+      result.push(['_', parse_template(lexer, optional)]);
+    } else if (text === '{') {
+      // Curly braces are used to construct dict-valued TemplateLists.
+      const key = lexer.next();
+      if (key.type !== 'id' && key.type !== 'str' ||
+          key.value === '' || key.value === '_') {
+        throw key.error(`Invalid template key: ${key}`);
+      }
+      lexer.match(':');
+      result.push([key.value, parse_template(lexer, optional)]);
     }
-    template.optional = optional[template.index];
+
+    // Break when we've found the end of the recursive template.
+    const next = lexer.next();
+    if (next.type === 'close') break;
+    if (next.text !== ',') throw next.error(`Expected: ,; got: ${next.text}`);
+  }
+  return result;
+}
+
+const parse_template = (lexer: Lexer, optional: boolean[]): TemplateData => {
+  const token = lexer.next();
+  switch (token.type) {
+    case 'block': throw token.error('Unexpected block.');
+    case 'close': throw token.error('Unexpected end of template.');
+    case 'eof': throw token.error('Unexpected end of template.');
+    case 'id': return parse_literal(lexer, optional, token);
+    case 'num': return parse_literal(lexer, optional, token);
+    case 'open': return parse_recursive(lexer, optional, token);
+    case 'str': return parse_literal(lexer, optional, token);
+    case 'sym': return parse_literal(lexer, optional, token);
   }
 }
+
+const parse_variable = (
+    lexer: Lexer, optional: boolean[]): TemplateVariable => {
+  const token = lexer.next();
+  const index = parseFloat(token.text);
+  if (token.type !== 'num' || index % 1 !== 0) {
+    throw token.error(`Expected: int, got: ${token.text}`);
+  } else if (!(0 <= index && index < optional.length)) {
+    throw token.error(`Index out of bounds: $${index}`);
+  }
+  return {index, optional: optional[index]};
+}
+
+// The public interface of this file.
 
 class Template {
   private data: TemplateData;
   private size: number;
   constructor(input: string, optional?: boolean[]) {
     optional = optional || [];
-    const grammar = Grammar.from_file('../dsl/template');
-    this.data = Parser.parse(grammar, input).value!.some;
+    this.data = parse_template(new Lexer(input), optional);
     this.size = optional.length;
-    validate(this.data, optional);
   }
   merge(subs: Value[]): Value {
     if (subs.length !== this.size) {

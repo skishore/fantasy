@@ -1,122 +1,117 @@
-import {clone} from './base';
+// Our recursive-descent parser-lexers use moo.js internally.
 
-const kCommentMark = '#';
-const kEscapeCodes: {[index: string]: string} =
-    {b: '\b', f: '\f', n: '\n', r: '\r', t: '\t'};
-const kOpenBraces: {[brace: string]: string} = {'(': ')', '[': ']', '{': '}'};
+declare const require: any;
+const moo = require('../../src/external/moo.js');
 
-const kCloseBraces: {[brace: string]: string} = {};
-Object.keys(kOpenBraces).forEach((x) => kCloseBraces[kOpenBraces[x]] = x);
+const double_quote = (x: string): string =>
+  x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
 
-type Type = 'close' | 'eof' | 'open' | 'quoted' | 'symbol' | 'unquoted';
-interface Token {text: string, type: Type};
-interface LexerState {context: string[], index: number, input: string};
+const error = (input: string, offset: number) => (message: string): Error => {
+  const start = input.lastIndexOf('\n', offset - 1) + 1;
+  const maybe_end = input.indexOf('\n', start);
+  const end = maybe_end < 0 ? input.length : maybe_end;
+  const line = input.slice(0, offset).split('\n').length;
+  const column = offset - start + 1;
+  const highlight = input.substring(start, end);
+  const error = `
+At line ${line}, column ${column}: ${message}
 
-const identifier = (x: string) => /[a-zA-Z0-9$_]/.test(x);
+  ${highlight}
+  ${Array(column).join(' ')}^
+  `.trim();
+  return Error(error);
+}
+
+const lexer = moo.compile({
+  block: {match: /{%[^]*?[%]}/, value: (x: string) => x.slice(2, -2).trim()},
+  close: /[)}\]]/,
+  comment: /#.*$/,
+  error: [/"[^"]*$/, /'[^']*$/],
+  id: /[a-zA-Z_][a-zA-Z0-9_]*/,
+  num: [
+    /-?(?:[0-9]|[1-9][0-9]+)?(?:\.[0-9]+)\b/,
+    /-?(?:[0-9]|[1-9][0-9]+)\b/,
+  ],
+  open: /[({[]/,
+  str: [
+    {match: /"[^"]*"/, value: (x: string) => JSON.parse(x)},
+    {match: /'[^']*'/, value: (x: string) => JSON.parse(double_quote(x))},
+  ],
+  whitespace: /\s+/,
+  sym: /./,
+});
+
+const match = (tokens: Token[], eof: Token): Token[] => {
+  const stack: string[] = [];
+  for (const token of tokens) {
+    if (token.type === 'open') {
+      stack.push(token.text);
+    } else if (token.type === 'close') {
+      const last = (stack.pop() || '').charCodeAt(0);
+      const next = token.text.charCodeAt(0);
+      if (next - last !== 1 && next - last !== 2) {
+        throw token.error(`Unexpected close brace: ${token.text}`);
+      }
+    }
+  }
+  const unclosed = stack.pop();
+  if (unclosed) throw eof.error(`Unclosed brace: ${unclosed}`);
+  return tokens;
+}
+
+const split = (input: string): Token[] => {
+  const result: Token[] = [];
+  lexer.reset(input);
+  for (let token = null; token = lexer.next();) {
+    const {offset, text, type, value} = token;
+    if (type === 'comment' || type === 'whitespace') continue;
+    if (type === 'error') {
+      const message = `Invalid string literal: ${text.split('\n')[0]}`;
+      throw error(input, offset)(message);
+    }
+    result.push({error: error(input, offset), text,  type, value});
+  }
+  return result;
+}
+
+// The public interface of this file.
+
+type Type = 'block' | 'close' | 'eof' | 'id' | 'num' | 'open' | 'str' | 'sym';
+
+interface Token {
+  error: (message: string) => Error,
+  text: string,
+  type: Type,
+  value: string,
+};
 
 class Lexer {
-  private state: LexerState;
+  private eof: Token;
+  private offset: number;
+  private tokens: Token[];
   constructor(input: string) {
-    this.state = {context: [], index: 0, input};
-  }
-  error(message: string): Error {
-    const index = Math.max(this.state.index - 1, 0);
-    const line = Array.from(this.state.input.slice(0, index))
-                      .filter((x) => x === '\n').length;
-    const lines = this.state.input.split('\n');
-    const total = lines.slice(0, line).map((x) => x.length)
-                       .reduce((x, acc) => x + acc, 0);
-    const offset = index - line - total;
-    const marker = `${lines[line]}\n${Array(offset).fill(' ').join('')}^`;
-    return Error(`At ${line}:${offset}: ${message}\n${marker}`);
+    const eof = error(input, input.length - 1);
+    this.eof = {error: eof, text: '', type: 'eof', value: '<EOF>'};
+    this.offset = 0;
+    this.tokens = split(input);
+    match(this.tokens, this.eof);
   }
   match(text: string): void {
-    const next = this.next().text;
-    if (next !== text) throw this.error(`Expected: ${text}; got: ${next}`);
+    const next = this.next();
+    if (next.text !== text) {
+      throw next.error(`Expected: ${text}; got: ${next.text}`);
+    }
   }
   maybe_match(text: string): boolean {
     if (this.peek().text !== text) return false;
-    this.match(text);
-    return true;
+    return this.match(text) || true;
   }
   next(): Token {
-    while (this.state.index < this.state.input.length) {
-      const ch = this.state.input[this.state.index++];
-      if (ch === kCommentMark) {
-        this.parse_comment();
-        continue;
-      }
-      if (/\s/.test(ch)) continue;
-      return this.parse_next(ch);
-    }
-    if (this.state.context.length > 0) {
-      throw this.error(`Unclosed brace: ${this.state.context.pop()}`);
-    }
-    return {text: '<EOF>', type: 'eof'};
+    return this.tokens[this.offset++] || this.eof
   }
   peek(): Token {
-    const state = this.state;
-    this.state = clone(state);
-    const result = this.next();
-    this.state = state;
-    return result;
-  }
-  private parse_comment(): void {
-    while (this.state.index < this.state.input.length) {
-      const ch = this.state.input[this.state.index++];
-      if (ch === '\n') return;
-    }
-  }
-  private parse_next(ch: string): Token {
-    if (kOpenBraces[ch]) {
-      this.state.context.push(ch);
-      return {text: ch, type: 'open'};
-    } else if (kCloseBraces[ch]) {
-      if (this.state.context.length === 0 ||
-          this.state.context.pop() !== kCloseBraces[ch]) {
-        throw this.error(`Unexpected close brace: ${ch}`);
-      }
-      return {text: ch, type: 'close'};
-    } else if (ch === '"' || ch === "'") {
-      return this.parse_quoted_atom(ch);
-    } else if (identifier(ch)) {
-      this.state.index -= 1;
-      return this.parse_unquoted_atom();
-    }
-    return {text: ch, type: 'symbol'};
-  }
-  private parse_quoted_atom(quote: string): Token {
-    const result: string[] = [];
-    while (this.state.index < this.state.input.length) {
-      const ch = this.state.input[this.state.index++];
-      if (ch === quote) {
-        return {text: result.join(''), type: 'quoted'};
-      } else if (ch === '\\') {
-        if (this.state.index === this.state.input.length) {
-          throw this.error('Unterminated escape code.');
-        }
-        const next = this.state.input[this.state.index++];
-        result.push(kEscapeCodes[next] || next);
-      } else {
-        result.push(ch);
-      }
-    }
-    throw this.error(`Unexpected end of input: ${result.join('')}`);
-  }
-  private parse_unquoted_atom(): Token {
-    const result: string[] = [];
-    while (this.state.index < this.state.input.length) {
-      const ch = this.state.input[this.state.index++];
-      if (!identifier(ch)) {
-        this.state.index -= 1;
-        break;
-      } else if (kOpenBraces[ch]) {
-        throw this.error(`Unexpected open brace: ${ch}`);
-      }
-      result.push(ch);
-    }
-    return {text: result.join(''), type: 'unquoted'};
+    return this.tokens[this.offset] || this.eof
   }
 };
 
-export {Lexer};
+export {Lexer, Token};

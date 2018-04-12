@@ -1,5 +1,9 @@
-import {Lexer} from '../../src/lib/lexer';
+import {Lexer, Token} from '../../src/lib/lexer';
 import {Test} from '../test';
+
+const filter = (token: Token): any => {
+  return {text: token.text, type: token.type};
+}
 
 const tokens = (input: string): string[] => {
   const result = [];
@@ -14,15 +18,16 @@ const tokens = (input: string): string[] => {
 const lexer: Test = {
   lexer_assigns_token_types: () => {
     const lexer = new Lexer('("abc" + $1)');
-    Test.assert_eq(lexer.next(), {text: '(', type: 'open'});
-    Test.assert_eq(lexer.next(), {text: 'abc', type: 'quoted'});
-    Test.assert_eq(lexer.next(), {text: '+', type: 'symbol'});
-    Test.assert_eq(lexer.next(), {text: '$1', type: 'unquoted'});
-    Test.assert_eq(lexer.next(), {text: ')', type: 'close'});
-    Test.assert_eq(lexer.next(), {text: '<EOF>', type: 'eof'});
+    Test.assert_eq(filter(lexer.next()), {text: '(', type: 'open'});
+    Test.assert_eq(filter(lexer.next()), {text: '"abc"', type: 'str'});
+    Test.assert_eq(filter(lexer.next()), {text: '+', type: 'sym'});
+    Test.assert_eq(filter(lexer.next()), {text: '$', type: 'sym'});
+    Test.assert_eq(filter(lexer.next()), {text: '1', type: 'num'});
+    Test.assert_eq(filter(lexer.next()), {text: ')', type: 'close'});
+    Test.assert_eq(filter(lexer.next()), {text: '', type: 'eof'});
   },
   lexer_parses_atoms: () => {
-    Test.assert_eq(tokens('abc $def "g.h.i"'), ['abc', '$def', 'g.h.i']);
+    Test.assert_eq(tokens('abc $def "g.h.i"'), ['abc', '$', 'def', '"g.h.i"']);
   },
   lexer_parses_empty_input: () => {
     Test.assert_eq(tokens(''), []);
@@ -46,9 +51,6 @@ const lexer: Test = {
   lexer_handles_comments: () => {
     Test.assert_eq(tokens('(a # comment\nb c)'), ['(', 'a', 'b', 'c', ')']);
   },
-  lexer_handles_quoted_whitespace: () => {
-    Test.assert_eq(tokens('(a "b\nc")'), ['(', 'a', 'b\nc', ')']);
-  },
   lexer_handles_whitespace: () => {
     Test.assert_eq(tokens('(a b\nc)'), ['(', 'a', 'b', 'c', ')']);
   },
@@ -57,6 +59,9 @@ const lexer: Test = {
   },
   lexer_fails_on_extra_brace: () => {
     Test.assert_error(() => tokens(')'), 'Unexpected close brace: )');
+  },
+  lexer_fails_on_invalid_string: () => {
+    Test.assert_error(() => tokens('(a "b\n")'), 'Invalid string literal: "b');
   },
   lexer_fails_on_mismatched_brace: () => {
     Test.assert_error(() => tokens('[)'), 'Unexpected close brace: )');

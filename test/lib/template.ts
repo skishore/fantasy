@@ -323,13 +323,13 @@ const template: Test = {
     Test.assert_eq(new Template(pattern, required(3)).split(value), []);
   },
   parse_fails_on_unquoted_string_literal: () => {
-    Test.assert_error(() => new Template('failed'), 'at line 1, column 1');
+    Test.assert_error(() => new Template('failed'), 'At line 1, column 1');
   },
   parse_fails_on_malformatted_dict: () => {
-    Test.assert_error(() => new Template('{num 42}'), 'at line 1, column 5');
+    Test.assert_error(() => new Template('{num 42}'), 'At line 1, column 6');
   },
   parse_fails_on_malformatted_list: () => {
-    Test.assert_error(() => new Template('["a" "b"]'), 'at line 1, column 6');
+    Test.assert_error(() => new Template('["a" "b"]'), 'At line 1, column 6');
   },
   parse_fails_when_variable_is_out_of_bounds: () => {
     const pattern = '$0';
