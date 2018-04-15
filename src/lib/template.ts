@@ -5,8 +5,10 @@ interface Assignment {[index: number]: Value};
 
 type Primitive = boolean | number | string;
 
+interface Slot {index: number, optional: boolean};
+
 interface TemplateList extends Array<TemplateItem> {};
-interface TemplateVariable {index: number, optional: boolean};
+interface TemplateVariable {index: number, optional: boolean, token?: Token};
 type TemplateItem = TemplateVariable | [string, TemplateData];
 type TemplateData = Primitive | TemplateList | TemplateVariable;
 
@@ -231,23 +233,23 @@ const optional = (template: TemplateData): boolean => {
 
 // Logic for parsing template expressions.
 
-const parse_literal = (
-    lexer: Lexer, optional: boolean[], token: Token): TemplateData => {
+const kExpected = 'Expected: primitive, list or dictionary, got: ';
+
+const parse_literal = (lexer: Lexer, token: Token): TemplateData => {
   const {text, type} = token;
   if (text === 'false' || text === 'true') return text === 'true';
-  if (text === '$') return parse_variable(lexer, optional);
+  if (text === '$') return parse_variable(lexer);
   if (type === 'num') return parseFloat(text);
   if (type === 'str') return token.value;
-  throw token.error(`Invalid template literal: ${text}`);
+  throw token.error(`${kExpected}${text}`);
 }
 
-const parse_recursive = (
-    lexer: Lexer, optional: boolean[], token: Token): TemplateList => {
+const parse_recursive = (lexer: Lexer, token: Token): TemplateList => {
   // Deal with trivial cases: error on unused braces, and return on empty.
   const {text, type} = token;
   const result: TemplateList = [];
-  if ((text !== '[' && text !== '{') || type !== 'open') {
-    throw token.error(`Unexpected brace: ${text}`);
+  if (text !== '[' && text !== '{') {
+    throw token.error(`${kExpected}${text}`);
   } else if (lexer.peek().type === 'close') {
     lexer.next();
     return result;
@@ -257,10 +259,10 @@ const parse_recursive = (
     if (lexer.maybe_match('.')) {
       // Spreads can appear in both lists and dictionaries.
       Array.from('..$').forEach((x) => lexer.match(x));
-      result.push(parse_variable(lexer, optional));
+      result.push(parse_variable(lexer));
     } else if (text === '[') {
       // Square braces are used to construct list-valued TemplateLists.
-      result.push(['_', parse_template(lexer, optional)]);
+      result.push(['_', parse_template(lexer)]);
     } else if (text === '{') {
       // Curly braces are used to construct dict-valued TemplateLists.
       const key = lexer.next();
@@ -269,7 +271,7 @@ const parse_recursive = (
         throw key.error(`Invalid template key: ${key}`);
       }
       lexer.match(':');
-      result.push([key.value, parse_template(lexer, optional)]);
+      result.push([key.value, parse_template(lexer)]);
     }
 
     // Break when we've found the end of the recursive template.
@@ -280,30 +282,42 @@ const parse_recursive = (
   return result;
 }
 
-const parse_template = (lexer: Lexer, optional: boolean[]): TemplateData => {
+const parse_template = (lexer: Lexer): TemplateData => {
   const token = lexer.next();
   switch (token.type) {
-    case 'block': throw token.error('Unexpected block.');
-    case 'close': throw token.error('Unexpected end of template.');
-    case 'eof': throw token.error('Unexpected end of template.');
-    case 'id': return parse_literal(lexer, optional, token);
-    case 'num': return parse_literal(lexer, optional, token);
-    case 'open': return parse_recursive(lexer, optional, token);
-    case 'str': return parse_literal(lexer, optional, token);
-    case 'sym': return parse_literal(lexer, optional, token);
+    case 'block': throw token.error(`${kExpected}%block`);
+    case 'close': throw token.error(`${kExpected}${token.value}`);
+    case 'eof': throw token.error(`${kExpected}${token.value}`);
+    case 'id': return parse_literal(lexer, token);
+    case 'num': return parse_literal(lexer, token);
+    case 'open': return parse_recursive(lexer, token);
+    case 'str': return parse_literal(lexer, token);
+    case 'sym': return parse_literal(lexer, token);
   }
 }
 
-const parse_variable = (
-    lexer: Lexer, optional: boolean[]): TemplateVariable => {
+const parse_variable = (lexer: Lexer): TemplateVariable => {
   const token = lexer.next();
   const index = parseFloat(token.text);
   if (token.type !== 'num' || index % 1 !== 0) {
-    throw token.error(`Expected: int, got: ${token.text}`);
-  } else if (!(0 <= index && index < optional.length)) {
-    throw token.error(`Index out of bounds: $${index}`);
+    throw token.error(`Expected: index, got: ${token.text}`);
   }
-  return {index, optional: optional[index]};
+  return {index, optional: true, token};
+}
+
+const reindex = (template: TemplateData, slots: Slot[]): TemplateData => {
+  if (template instanceof Array) {
+    const fn = (x: TemplateData): any => reindex(x, slots);
+    return template.map((x) => x instanceof Array ? [x[0], fn(x[1])] : fn(x));
+  } else if (typeof template === 'object') {
+    if (!(0 <= template.index && template.index < slots.length)) {
+      const message = `Index out of bounds: $${template.index}`;
+      throw (template.token ? template.token.error : Error)(message);
+    }
+    return slots[template.index];
+  } else {
+    return template;
+  }
 }
 
 // The public interface of this file.
@@ -311,15 +325,18 @@ const parse_variable = (
 class Template {
   private data: TemplateData;
   private size: number;
-  constructor(input: string, optional?: boolean[]) {
-    optional = optional || [];
-    this.data = parse_template(new Lexer(input), optional);
-    this.size = optional.length;
+  constructor(input: Lexer | string) {
+    const lexer = typeof input === 'string' ? new Lexer(input) : input;
+    this.data = parse_template(lexer);
+    this.size = -1;
+  }
+  index(size: number, slots: Slot[]): Template {
+    const data = reindex(this.data, slots);
+    return Object.assign(new Template('[]'), {data, size});
   }
   merge(subs: Value[]): Value {
-    if (subs.length !== this.size) {
-      throw new Error(`Expected: ${this.size} subs; got: ${subs.length}`);
-    }
+    assert(this.size < 0 || subs.length === this.size,
+           () => `Expected: ${this.size} subs; got: ${subs.length}`);
     return apply(this.data, subs);
   }
   split(value: Value): Assignment[] {

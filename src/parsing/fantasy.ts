@@ -1,111 +1,88 @@
-import {assert} from '../lib/base';
+import {assert, debug} from '../lib/base';
+import {Lexer, Token, swap_quotes} from '../lib/lexer';
 import {CompiledGrammar, CompiledRule, Compiler} from './compiler';
-import {Grammar, Syntax, Term} from './grammar';
-import {Lexer} from './lexer';
+import {Grammar, Rule, Syntax, Term} from './grammar';
 import {Parser} from './parser';
 import {Template} from '../lib/template';
 
-// The output of the fantasy grammar is a list of ItemNode values.
+// Types used during grammar parsing.
 
-type DirectiveNode =
-  {type: 'score-gen', score: number} |
-  {type: 'score-par', score: number} |
-  {type: 'template', template: string[]};
+type Both<T> = {gen: T, par: T};
+
+type Mini = Partial<Rule> & Pick<Rule, 'lhs' | 'rhs' | 'transform'>;
+
+type Slot = {index: number, optional: boolean};
+
+interface Env {
+  bindings: {[name: string]: Term};
+  exists: {[name: string]: {root: boolean, rules: RuleNode[]}};
+  macros: {[name: string]: {args: string[], rules: RuleNode[]}};
+  result: Both<Grammar>;
+}
+
+interface One {
+  lhs: string,
+  rhs: Term[],
+  score?: number,
+  slots: Slot[],
+}
+
+interface Two {
+  ones: Both<One>,
+  sign: Sign,
+  syntaxes?: Syntax[],
+  template?: Template,
+};
 
 type ExprNode =
   {type: 'binding', name: string} |
   {type: 'macro', args: ExprNode[], name: string} |
   {type: 'term', term: Term};
 
-type ItemNode =
-  {type: 'block', block: string} |
-  {type: 'lexer', lexer: string} |
-  {type: 'rule', rule: RuleNode};
-
-type LhsNode =
-  {type: 'macro', name: string, args: string[]} |
-  {type: 'symbol', name: string, root: boolean};
-
-type RhsNode = {type: Sign, terms: TermNode[], directives: DirectiveNode[]};
-
-type RuleNode = {directives: DirectiveNode[], lhs: LhsNode, rhs: RhsNode[]};
+type RuleNode = {
+  score_gen: number,
+  score_par: number,
+  sign: Sign,
+  template?: Template,
+  terms: TermNode[],
+}
 
 type TermNode =
   {type: 'expr', expr: ExprNode, mark: Mark, optional: boolean} |
   {type: 'punctuation', punctuation: string};
 
-// This compiler converts those items into the CompiledGrammar output format,
-// using an Environment to keep track of assigned symbols and bound variables.
-
-type Both<T> = {gen: T, par: T};
-
-interface Environment {
-  bindings: {[name: string]: Term};
-  exists: {[name: string]: boolean};
-  macros: {[name: string]: {args: string[], rule: RuleNode}};
-  result: Both<CompiledGrammar>;
-}
-
-interface Metadata {
-  indices: number[],
-  optional: boolean[],
-}
-
-interface Rule {
-  base: Both<CompiledRule>,
-  metadata: Both<Metadata>,
-  syntaxes?: Syntax[],
-  template?: string[],
-  type: Sign,
-};
-
 type Mark = '-' | '^' | '*';
 
 type Sign = '<' | '=' | '>';
 
+type Type = 'gen' | 'par';
+
 const [kRoot, kSpace] = ['$', '_'];
 
-const kPrelude = `
-const template = require('../lib/template');
-const lexer = require('../parsing/lexer');
+// Simple logic operations on tokens. Note that the usage of these operations
+// means that the Fantasy language has significant whitespace.
 
-const Template = template.Template;
+const adjacent = (token: Token): boolean =>
+    token.offset > 0 && token.input[token.offset - 1].trim().length > 0;
 
-const bind_gen = (x) => x.split.bind(x);
-const bind_par = (x) => x.merge.bind(x);
-  `;
+const initial = (token: Token): boolean =>
+    token.offset === 0 || token.input[token.offset - 1] == '\n';
 
-// The core compiler logic is a series of operations on the env state.
+const gen = <T>(fn: () => T): Both<T> => ({gen: fn(), par: fn()});
 
-const add_block = (block: string, env: Environment): void => {
-  Object.values(env.result).forEach((x) => x.blocks.push(block));
-}
+const map = <T,U>(xs: Both<T>, fn: (x: T) => U): Both<U> =>
+    ({gen: fn(xs.gen), par: fn(xs.par)});
 
-const add_directive = (directive: DirectiveNode, rule: Rule): void => {
-  switch(directive.type) {
-    case 'score-gen': rule.base.gen.score = directive.score; break;
-    case 'score-par': rule.base.par.score = directive.score; break;
-    case 'template': rule.template = directive.template; break;
-  }
-}
+const str = (terms: Term[]): string =>
+    swap_quotes(terms.map(Grammar.print_term).join(', '));
 
-const add_lexer = (lexer: string, env: Environment): void => {
-  Object.values(env.result).forEach((x) => x.lexer = lexer);
-}
+// Logic for generating a Grammar from an Env.
 
-const add_macro = (rule: RuleNode, env: Environment): void => {
-  if (rule.lhs.type !== 'macro') return;
-  const name = rule.lhs.name;
-  if (env.macros[name]) throw Error(`Duplicate macro: ${name}`);
-  env.macros[name] = {args: rule.lhs.args, rule};
-}
-
-const add_rhs = (lhs: string, rhs: RhsNode, env: Environment): void => {
-  const expressions: {expr: ExprNode, mark: Mark, optional: boolean}[] = [];
-  const punctuation: string[] = [''];
-
+const add_rhs = (lhs: string, rhs: RuleNode, env: Env): void => {
   // Collect interleaved expression and punctuation terms. There will always
   // be one more punctuation term than there is expression terms.
+  const expressions: {expr: ExprNode, mark: Mark, optional: boolean}[] = [];
+  const punctuation: string[] = [''];
   for (const term of rhs.terms) {
     if (term.type === 'expr') {
       expressions.push(term);
@@ -120,89 +97,82 @@ const add_rhs = (lhs: string, rhs: RhsNode, env: Environment): void => {
   const mid = indices.filter((x) => x >= 0)[0];
   if (mid == null) throw Error(`Null rule: ${lhs} -> ${JSON.stringify(rhs)}`);
 
-  const base = gen<CompiledRule>(() => ({lhs, rhs: []}));
-  const metadata = gen<Metadata>(() => ({indices: [], optional: []}));
+  // Prepare to build up the gen and par rules from this RuleNode.
+  const ones = gen<One>(() => ({lhs, rhs: [], slots: []}));
   const syntaxes = create_syntaxes(expressions.map((x) => x.mark));
-  const rule: Rule = {base, metadata, syntaxes, type: rhs.type};
-  rhs.directives.forEach((x) => add_directive(x, rule));
-  const fn = (text: string) => text ? rule.base.gen.rhs.push({text}) : 0;
+  const two: Two = {ones, sign: rhs.sign, syntaxes};
+  two.ones.gen.score = rhs.score_gen;
+  two.ones.par.score = rhs.score_par;
+  two.template = rhs.template;
+
+  // Add the terms to each type of rule, then add the rule to the grammar.
+  const fn = (text: string) => text ? two.ones.gen.rhs.push({text}) : 0;
   const terms = expressions.map((x) => build_term(x.expr, env));
   fn(punctuation[0]);
   for (let i = 0; i < mid; i++) {
     const text = punctuation[i + 1] || ' ';
-    add_terms([terms[i], {text}], 0, expressions[i].optional, rule, env);
+    add_terms([terms[i], {text}], 0, expressions[i].optional, two, env);
   }
-  add_terms([terms[mid]], 0, /*optional=*/false, rule, env);
+  add_terms([terms[mid]], 0, false, two, env);
   for (let i = mid + 1; i < terms.length; i++) {
     const text = punctuation[i] || ' ';
-    add_terms([{text}, terms[i]], 1, expressions[i].optional, rule, env);
+    add_terms([{text}, terms[i]], 1, expressions[i].optional, two, env);
   }
   fn(punctuation.pop()!);
-  add_rule(rule, env);
+  add_rule(two, env);
 }
 
-const add_rule = (rule: Rule, env: Environment): void => {
-  if (rule.type !== '<') {
-    env.result.gen.rules.push(create_rule(rule, 'gen'));
-  }
-  if (rule.type !== '>') {
-    env.result.par.rules.push(create_rule(rule, 'par'));
-  }
+const add_rule = (two: Two, env: Env): void => {
+  if (two.sign !== '<') create_rule(two, 'gen', env.result.gen);
+  if (two.sign !== '>') create_rule(two, 'par', env.result.par);
 }
 
-const add_symbol = (rule: RuleNode, env: Environment): void => {
-  if (rule.lhs.type !== 'symbol') return;
-  const {name, root} = rule.lhs;
+const add_symbol = (name: string, env: Env): void => {
+  const {root, rules} = env.exists[name];
   if (root) {
-    const gen = {lhs: kRoot, rhs: [name]}
-    const par = {lhs: kRoot, rhs: [kSpace, name, kSpace]};
-    const metadata = {
-      gen: {indices: [0], optional: [false]},
-      par: {indices: [1], optional: [false]},
+    const side = [[name], [kSpace, name, kSpace]];
+    const ones: Both<One> = {
+      gen: {lhs: kRoot, rhs: side[0], slots: [{index: 0, optional: false}]},
+      par: {lhs: kRoot, rhs: side[1], slots: [{index: 1, optional: false}]},
     };
-    const template = [`{${JSON.stringify(name)}: `, '$', '0', '}'];
-    add_rule({base: {gen, par}, metadata, template, type: '='}, env);
+    const template = new Template(`{${name}: $0}`);
+    add_rule({ones, sign: '=', template}, env);
   }
   const period: TermNode = {type: 'punctuation', punctuation: '.'};
-  rule.rhs.forEach((x) => {
+  rules.forEach((x) => {
     const add_period = root && x.terms[x.terms.length - 1].type === 'expr';
-    const directives = rule.directives.concat(x.directives);
     const terms = add_period ? x.terms.concat([period]) : x.terms;
-    add_rhs(name, {...x, directives, terms}, env);
+    add_rhs(name, {...x, terms}, env);
   });
 }
 
 const add_terms = (terms: Term[], j: number, optional: boolean,
-                   rule: Rule, env: Environment): void => {
-  assert(!!terms[j], () => `Invalid fragment index: ${j}`);
-
+                   two: Two, env: Env): void => {
   // Update the index-tracking metadata for this rule.
+  assert(!!terms[j], () => `Invalid fragment index: ${j}`);
   const offset = optional ? 0 : j;
-  rule.metadata.gen.indices.push(rule.base.gen.rhs.length + offset);
-  rule.metadata.par.indices.push(rule.base.par.rhs.length + offset);
-  rule.metadata.gen.optional.push(optional);
-  rule.metadata.par.optional.push(optional);
+  two.ones.gen.slots.push({index: two.ones.gen.rhs.length + offset, optional});
+  two.ones.par.slots.push({index: two.ones.par.rhs.length + offset, optional});
 
-  // Update the generative and parsing CompiledRules for this rule.
+  // Update the generative and parsing term lists for this rule.
   if (optional) {
     const term = build_option(terms, j, env);
-    rule.base.gen.rhs.push(term);
-    rule.base.par.rhs.push(term);
+    two.ones.gen.rhs.push(term);
+    two.ones.par.rhs.push(term);
   } else {
     for (let i = 0; i < terms.length; i++) {
-      rule.base.gen.rhs.push(terms[i]);
-      rule.base.par.rhs.push(i === j ? terms[i] : kSpace);
+      two.ones.gen.rhs.push(terms[i]);
+      two.ones.par.rhs.push(i === j ? terms[i] : kSpace);
     }
   }
 }
 
-const build_binding = (name: string, env: Environment): Term => {
+const build_binding = (name: string, env: Env): Term => {
   if (!env.bindings[name]) throw Error(`Unknown binding: @${name}`);
   return env.bindings[name];
 }
 
-const build_macro = (args: ExprNode[], name: string,
-                     env: Environment): Term => {
+const build_macro = (args: ExprNode[], name: string, env: Env): Term => {
   // Compute a symbol for the macro given these arguments.
   const macro = env.macros[name];
   if (!macro) throw new Error(`Unbound macro: ${name}`);
@@ -215,37 +185,36 @@ const build_macro = (args: ExprNode[], name: string,
   if (env.exists[symbol]) return symbol;
 
   // Add rules needed for this new macro instantiation.
-  const child: Environment = {...env, bindings: {...env.bindings}};
+  const child: Env = {...env, bindings: {}};
   terms.forEach((x, i) => child.bindings[macro.args[i]] = x);
-  const lhs: LhsNode = {name: symbol, root: false, type: 'symbol'};
-  add_symbol({...macro.rule, lhs}, child);
-  env.exists[symbol] = true;
+  env.exists[symbol] = {root: false, rules: macro.rules};
+  add_symbol(symbol, child);
   return symbol;
 }
 
-const build_option = (terms: Term[], j: number, env: Environment): Term => {
+const build_option = (terms: Term[], j: number, env: Env): Term => {
   // Compute a symbol for this optional list of consecutive terms.
   const symbol = `(${str(terms)})?`;
   if (env.exists[symbol]) return symbol;
+  env.exists[symbol] = {root: false, rules: []};
 
   // Add the null rules for this symbol.
-  env.result.gen.rules.push({lhs: symbol, rhs: []});
-  env.result.par.rules.push({lhs: symbol, rhs: []});
+  const zero = gen<One>(() => ({lhs: symbol, rhs: [], slots: []}));
+  add_rule({ones: zero, sign: '='}, env);
 
   // Add the non-null rules for this symbol.
-  const base = gen<CompiledRule>(() => ({lhs: symbol, rhs: []}));
-  const metadata = gen<Metadata>(() => ({indices: [j], optional: [false]}));
-  const rule: Rule = {base, metadata, template: ['$', '0'], type: '='};
+  const slots = [{index: j, optional: false}];
+  const ones = gen<One>(() => ({lhs: symbol, rhs: [], slots}));
+  const two: Two = {ones, sign: '=', template: new Template('$0')};
   terms.forEach((x, i) => {
-    rule.base.gen.rhs.push(x);
-    rule.base.par.rhs.push(i === j ? x : kSpace);
+    two.ones.gen.rhs.push(x);
+    two.ones.par.rhs.push(i === j ? x : kSpace);
   });
-  add_rule(rule, env);
-  env.exists[symbol] = true;
+  add_rule(two, env);
   return symbol;
 }
 
-const build_term = (expr: ExprNode, env: Environment): Term => {
+const build_term = (expr: ExprNode, env: Env): Term => {
   switch (expr.type) {
     case 'binding': return build_binding(expr.name, env);
     case 'macro': return build_macro(expr.args, expr.name, env);
@@ -253,18 +222,12 @@ const build_term = (expr: ExprNode, env: Environment): Term => {
   }
 }
 
-const create_rule = (rule: Rule, type: 'gen' | 'par'): CompiledRule => {
-  const base = {...rule.base[type]};
-  const metadata = rule.metadata[type];
-  if (rule.syntaxes && rule.syntaxes.length > 0) {
-    base.syntaxes = rule.syntaxes.map(
-        (x) => ({...x, indices: x.indices.map((y) => metadata.indices[y])}));
-  }
-  if (rule.template) {
-    const template = create_template(metadata, base.rhs.length, rule.template);
-    base.transform = `bind_${type}(${template})`;
-  }
-  return base;
+const create_rule = (two: Two, type: Type, grammar: Grammar): void => {
+  const {lhs, rhs, score, slots} = two.ones[type];
+  const syntaxes: Syntax[] = (two.syntaxes || []).map(
+      (x) => ({...x, indices: x.indices.map((y) => slots[y].index)}));
+  const transform = create_transform(two, type);
+  make_rule(grammar, {lhs, rhs, score, syntaxes, transform});
 }
 
 const create_syntaxes = (marks: Mark[]): Syntax[] => {
@@ -274,67 +237,165 @@ const create_syntaxes = (marks: Mark[]): Syntax[] => {
   return indices.length === 0 ? [] : [{indices, tense: {}}];
 }
 
-const create_template = (metadata: Metadata, n: number, xs: string[]) => {
-  const max = metadata.indices.length;
-  const optional = Array(n).fill(true);
-  metadata.optional.forEach((x, i) => optional[metadata.indices[i]] = x);
-  const shifted = xs.map((x, i) => {
-    if (i === 0 || xs[i - 1] !== '$') return x;
-    const index = parseInt(x, 10);
-    if (!(0 <= index && index < max)) throw new Error(`Invalid index: $${x}`);
-    return `${metadata.indices[index]}`;
-  });
-  const template = Lexer.swap_quotes(shifted.join('')).trim();
-  new Template(template, optional);
-  return `new Template(${JSON.stringify(template)}, [${optional.join(', ')}])`;
+const create_transform = (two: Two, type: Type): Function => {
+  if (!two.template) return type === 'gen' ? () => [] : () => null;
+  const one = two.ones[type];
+  const template = two.template.index(one.rhs.length, one.slots);
+  return template[type === 'gen' ? 'split' : 'merge'].bind(template);
 }
 
-const evaluate = (items: ItemNode[]): Both<CompiledGrammar> => {
-  const result: Both<CompiledGrammar> =
-      gen(() => ({blocks: [kPrelude], rules: [], start: kRoot}));
-  const env: Environment = {bindings: {}, exists: {}, macros: {}, result};
+const make_grammar = (): Grammar => ({
+  by_name: {},
+  lexer: <any>null,
+  max_index: 0,
+  rules: [],
+  start: kRoot,
+});
 
-  // Add macro rules first so that regular rules can reference them.
-  for (const item of items) {
-    if (item.type === 'rule') add_macro(item.rule, env);
+const make_rule = (grammar: Grammar, mini: Mini): void => {
+  const full = {score: mini.score || 0, syntaxes: mini.syntaxes || []};
+  const rule: Rule = {...mini, ...full, index: grammar.max_index};
+  (grammar.by_name[rule.lhs] = grammar.by_name[rule.lhs] || []).push(rule);
+  grammar.max_index += rule.rhs.length + 1;
+  grammar.rules.push(rule);
+}
+
+// Logic for parsing a Fantasy grammar file and returning an Env.
+
+const parse_directives = (lexer: Lexer): Partial<RuleNode> => {
+  const result: Partial<RuleNode> = {};
+  while (lexer.maybe_match('(')) {
+    // Parse the template that follows the directive sign.
+    const {error, text} = lexer.next();
+    const next = lexer.peek();
+    if (!'<=>'.includes(text)) throw error(
+        `Expected: score or template; got: ${text}`);
+    const template = new Template(lexer);
+    lexer.match(')');
+
+    // Based on the directive sign, set the score or template.
+    if (text === '=') { result.template = template; continue; }
+    const score = template.index(0, []).merge([]);
+    if (typeof score !== 'number' || isNaN(score)) throw next.error(
+        `Expected: score, got: ${next.text}`);
+    const key = text === '>' ? 'score_gen' : 'score_par';
+    result[key] = score;
   }
-  for (const item of items) {
-    switch (item.type) {
-      case 'block': add_block(item.block, env); break;
-      case 'lexer': add_lexer(item.lexer, env); break;
-      case 'rule': add_symbol(item.rule, env); break;
+  return result;
+}
+
+const parse_expression = (lexer: Lexer): ExprNode => {
+  const {error, text, type} = lexer.next();
+  const base = text;
+  if (text == '@' || text === '$' || text === '%') {
+    const {error, text, type} = lexer.next();
+    if (type !== 'id') throw error(`Expected: identifier; got: ${text}`);
+    if (base === '@') return {type: 'binding', name: text};
+    return {type: 'term', term: base === '$' ? text : {type: text}};
+  } else if (type === 'id' && lexer.maybe_match('[')) {
+    const args: ExprNode[] = [];
+    while (!lexer.maybe_match(']')) {
+      if (args.length > 0) lexer.match(',');
+      args.push(parse_expression(lexer));
     }
+    return {type: 'macro', name: text, args};
+  } else if (type === 'id') {
+    return {type: 'term', term: {text}};
   }
+  throw error(`Expected: binding, macro, symbol, or text; got: ${text}`);
+}
+
+const parse_lexer = (lexer: Lexer, env: Env): void => {
+  const {error, text, type, value} = lexer.next();
+  if (type !== 'block') throw error(`Expected: lexer; got: ${text}`);
+  const result = eval(`(() => {${value}})()`);
+  env.result.gen.lexer = result;
+  env.result.par.lexer = result;
+}
+
+const parse_macro = (lexer: Lexer, token: Token, env: Env): void => {
+  const text = token.text;
+  if (env.macros[text]) throw token.error(`Duplicate macro: ${text}`);
+  const args: string[] = [];
+  for (lexer.match('['); !lexer.maybe_match(']');) {
+    if (args.length > 0) lexer.match(',');
+    const {error, text, type} = lexer.next();
+    if (type !== 'id') throw error(`Expected: argument or ]; got: ${text}`);
+    args.push(text);
+  }
+  const base = parse_directives(lexer);
+  env.macros[text] = {args, rules: parse_rules(base, lexer)};
+}
+
+const parse_rules = (base: Partial<RuleNode>, lexer: Lexer): RuleNode[] => {
+  const result: RuleNode[] = [];
+  while ('<=>'.includes(lexer.peek().text)) {
+    const sign = <Sign>lexer.next().text;
+    const rule = {score_gen: 0, score_par: 0, sign, terms: parse_terms(lexer)};
+    result.push({...rule, ...base, ...parse_directives(lexer)});
+  }
+  return result;
+}
+
+const parse_symbol = (lexer: Lexer, root: boolean, env: Env): void => {
+  const {error, text, type} = lexer.next();
+  if (type !== 'id') throw error(`Expected: symbol; got: ${text}`);
+  if (env.exists[text]) throw error(`Duplicate symbol: ${text}`);
+  const base = parse_directives(lexer);
+  env.exists[text] = {root, rules: parse_rules(base, lexer)};
+}
+
+const parse_term = (lexer: Lexer): TermNode => {
+  const {text, type} = lexer.peek();
+  if (text !== '@' && text !== '$' && text !== '%' && type === 'sym') {
+    const token = lexer.next();
+    if (adjacent(token)) throw token.error(`Invalid mark: ${token.text}`);
+    return {type: 'punctuation', punctuation: token.text};
+  }
+  const expr = parse_expression(lexer);
+  const fn = (x: string) => adjacent(lexer.peek()) && lexer.maybe_match(x);
+  const optional = fn('?');
+  const mark = fn('*') ? '*' : fn('^') ? '^' : '-';
+  return {type: 'expr', expr, mark, optional};
+}
+
+const parse_terms = (lexer: Lexer): TermNode[] => {
+  const result: TermNode[] = [];
+  while (!initial(lexer.peek()) && lexer.peek().text !== '(') {
+    result.push(parse_term(lexer));
+  }
+  return result;
+}
+
+const parse = (input: string): Both<Grammar> => {
+  const result: Both<Grammar> = gen(make_grammar);
+  const env: Env = {bindings: {}, exists: {}, macros: {}, result};
+
+  const lexer = new Lexer(input);
+  for (let token = lexer.next(); token.type !== 'eof'; token = lexer.next()) {
+    if (!initial(token)) throw token.error(
+        'Lexer, macro, and rule blocks must start a new line!');
+    if (token.type === 'id') { parse_macro(lexer, token, env); continue; }
+    switch (token.text) {
+      case '@': parse_lexer(lexer, env); continue;
+      case '.': parse_symbol(lexer, /*root=*/true, env); continue;
+      case '$': parse_symbol(lexer, /*root=*/false, env); continue;
+    }
+    throw token.error(`Expected: lexer, macro, or rule; got: ${token.text}`);
+  }
+
+  Object.keys(env.exists).forEach((x) => add_symbol(x, env));
 
   // TODO(skishore): Check that the lexer is set and that it can generate
   // text for each `text` and `type` term that appears in any rule RHS.
 
   // Add default rules for dealing with whitespace and punctuation.
-  result.par.rules.push({lhs: kSpace, rhs: []});
-  result.par.rules.push({lhs: kSpace, rhs: [kSpace, {type: '_'}]});
-  result.par.rules.push({lhs: kSpace, rhs: [kSpace, {type: 'w'}]});
+  const transform = () => null;
+  make_rule(result.par, {lhs: kSpace, rhs: [], transform});
+  make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: '_'}], transform});
+  make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: 'w'}], transform});
   return result;
 }
-
-const gen = <T>(fn: () => T): Both<T> => ({gen: fn(), par: fn()});
-
-const map = <T,U>(fn: (x: T) => U, xs: Both<T>): Both<U> =>
-    ({gen: fn(xs.gen), par: fn(xs.par)});
-
-const str = (terms: Term[]): string =>
-    Lexer.swap_quotes(terms.map(Grammar.print_term).join(', '));
-
-// The public Fantasy interface - for now, a single pure function.
-
-class Fantasy {
-  static compile(input: string): Both<string> {
-    const grammar = Grammar.from_file('../dsl/fantasy');
-    const ast = Parser.parse(grammar, input).value!.some;
-    return map(Compiler.generate, evaluate(ast));
-  }
-}
-
-export {Fantasy};
 
 // A quick test of the Fantasy interface on a real Hindi grammar.
 
@@ -345,11 +406,19 @@ import {Derivation} from './derivation';
 import {MooLexer} from './lexer';
 import {Generator} from './generator';
 const input = fs.readFileSync('src/dsl/hindi.gr', {encoding: 'utf8'});
-const output = Fantasy.compile(input);
-const grammar = Grammar.from_code(output.gen);
-const derivation = Generator.generate(grammar, {whats_your_name: true});
-if (derivation) {
+const output = parse(input);
+
+if (0 + 0 === 1) {
+  const grammar = output.gen;
+  const derivation = Generator.generate(grammar, {whats_your_name: true});
+  if (!derivation) throw Error('Unable to derive order-food text!');
   console.log(Derivation.print(derivation));
   console.log();
-  console.log(new MooLexer({}).join(Derivation.matches(derivation)));
+  console.log(grammar.lexer.join(Derivation.matches(derivation)));
+} else {
+  const grammar = output.par;
+  const derivation = Parser.parse(grammar, 'mera nam Shaunak hai.');
+  console.log(Derivation.print(derivation));
+  console.log();
+  console.log(derivation.value!.some);
 }

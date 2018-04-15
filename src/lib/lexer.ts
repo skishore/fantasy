@@ -3,10 +3,11 @@
 declare const require: any;
 const moo = require('../../src/external/moo.js');
 
-const double_quote = (x: string): string =>
+const swap_quotes = (x: string): string =>
   x.replace(/[\'\"]/g, (y) => y === '"' ? "'" : '"');
 
 const error = (input: string, offset: number) => (message: string): Error => {
+  offset = Math.max(Math.min(offset, input.length - 1), 0);
   const start = input.lastIndexOf('\n', offset - 1) + 1;
   const maybe_end = input.indexOf('\n', start);
   const end = maybe_end < 0 ? input.length : maybe_end;
@@ -35,7 +36,7 @@ const lexer = moo.compile({
   open: /[({[]/,
   str: [
     {match: /"[^"]*"/, value: (x: string) => JSON.parse(x)},
-    {match: /'[^']*'/, value: (x: string) => JSON.parse(double_quote(x))},
+    {match: /'[^']*'/, value: (x: string) => JSON.parse(swap_quotes(x))},
   ],
   whitespace: /\s+/,
   sym: /./,
@@ -69,7 +70,8 @@ const split = (input: string): Token[] => {
       const message = `Invalid string literal: ${text.split('\n')[0]}`;
       throw error(input, offset)(message);
     }
-    result.push({error: error(input, offset), text,  type, value});
+    const fn = error(input, offset);
+    result.push({error: fn, input, offset, text, type, value});
   }
   return result;
 }
@@ -80,6 +82,8 @@ type Type = 'block' | 'close' | 'eof' | 'id' | 'num' | 'open' | 'str' | 'sym';
 
 interface Token {
   error: (message: string) => Error,
+  input: string,
+  offset: number,
   text: string,
   type: Type,
   value: string,
@@ -90,8 +94,9 @@ class Lexer {
   private offset: number;
   private tokens: Token[];
   constructor(input: string) {
-    const eof = error(input, input.length - 1);
-    this.eof = {error: eof, text: '', type: 'eof', value: '<EOF>'};
+    const offset = input.length;
+    const [fn, value] = [error(input, offset), '<EOF>'];
+    this.eof = {error: fn, input, offset, text: '', type: 'eof', value};
     this.offset = 0;
     this.tokens = split(input);
     match(this.tokens, this.eof);
@@ -114,4 +119,4 @@ class Lexer {
   }
 };
 
-export {Lexer, Token};
+export {Lexer, Token, swap_quotes};

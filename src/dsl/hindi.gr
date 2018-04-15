@@ -29,16 +29,16 @@
 
 # Adjective and noun phrases.
 
-adjectives (= [...$0, $1])
+$adjectives (= [...$0, $1])
 = $adjectives? %adjective
 
-drink (= $0)
+$drink (= $0)
 = NOUN[%drink_singular, %drink_plural, %drink]
 
-food (= $0)
+$food (= $0)
 = NOUN[%food_singular, %food_plural, %food]
 
-noun (= $0)
+$noun (= $0)
 = NOUN[%noun_singular, %noun_plural, %noun]
 = $drink
 = $food
@@ -55,40 +55,40 @@ NOUN_TOKEN[x, y]
 
 # Simple substitutions.
 
-chahiye
+$chahiye
 = chahiye
 = dijie
 
-khana
+$khana
 = khana
 = khane ke liye
 
-khaoonga
+$khaoonga
 = khaoonga
 = loonga
 
-la
+$la
 = de
 = la
 = madat kar
 
-pioonga
+$pioonga
 = loonga
 = pioonga
 
 # Pronouns in various forms.
 
-apka
+$apka
 = apka
 < ap ka
 < ap
 
-apko
+$apko
 = apko
 < ap ko
 < ap
 
-main
+$main
 = ham
 = main
 < hame
@@ -96,7 +96,7 @@ main
 < mujhe
 < mujhko
 
-mera
+$mera
 = hamara
 = mera
 < hamka
@@ -104,7 +104,7 @@ mera
 < mujhka
 < mujh ka
 
-mujhko
+$mujhko
 = hame
 = hamko
 = mujhe
@@ -118,6 +118,14 @@ mujhko
 
 @{%
 
+const {MooLexer} = require('../parsing/lexer');
+
+return new MooLexer({
+  token: /[a-zA-Z_][a-zA-Z0-9_]*/,
+  w: {match: /\s+/, value: () => null},
+  _: /./,
+});
+
 const {flatten} = require('../lib/base');
 const {HindiLexer} = require('../hindi/lexer');
 const {Vocabulary} = require('../hindi/vocabulary');
@@ -125,7 +133,6 @@ const {Vocabulary} = require('../hindi/vocabulary');
 const {adjective, copula, noun, number, particle, pronoun, verb} = Vocabulary;
 
 const vocabulary = flatten([
-  /*
   adjectives(`
     meaning | word
     --------|-------------
@@ -156,7 +163,7 @@ const vocabulary = flatten([
           3 | tin/wIn
           4 | char/cAr
           5 | panch/pAzc
-          6 | chah/caH
+          6 | chah/CaH
           7 | sat/sAw
           8 | ath/AT
           9 | nau/nO
@@ -190,17 +197,8 @@ const vocabulary = flatten([
     to sleep | sona/sonA
      to take | lena/lenA
   `),
-  */
 ]);
 
+return new HindiLexer(vocabulary);
+
 %}
-
-@lexer {% new HindiLexer(vocabulary) %}
-
-@{% const {MooLexer} = require('../parsing/lexer'); %}
-
-@lexer {% new lexer.MooLexer({
-  token: /[a-zA-Z_][a-zA-Z0-9_]*/,
-  whitespace: {match: /\s+/, value: () => null},
-  _: /./,
-}); %}
