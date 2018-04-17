@@ -74,9 +74,8 @@ const cached = <T>(fn: (x: string) => T): ((x: string) => T) => {
 const from_code = cached((code: string): Grammar => {
   return from_spec(<GrammarSpec>((x) => {
     const exports = {};
-    /* tslint:disable:no-eval */
+    /* tslint:disable-next-line:no-eval */
     eval(x);
-    /* tslint:enable:no-eval */
     return exports;
   })(code));
 });

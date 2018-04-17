@@ -4,7 +4,6 @@
     "array-type": [true, "array"],
     "ban-types": {
       "options": [
-        ["Function", "Avoid using the `Function` type. Prefer a specific function type, like `() => void`."],
         ["Boolean", "Avoid using the `Boolean` type. Did you mean `boolean`?"],
         ["Number", "Avoid using the `Number` type. Did you mean `number`?"],
         ["String", "Avoid using the `String` type. Did you mean `string`?"]
@@ -25,7 +24,7 @@
     "object-literal-sort-keys": false,
     "one-line": false,
     "ordered-imports": false,
-    "quotemark": "'",
+    "quotemark": false,
     "semicolon": false,
     "variable-name": false,
     "whitespace": false

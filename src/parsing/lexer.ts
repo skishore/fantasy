@@ -50,6 +50,7 @@ ${message} at line ${line}, column ${column}:
 const moo_tokens = (input: string, lexer: Moo): MooToken[] => {
   const result = [];
   lexer.reset(input);
+  /* tslint:disable-next-line:no-conditional-assignment */
   for (let token = null; token = lexer.next();) {
     result.push(token);
   }

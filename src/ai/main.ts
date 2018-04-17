@@ -44,7 +44,7 @@ const parse = (input: string): Semantics[] => {
     (xs) => ({frame: 'hello', value: null}),
   ], [
     /.*(call me|name is|name's) (.*)/,
-    (xs) => ({frame: 'my_name_is_$', value: xs[2]})
+    (xs) => ({frame: 'my_name_is_$', value: xs[2]}),
   ]];
   for (const regex of regexes) {
     const match = regex[0].exec(input);

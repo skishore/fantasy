@@ -1,3 +1,4 @@
+/* tslint:disable:object-literal-key-quotes */
 const FREQUENCIES: {[wx: string]: {[latin: string]: number}} = {
   a: {a: 10, e: 0, i: 0, o: 0, u: 0, aa: 5},
   A: {aa: 14730, a: 13216},

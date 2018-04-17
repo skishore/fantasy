@@ -63,6 +63,7 @@ const match = (tokens: Token[], eof: Token): Token[] => {
 const split = (input: string): Token[] => {
   const result: Token[] = [];
   lexer.reset(input);
+  /* tslint:disable-next-line:no-conditional-assignment */
   for (let token = null; token = lexer.next();) {
     const {offset, text, type, value} = token;
     if (type === 'comment' || type === 'whitespace') continue;

@@ -32,6 +32,7 @@ const CHAR_TO_NUKTA = reverse_dict(NUKTA_TO_CHAR);
 
 const VOWEL_TO_CHAR = build_dict('आइईउऊऋऌऍएऐऑओऔॠॡ', 'ािीुूृॢॆेैॊोौॄॣ');
 Array.from(EXTRA.slice(0, -1)).forEach((x) => VOWEL_TO_CHAR[x] = x);
+/* tslint:disable-next-line:no-string-literal */
 VOWEL_TO_CHAR['अ'] = '';
 const CHAR_TO_VOWEL = reverse_dict(VOWEL_TO_CHAR);
 

@@ -82,9 +82,8 @@ const fill_column = (column: Column) => {
   const max_index = column.grammar.max_index;
   const states = column.states;
 
-  /* tslint:disable:prefer-for-of */
+  /* tslint:disable-next-line:prefer-for-of */
   for (let i = 0; i < states.length; i++) {
-  /* tslint:enable:prefer-for-of */
     const state = states[i];
     if (state.cursor === state.rule.rhs.length) {
       // Handle completed states, while keeping track of nullable ones.
@@ -238,8 +237,10 @@ class Parser {
                                 x.rule.lhs === start && x.start === 0;
     const states = this.column.states.filter(match).sort(
         (x, y) => y.score! - x.score!);
-    if (states.length === 0) throw Error(
-        `Unexpected end of input: ${JSON.stringify(this.input || '')}`);
+    if (states.length === 0) {
+      const message = JSON.stringify(this.input || '');
+      throw Error(`Unexpected end of input: ${message}`);
+    }
     return derive_state(states[0]);
   }
   static parse(grammar: Grammar, input: string): Derivation {

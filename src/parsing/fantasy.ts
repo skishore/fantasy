@@ -64,7 +64,7 @@ const adjacent = (token: Token): boolean =>
     token.offset > 0 && token.input[token.offset - 1].trim().length > 0;
 
 const initial = (token: Token): boolean =>
-    token.offset === 0 || token.input[token.offset - 1] == '\n';
+    token.offset === 0 || token.input[token.offset - 1] === '\n';
 
 const chr = (xs: string, x: string): boolean =>
     xs.includes(x) && x.length === 1;
@@ -274,16 +274,18 @@ const parse_directives = (lexer: Lexer): Partial<RuleNode> => {
     // Parse the template that follows the directive sign.
     const {error, text} = lexer.next();
     const next = lexer.peek();
-    if (!chr('<=>', text)) throw error(
-        `Expected: score or template; got: ${text}`);
+    if (!chr('<=>', text)) {
+      throw error(`Expected: score or template; got: ${text}`);
+    }
     const template = new Template(lexer);
     lexer.match(')');
 
     // Based on the directive sign, set the score or template.
     if (text === '=') { result.template = template; continue; }
     const score = template.index(0, []).merge([]);
-    if (typeof score !== 'number' || isNaN(score)) throw next.error(
-        `Expected: score, got: ${next.text}`);
+    if (typeof score !== 'number' || isNaN(score)) {
+      throw next.error(`Expected: score, got: ${next.text}`);
+    }
     const key = text === '>' ? 'score_gen' : 'score_par';
     result[key] = score;
   }
@@ -294,7 +296,7 @@ const parse_expression = (lexer: Lexer): ExprNode => {
   const token = lexer.next();
   const {error, text, type} = token;
   const base = text;
-  if (text == '@' || text === '$' || text === '%') {
+  if (text === '@' || text === '$' || text === '%') {
     const token = lexer.next();
     const {error, text, type} = token;
     if (type !== 'id') throw error(`Expected: identifier; got: ${text}`);
@@ -316,6 +318,7 @@ const parse_expression = (lexer: Lexer): ExprNode => {
 const parse_lexer = (lexer: Lexer, env: Env): void => {
   const {error, text, type, value} = lexer.next();
   if (type !== 'block') throw error(`Expected: lexer; got: ${text}`);
+  /* tslint:disable-next-line:no-eval */
   const result = eval(`(() => {${value}})()`);
   env.result.gen.lexer = result;
   env.result.par.lexer = result;
@@ -416,8 +419,9 @@ const compile = (input: string): Both<Grammar> => {
   // Build up an Env by parsing the given input.
   const lexer = new Lexer(input);
   for (let token = lexer.next(); token.type !== 'eof'; token = lexer.next()) {
-    if (!initial(token)) throw token.error(
-        'Lexer, macro, and rule blocks must start a new line!');
+    if (!initial(token)) {
+      throw token.error('Lexer, macro, and rule blocks must start a line!');
+    }
     if (token.type === 'id') { parse_macro(lexer, token, env); continue; }
     switch (token.text) {
       case '@': parse_lexer(lexer, env); continue;
@@ -443,30 +447,3 @@ const compile = (input: string): Both<Grammar> => {
 const Fantasy = {compile};
 
 export {Fantasy};
-
-// A quick test of the Fantasy interface on a real Hindi grammar.
-
-declare const require: any;
-const fs = require('fs');
-import {Corrector} from './corrector';
-import {Derivation} from './derivation';
-import {Generator} from './generator';
-import {MooLexer} from './lexer';
-import {Parser} from './parser';
-const input = fs.readFileSync('src/dsl/hindi.gr', {encoding: 'utf8'});
-const output = Fantasy.compile(input);
-
-if (0 + 0 === 1) {
-  const grammar = output.gen;
-  const derivation = Generator.generate(grammar, {whats_your_name: true});
-  if (!derivation) throw Error('Unable to derive order-food text!');
-  console.log(Derivation.print(derivation));
-  console.log();
-  console.log(grammar.lexer.join(Derivation.matches(derivation)));
-} else {
-  const grammar = output.par;
-  const derivation = Parser.parse(grammar, 'mera nam Shaunak hai.');
-  console.log(Derivation.print(derivation));
-  console.log();
-  console.log(derivation.value!.some);
-}
