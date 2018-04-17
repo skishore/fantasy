@@ -35,9 +35,9 @@ interface Two {
 };
 
 type ExprNode =
-  {type: 'binding', name: string} |
-  {type: 'macro', args: ExprNode[], name: string} |
-  {type: 'term', term: Term};
+  {type: 'binding', name: string, token: Token} |
+  {type: 'macro', args: ExprNode[], name: string, token: Token} |
+  {type: 'term', term: Term, token: Token};
 
 type RuleNode = {
   score_gen: number,
@@ -67,6 +67,9 @@ const adjacent = (token: Token): boolean =>
 
 const initial = (token: Token): boolean =>
     token.offset === 0 || token.input[token.offset - 1] == '\n';
+
+const chr = (xs: string, x: string): boolean =>
+    xs.includes(x) && x.length === 1;
 
 const gen = <T>(fn: () => T): Both<T> => ({gen: fn(), par: fn()});
 
@@ -167,18 +170,19 @@ const add_terms = (terms: Term[], j: number, optional: boolean,
   }
 }
 
-const build_binding = (name: string, env: Env): Term => {
-  if (!env.bindings[name]) throw Error(`Unknown binding: @${name}`);
+const build_binding = (name: string, token: Token, env: Env): Term => {
+  if (!env.bindings[name]) throw token.error(`Unknown binding: @${name}`);
   return env.bindings[name];
 }
 
-const build_macro = (args: ExprNode[], name: string, env: Env): Term => {
+const build_macro = (args: ExprNode[], name: string,
+                     token: Token, env: Env): Term => {
   // Compute a symbol for the macro given these arguments.
   const macro = env.macros[name];
-  if (!macro) throw new Error(`Unbound macro: ${name}`);
+  if (!macro) throw token.error(`Unbound macro: ${name}`);
   const n = macro.args.length;
   if (args.length !== n) {
-    throw new Error(`${name} got ${args.length} argments; expected: ${n}`);
+    throw token.error(`${name} got ${args.length} argments; expected: ${n}`);
   }
   const terms = args.map((x) => build_term(x, env));
   const symbol = `${name}[${str(terms)}]`;
@@ -216,8 +220,8 @@ const build_option = (terms: Term[], j: number, env: Env): Term => {
 
 const build_term = (expr: ExprNode, env: Env): Term => {
   switch (expr.type) {
-    case 'binding': return build_binding(expr.name, env);
-    case 'macro': return build_macro(expr.args, expr.name, env);
+    case 'binding': return build_binding(expr.name, expr.token, env);
+    case 'macro': return build_macro(expr.args, expr.name, expr.token, env);
     case 'term': return expr.term;
   }
 }
@@ -268,7 +272,7 @@ const parse_directives = (lexer: Lexer): Partial<RuleNode> => {
     // Parse the template that follows the directive sign.
     const {error, text} = lexer.next();
     const next = lexer.peek();
-    if (!'<=>'.includes(text)) throw error(
+    if (!chr('<=>', text)) throw error(
         `Expected: score or template; got: ${text}`);
     const template = new Template(lexer);
     lexer.match(')');
@@ -285,22 +289,24 @@ const parse_directives = (lexer: Lexer): Partial<RuleNode> => {
 }
 
 const parse_expression = (lexer: Lexer): ExprNode => {
-  const {error, text, type} = lexer.next();
+  const token = lexer.next();
+  const {error, text, type} = token;
   const base = text;
   if (text == '@' || text === '$' || text === '%') {
-    const {error, text, type} = lexer.next();
+    const token = lexer.next();
+    const {error, text, type} = token;
     if (type !== 'id') throw error(`Expected: identifier; got: ${text}`);
-    if (base === '@') return {type: 'binding', name: text};
-    return {type: 'term', term: base === '$' ? text : {type: text}};
+    if (base === '@') return {type: 'binding', name: text, token};
+    return {type: 'term', term: base === '$' ? text : {type: text}, token};
   } else if (type === 'id' && lexer.maybe_match('[')) {
     const args: ExprNode[] = [];
     while (!lexer.maybe_match(']')) {
       if (args.length > 0) lexer.match(',');
       args.push(parse_expression(lexer));
     }
-    return {type: 'macro', name: text, args};
+    return {type: 'macro', name: text, args, token};
   } else if (type === 'id') {
-    return {type: 'term', term: {text}};
+    return {type: 'term', term: {text}, token};
   }
   throw error(`Expected: binding, macro, symbol, or text; got: ${text}`);
 }
@@ -329,7 +335,7 @@ const parse_macro = (lexer: Lexer, token: Token, env: Env): void => {
 
 const parse_rules = (base: Partial<RuleNode>, lexer: Lexer): RuleNode[] => {
   const result: RuleNode[] = [];
-  while ('<=>'.includes(lexer.peek().text)) {
+  while (chr('<=>', lexer.peek().text)) {
     const sign = <Sign>lexer.next().text;
     const rule = {score_gen: 0, score_par: 0, sign, terms: parse_terms(lexer)};
     result.push({...rule, ...base, ...parse_directives(lexer)});
@@ -384,17 +390,50 @@ const parse = (input: string): Both<Grammar> => {
     throw token.error(`Expected: lexer, macro, or rule; got: ${token.text}`);
   }
 
+  const has_lexer = result.gen.lexer && result.par.lexer;
+  if (!has_lexer) throw lexer.next().error('No lexer provided!');
   Object.keys(env.exists).forEach((x) => add_symbol(x, env));
-
-  // TODO(skishore): Check that the lexer is set and that it can generate
-  // text for each `text` and `type` term that appears in any rule RHS.
 
   // Add default rules for dealing with whitespace and punctuation.
   const transform = () => null;
   make_rule(result.par, {lhs: kSpace, rhs: [], transform});
   make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: '_'}], transform});
   make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: 'w'}], transform});
-  return result;
+  return map(result, (x) => validate(input, x));
+}
+
+// Validation of the final grammar.
+
+const invalid = (input: string, names: string[], type: string): Error => {
+  const lexer = new Lexer(input);
+  const message = `${type} symbols: ${names.map((x) => `$${x}`).join(', ')}`;
+  const missing: (Token | null)[] = Array(names.length).fill(null);
+  for (let token = lexer.next(); token.type !== 'eof'; token = lexer.next()) {
+    const index = names.indexOf(lexer.peek().text);
+    if (index < 0 || token.text !== '$') continue;
+    missing[index] = lexer.peek();
+  }
+  const token = missing.filter((x) => !!x).shift();
+  return token ? token.error(message) : Error(message);
+}
+
+const validate = (input: string, grammar: Grammar): Grammar => {
+  // TODO(skishore): Check that the lexer can generate text for each
+  // `text`- and `type`-type terms that appear in any rule right-hand side.
+  const lhs = new Set<string>();
+  const rhs = new Set<string>([grammar.start]);
+  grammar.rules.forEach((x) => {
+    lhs.add(x.lhs);
+    x.rhs.forEach((y) => { if (typeof y === 'string') rhs.add(y); });
+  });
+  const dead_end = Array.from(rhs).filter((x) => !lhs.has(x)).sort();
+  const unreachable = Array.from(lhs).filter((x) => !rhs.has(x)).sort();
+  if (dead_end.length > 0) {
+    throw invalid(input, dead_end, 'Dead-end');
+  } else if (unreachable.length > 0) {
+    throw invalid(input, unreachable, 'Unreachable');
+  }
+  return grammar;
 }
 
 // A quick test of the Fantasy interface on a real Hindi grammar.
