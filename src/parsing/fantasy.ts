@@ -1,8 +1,6 @@
-import {assert, debug} from '../lib/base';
+import {assert} from '../lib/base';
 import {Lexer, Token, swap_quotes} from '../lib/lexer';
-import {CompiledGrammar, CompiledRule, Compiler} from './compiler';
 import {Grammar, Rule, Syntax, Term} from './grammar';
-import {Parser} from './parser';
 import {Template} from '../lib/template';
 
 // Types used during grammar parsing.
@@ -32,7 +30,7 @@ interface Two {
   sign: Sign,
   syntaxes?: Syntax[],
   template?: Template,
-};
+}
 
 type ExprNode =
   {type: 'binding', name: string, token: Token} |
@@ -45,17 +43,17 @@ type RuleNode = {
   sign: Sign,
   template?: Template,
   terms: TermNode[],
-}
+};
 
 type TermNode =
   {type: 'expr', expr: ExprNode, mark: Mark, optional: boolean} |
   {type: 'punctuation', punctuation: string};
 
+type Kind = 'gen' | 'par';
+
 type Mark = '-' | '^' | '*';
 
 type Sign = '<' | '=' | '>';
-
-type Type = 'gen' | 'par';
 
 const [kRoot, kSpace] = ['$', '_'];
 
@@ -131,6 +129,7 @@ const add_rule = (two: Two, env: Env): void => {
 }
 
 const add_symbol = (name: string, env: Env): void => {
+  // If this symbol is a root symbol, add rules from kRoot to it.
   const {root, rules} = env.exists[name];
   if (root) {
     const side = [[name], [kSpace, name, kSpace]];
@@ -141,6 +140,9 @@ const add_symbol = (name: string, env: Env): void => {
     const template = new Template(`{${name}: $0}`);
     add_rule({ones, sign: '=', template}, env);
   }
+
+  // Add the regular rules from this symbol to its possible children.
+  // If the symbol is a root symbol, we suffix its rules with a period.
   const period: TermNode = {type: 'punctuation', punctuation: '.'};
   rules.forEach((x) => {
     const add_period = root && x.terms[x.terms.length - 1].type === 'expr';
@@ -226,11 +228,11 @@ const build_term = (expr: ExprNode, env: Env): Term => {
   }
 }
 
-const create_rule = (two: Two, type: Type, grammar: Grammar): void => {
-  const {lhs, rhs, score, slots} = two.ones[type];
+const create_rule = (two: Two, kind: Kind, grammar: Grammar): void => {
+  const {lhs, rhs, score, slots} = two.ones[kind];
   const syntaxes: Syntax[] = (two.syntaxes || []).map(
       (x) => ({...x, indices: x.indices.map((y) => slots[y].index)}));
-  const transform = create_transform(two, type);
+  const transform = create_transform(two, kind);
   make_rule(grammar, {lhs, rhs, score, syntaxes, transform});
 }
 
@@ -241,11 +243,11 @@ const create_syntaxes = (marks: Mark[]): Syntax[] => {
   return indices.length === 0 ? [] : [{indices, tense: {}}];
 }
 
-const create_transform = (two: Two, type: Type): Function => {
-  if (!two.template) return type === 'gen' ? () => [] : () => null;
-  const one = two.ones[type];
+const create_transform = (two: Two, kind: Kind): Function => {
+  if (!two.template) return kind === 'gen' ? () => [] : () => null;
+  const one = two.ones[kind];
   const template = two.template.index(one.rhs.length, one.slots);
-  return template[type === 'gen' ? 'split' : 'merge'].bind(template);
+  return template[kind === 'gen' ? 'split' : 'merge'].bind(template);
 }
 
 const make_grammar = (): Grammar => ({
@@ -373,35 +375,6 @@ const parse_terms = (lexer: Lexer): TermNode[] => {
   return result;
 }
 
-const parse = (input: string): Both<Grammar> => {
-  const result: Both<Grammar> = gen(make_grammar);
-  const env: Env = {bindings: {}, exists: {}, macros: {}, result};
-
-  const lexer = new Lexer(input);
-  for (let token = lexer.next(); token.type !== 'eof'; token = lexer.next()) {
-    if (!initial(token)) throw token.error(
-        'Lexer, macro, and rule blocks must start a new line!');
-    if (token.type === 'id') { parse_macro(lexer, token, env); continue; }
-    switch (token.text) {
-      case '@': parse_lexer(lexer, env); continue;
-      case '.': parse_symbol(lexer, /*root=*/true, env); continue;
-      case '$': parse_symbol(lexer, /*root=*/false, env); continue;
-    }
-    throw token.error(`Expected: lexer, macro, or rule; got: ${token.text}`);
-  }
-
-  const has_lexer = result.gen.lexer && result.par.lexer;
-  if (!has_lexer) throw lexer.next().error('No lexer provided!');
-  Object.keys(env.exists).forEach((x) => add_symbol(x, env));
-
-  // Add default rules for dealing with whitespace and punctuation.
-  const transform = () => null;
-  make_rule(result.par, {lhs: kSpace, rhs: [], transform});
-  make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: '_'}], transform});
-  make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: 'w'}], transform});
-  return map(result, (x) => validate(input, x));
-}
-
 // Validation of the final grammar.
 
 const invalid = (input: string, names: string[], type: string): Error => {
@@ -418,8 +391,6 @@ const invalid = (input: string, names: string[], type: string): Error => {
 }
 
 const validate = (input: string, grammar: Grammar): Grammar => {
-  // TODO(skishore): Check that the lexer can generate text for each
-  // `text`- and `type`-type terms that appear in any rule right-hand side.
   const lhs = new Set<string>();
   const rhs = new Set<string>([grammar.start]);
   grammar.rules.forEach((x) => {
@@ -436,16 +407,54 @@ const validate = (input: string, grammar: Grammar): Grammar => {
   return grammar;
 }
 
+// The public Fantasy interface.
+
+const compile = (input: string): Both<Grammar> => {
+  const result: Both<Grammar> = gen(make_grammar);
+  const env: Env = {bindings: {}, exists: {}, macros: {}, result};
+
+  // Build up an Env by parsing the given input.
+  const lexer = new Lexer(input);
+  for (let token = lexer.next(); token.type !== 'eof'; token = lexer.next()) {
+    if (!initial(token)) throw token.error(
+        'Lexer, macro, and rule blocks must start a new line!');
+    if (token.type === 'id') { parse_macro(lexer, token, env); continue; }
+    switch (token.text) {
+      case '@': parse_lexer(lexer, env); continue;
+      case '.': parse_symbol(lexer, /*root=*/true, env); continue;
+      case '$': parse_symbol(lexer, /*root=*/false, env); continue;
+    }
+    throw token.error(`Expected: lexer, macro, or rule; got: ${token.text}`);
+  }
+
+  // Add rules for parsing whitespace, then add rules from the Env.
+  const transform = () => null;
+  make_rule(result.par, {lhs: kSpace, rhs: [], transform});
+  make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: '_'}], transform});
+  make_rule(result.par, {lhs: kSpace, rhs: [kSpace, {type: 'w'}], transform});
+  Object.keys(env.exists).forEach((x) => add_symbol(x, env));
+
+  // Validate and return the result.
+  const has_lexer = result.gen.lexer && result.par.lexer;
+  if (!has_lexer) throw lexer.next().error('No lexer provided!');
+  return map(result, (x) => validate(input, x));
+}
+
+const Fantasy = {compile};
+
+export {Fantasy};
+
 // A quick test of the Fantasy interface on a real Hindi grammar.
 
 declare const require: any;
 const fs = require('fs');
 import {Corrector} from './corrector';
 import {Derivation} from './derivation';
-import {MooLexer} from './lexer';
 import {Generator} from './generator';
+import {MooLexer} from './lexer';
+import {Parser} from './parser';
 const input = fs.readFileSync('src/dsl/hindi.gr', {encoding: 'utf8'});
-const output = parse(input);
+const output = Fantasy.compile(input);
 
 if (0 + 0 === 1) {
   const grammar = output.gen;
