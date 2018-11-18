@@ -1,0 +1,35 @@
+{
+  "extends": "tslint:recommended",
+  "rules": {
+    "array-type": [true, "array"],
+    "arrow-parens": false,
+    "ban-types": {
+      "options": [
+        ["Boolean", "Avoid using the `Boolean` type. Did you mean `boolean`?"],
+        ["Number", "Avoid using the `Number` type. Did you mean `number`?"],
+        ["String", "Avoid using the `String` type. Did you mean `string`?"]
+      ]
+    },
+    "callable-types": false,
+    "curly": [true, "ignore-same-line"],
+    "interface-name": false,
+    "interface-over-type-literal": false,
+    "max-classes-per-file": false,
+    "member-access": [true, "no-public"],
+    "member-ordering": false,
+    "no-angle-bracket-type-assertion": false,
+    "no-any": true,
+    "no-empty-interface": false,
+    "no-shadowed-variable": false,
+    "no-var-requires": false,
+    "object-literal-shorthand": false,
+    "object-literal-sort-keys": false,
+    "one-line": false,
+    "only-arrow-functions": true,
+    "ordered-imports": false,
+    "quotemark": false,
+    "semicolon": false,
+    "variable-name": false,
+    "whitespace": false
+  }
+}
