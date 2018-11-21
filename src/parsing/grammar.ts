@@ -9,6 +9,7 @@ interface Lexer<S, T> {
 interface Token<T> {
   score: number;
   text: string;
+  type: string;
   value: T;
 }
 
@@ -27,6 +28,9 @@ interface Rule<S, T> {
   split: {score: number; fn: (x: S) => S[][]};
 }
 
-type Term = {type: 'name'; value: string} | {type: 'text'; value: string};
+type Term =
+  | {type: 'name'; value: string}
+  | {type: 'text'; value: string}
+  | {type: 'type'; value: string};
 
 export {Grammar, Lexer, Rule, Term, Token};

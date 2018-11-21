@@ -99,7 +99,7 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
     } else {
       // Queue up scannable states.
       const {type, value} = state.rule.rhs[state.cursor];
-      if (type === 'text') {
+      if (type !== 'name') {
         scannable.push(state);
         continue;
       }
@@ -154,14 +154,17 @@ const make_column = <T>(grammar: IGrammar<T>, index: number): Column<T> => {
 };
 
 const next_column = <T>(prev: Column<T>, token: Token<T>): Column<T> => {
+  const {text, type} = token;
   const column = make_column(prev.grammar, prev.index + 1);
   const map = column.structures.map;
   const max_index = column.grammar.max_index;
   const scannable = prev.structures.scannable;
   for (let i = scannable.length; i--; ) {
     const state = scannable[i];
-    const term = state.rule.rhs[state.cursor];
-    const match = term.type === 'text' && term.value === token.text;
+    const {type: term_type, value} = state.rule.rhs[state.cursor];
+    const match =
+      (term_type === 'text' && value === text) ||
+      (term_type === 'type' && value === type);
     if (match) {
       const next: Next<T> = {leaf: true, token};
       advance_state(map, max_index, state, column.states).push([state, next]);
@@ -206,7 +209,7 @@ const print_column = <T>(column: Column<T>): string => {
 };
 
 const print_rule = <T>(rule: IRule<T>, cursor?: number): string => {
-  const terms = rule.rhs.map(x => x.value);
+  const terms = rule.rhs.map(x => `${x.type === 'type' ? '%' : ''}${x.value}`);
   if (cursor != null) terms.splice(cursor, 0, '●');
   return `${rule.lhs} -> ${terms.join(' ')}`;
 };
@@ -234,6 +237,7 @@ const index = <T>(grammar: Grammar<unknown, T>): IGrammar<T> => {
   let max_index = 0;
   const by_name: {[name: string]: IRule<T>[]} = {};
   grammar.rules.forEach(x => {
+    if (x.merge.score === -Infinity) return;
     const indexed = {...x, ...x.merge, index: max_index};
     (by_name[x.lhs] = by_name[x.lhs] || []).push(indexed);
     max_index += x.rhs.length + 1;
