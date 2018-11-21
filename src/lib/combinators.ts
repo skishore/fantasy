@@ -1,12 +1,12 @@
 import {nonnull} from './base';
 
-type Stop = {expected: string[]; i: number};
-
 type Output<T> =
   | {stop: Stop; i: number; success: true; result: T}
   | {stop: Stop; i: number; success: false};
 
 type Parser<T> = (input: string, index: number) => Output<T>;
+
+type Stop = {expected: string[]; i: number};
 
 // Parsing primitives, for matching by regex or by string.
 
@@ -52,6 +52,10 @@ const update = (source: Stop, target: Stop | null): Stop => {
 };
 
 // Parser combinators, for combining primitives.
+
+// prettier-ignore
+type AllParser = <T extends Parser<unknown>[]>(...parsers: T) =>
+  Parser<{[K in keyof T]: T[K] extends Parser<infer U> ? U : never}>;
 
 const all = <T>(...parsers: Parser<T>[]): Parser<T[]> => (x, i) => {
   let stop = null;
@@ -102,9 +106,6 @@ const sep = <S, T>(term: Parser<S>, sep: Parser<T>, min = 0): Parser<S[]> => {
   return min > 0 ? list : any(list, (x, i) => succeed(i, []));
 };
 
-// tslint:disable-next-line:no-any
-const two: <A, B>(a: Parser<A>, b: Parser<B>) => Parser<[A, B]> = all as any;
-
 // Error handling utilities.
 
 const error = (input: string, index: number, expected: string[]): Error => {
@@ -125,20 +126,13 @@ At line ${line}, column ${column}: Expected: ${terms.join(' | ')}
   return Error(error);
 };
 
+const two = (all as Function) as AllParser;
+
 // Our public API. We create a Node class for ease of auto-completion.
 
-type N<T> = Node<T>;
-
 // prettier-ignore
-interface All {
-  <A>(a: N<A>): N<[A]>;
-  <A,B>(a: N<A>, b: N<B>): N<[A,B]>;
-  <A,B,C>(a: N<A>, b: N<B>, c: N<C>): N<[A,B,C]>;
-  <A,B,C,D>(a: N<A>, b: N<B>, c: N<C>, d: N<D>): N<[A,B,C,D]>;
-  <A,B,C,D,E>(a: N<A>, b: N<B>, c: N<C>, d: N<D>, e: N<E>): N<[A,B,C,D,E]>;
-  <A,B,C,D,E,F>(a: N<A>, b: N<B>, c: N<C>, d: N<D>, e: N<E>): N<[A,B,C,D,E,F]>;
-  <T>(...parsers: N<T>[]): N<T>;
-}
+type AllNode = <T extends Node<unknown>[]>(...parsers: T) =>
+  Node<{[K in keyof T]: T[K] extends Node<infer U> ? U : never}>;
 
 const Base = {
   all: <T>(...parsers: Node<T>[]) => new Node(all(...parsers.map(x => x._))),
@@ -181,6 +175,6 @@ class Node<T> {
   }
 }
 
-const Parser = {...Base, all: Base.all as All};
+const Parser = {...Base, all: (Base.all as Function) as AllNode};
 
 export {Node, Output, Parser};

@@ -24,7 +24,8 @@ const flatten = <T>(xss: T[][]): T[] => {
   return result;
 };
 
-const nonnull = <T>(x: T | null): T => assert(x !== null) || x!;
+// tslint:disable-next-line:no-any
+const nonnull = <T>(x: T | null): T => (assert(x !== null) as any) || x!;
 
 const range = (n: number): number[] =>
   Array(n)
