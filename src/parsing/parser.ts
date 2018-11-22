@@ -135,7 +135,7 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
 const make_column = <T>(grammar: IGrammar<T>, index: number): Column<T> => {
   const column: Column<T> = {
     grammar,
-    index: index,
+    index,
     states: [],
     structures: {
       completed: {},
@@ -205,7 +205,7 @@ const print_column = <T>(column: Column<T>): string => {
   return xs.concat('').join('\n');
 };
 
-const print_rule = <T>(rule: Rule<T>, cursor?: number): string => {
+const print_rule = <T>(rule: IRule<T>, cursor?: number): string => {
   const terms = rule.rhs.map(x => x.value);
   if (cursor != null) terms.splice(cursor, 0, '●');
   return `${rule.lhs} -> ${terms.join(' ')}`;
@@ -219,20 +219,22 @@ const print_state = <T>(state: State<T>): string => {
 // An IGrammar is a slight modification to grammar that includes extra data
 // structures needed by our parsing algorithm. We use it to implement parse.
 
-interface IGrammar<T> extends Grammar<T> {
+interface IGrammar<T> extends Grammar<unknown, T> {
   by_name: {[lhs: string]: IRule<T>[]};
   max_index: number;
 }
 
-interface IRule<T> extends Rule<T> {
+interface IRule<T> extends Rule<unknown, T> {
+  fn: (xs: T[]) => T;
   index: number;
+  score: number;
 }
 
-const index = <T>(grammar: Grammar<T>): IGrammar<T> => {
+const index = <T>(grammar: Grammar<unknown, T>): IGrammar<T> => {
   let max_index = 0;
   const by_name: {[name: string]: IRule<T>[]} = {};
   grammar.rules.forEach(x => {
-    const indexed = {...x, index: max_index};
+    const indexed = {...x, ...x.merge, index: max_index};
     (by_name[x.lhs] = by_name[x.lhs] || []).push(indexed);
     max_index += x.rhs.length + 1;
   });
@@ -240,7 +242,7 @@ const index = <T>(grammar: Grammar<T>): IGrammar<T> => {
 };
 
 const parse = <T>(
-  grammar: Grammar<T> | IGrammar<T>,
+  grammar: Grammar<unknown, T> | IGrammar<T>,
   input: string,
   debug: boolean = false,
 ): Option<T> => {
