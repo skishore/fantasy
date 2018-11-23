@@ -32,8 +32,9 @@ const range = (n: number): number[] =>
     .fill(false)
     .map((_, i) => i);
 
-const sample = <T>(xs: T[]): T | null => {
-  return xs.length === 0 ? null : xs[Math.floor(Math.random() * xs.length)];
+const sample = <T>(xs: T[]): Option<T> => {
+  if (xs.length === 0) return null;
+  return {some: xs[Math.floor(Math.random() * xs.length)]};
 };
 
 const zip = <S, T>(xs: S[], ys: T[]): [S, T][] => {
