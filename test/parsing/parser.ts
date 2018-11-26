@@ -1,5 +1,5 @@
 import {range} from '../../src/lib/base';
-import {Grammar, Lexer, Term, Token} from '../../src/parsing/grammar';
+import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/grammar';
 import {Parser} from '../../src/parsing/parser';
 import {Test} from '../test';
 
@@ -7,13 +7,11 @@ type Spec<T> = {lhs: string; rhs: string[]; fn: (xs: T[]) => T; score?: number};
 
 const make_grammar = <T>(specs: Spec<T>[], value: T): Grammar<unknown, T> => {
   const lex = (input: string) =>
-    Array.from(input).map(x => ({
-      score: 0,
-      text: x,
-      type: 'character',
-      value,
-    }));
-  const lexer = {lex, unlex_text: () => null, unlex_type: () => null};
+    Array.from(input).map(x => {
+      const m: Match<T> = {score: 0, value};
+      return {text: x, text_matches: {[x]: m}, type_matches: {character: m}};
+    });
+  const lexer = {lex, unlex: () => null};
   const rules = specs.map(x => ({
     lhs: x.lhs,
     rhs: x.rhs.map(make_term),

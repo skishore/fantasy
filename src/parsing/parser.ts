@@ -1,11 +1,11 @@
 import {Option} from '../lib/base';
-import {Grammar, Lexer, Rule, Term, Token} from './grammar';
+import {Grammar, Lexer, Match, Rule, Term, Token} from './grammar';
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
 
-type Next<T> = {leaf: true; token: Token<T>} | {leaf: false; state: State<T>};
+type Next<T> = {leaf: true; match: Match<T>} | {leaf: false; state: State<T>};
 
 interface State<T> {
   candidates?: [State<T>, Next<T>][];
@@ -23,7 +23,7 @@ const evaluate_state = <T>(state: State<T>): T => {
   let current: State<T> = state;
   for (let i = current.cursor; i--; ) {
     const next = current.next!;
-    xs.push(next.leaf ? next.token.value : evaluate_state(next.state));
+    xs.push(next.leaf ? next.match.value : evaluate_state(next.state));
     current = current.prev!;
   }
   return state.rule.fn(xs.reverse());
@@ -154,19 +154,18 @@ const make_column = <T>(grammar: IGrammar<T>, index: number): Column<T> => {
 };
 
 const next_column = <T>(prev: Column<T>, token: Token<T>): Column<T> => {
-  const {text, type} = token;
   const column = make_column(prev.grammar, prev.index + 1);
   const map = column.structures.map;
   const max_index = column.grammar.max_index;
   const scannable = prev.structures.scannable;
   for (let i = scannable.length; i--; ) {
     const state = scannable[i];
-    const {type: term_type, value} = state.rule.rhs[state.cursor];
+    const {type, value} = state.rule.rhs[state.cursor];
     const match =
-      (term_type === 'text' && value === text) ||
-      (term_type === 'type' && value === type);
+      (type === 'text' && token.text_matches[value]) ||
+      (type === 'type' && token.type_matches[value]);
     if (match) {
-      const next: Next<T> = {leaf: true, token};
+      const next: Next<T> = {leaf: true, match};
       advance_state(map, max_index, state, column.states).push([state, next]);
     }
   }
@@ -182,7 +181,7 @@ const score_state = <T>(state: State<T>): number => {
   let best_score = -Infinity;
   for (let i = candidates.length; i--; ) {
     const [prev, next] = candidates[i];
-    const next_score = next.leaf ? next.token.score : score_state(next.state);
+    const next_score = next.leaf ? next.match.score : score_state(next.state);
     const score = score_state(prev) + next_score;
     if (score > best_score) {
       best_candidate = candidates[i];
