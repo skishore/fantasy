@@ -1,5 +1,5 @@
 import {Option} from '../lib/base';
-import {Grammar, Lexer, Match, Rule, Term, Token} from './grammar';
+import {Grammar, Lexer, Match, Rule, Term, Token} from './base';
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
 // cursor is the position in the rule up to which we have a match and the
@@ -232,20 +232,22 @@ interface IRule<T> extends Rule<unknown, T> {
   score: number;
 }
 
-const index = <T>(grammar: Grammar<unknown, T>): IGrammar<T> => {
+const index = <S, T>(grammar: Grammar<S, T>): IGrammar<T> => {
   let max_index = 0;
   const by_name: {[name: string]: IRule<T>[]} = {};
   grammar.rules.forEach(x => {
     if (x.merge.score === -Infinity) return;
     const indexed = {...x, ...x.merge, index: max_index};
-    (by_name[x.lhs] = by_name[x.lhs] || []).push(indexed);
+    (by_name[x.lhs] = by_name[x.lhs] || []).push(indexed as IRule<T>);
     max_index += x.rhs.length + 1;
   });
-  return {...grammar, by_name, max_index};
+  return {...grammar, by_name, max_index} as IGrammar<T>;
 };
 
-const parse = <T>(
-  grammar: Grammar<unknown, T> | IGrammar<T>,
+// Our public interface is a pure parsing function returning an Option<T>.
+
+const parse = <S, T>(
+  grammar: Grammar<S, T>,
   input: string,
   debug: boolean = false,
 ): Option<T> => {
@@ -275,6 +277,6 @@ const parse = <T>(
   return {some: evaluate_state(states[0])};
 };
 
-const Parser = {index, parse};
+const Parser = {parse};
 
 export {Parser};

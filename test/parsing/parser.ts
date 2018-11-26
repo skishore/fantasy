@@ -1,5 +1,5 @@
 import {range} from '../../src/lib/base';
-import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/grammar';
+import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/base';
 import {Parser} from '../../src/parsing/parser';
 import {Test} from '../test';
 
