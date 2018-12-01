@@ -1,8 +1,9 @@
-// The Lexer interface.
+// The Lexer interface. The optional type variable V is a "match annotation",
+// which represents extra data that can be attached to each match.
 
-interface Lexer<S, T> {
-  lex: (input: string) => Token<T>[];
-  unlex: (term: Term, value: S) => Match<T> | null;
+interface Lexer<S, T, V = {}> {
+  lex: (input: string) => Token<T, V>[];
+  unlex: (term: Term, value: S) => (Match<T> & V) | null;
 }
 
 interface Match<T> {
@@ -10,17 +11,19 @@ interface Match<T> {
   value: T;
 }
 
-interface Token<T> {
+interface Token<T, V = {}> {
   text: string;
-  text_matches: {[text: string]: Match<T>};
-  type_matches: {[type: string]: Match<T>};
+  text_matches: {[text: string]: Match<T> & V};
+  type_matches: {[type: string]: Match<T> & V};
 }
 
-// The Grammar interface.
+// The Grammar interface. The optional type variable U is a "rule annotation",
+// which represents extra data that can be attached to each rule.
 
-interface Grammar<S, T> {
-  lexer: Lexer<S, T>;
-  rules: Rule<S, T>[];
+interface Grammar<S, T, U = {}, V = {}> {
+  args?: [S, T, U, V];
+  lexer: Lexer<S, T, V>;
+  rules: (Rule<S, T> & U)[];
   start: string;
 }
 
