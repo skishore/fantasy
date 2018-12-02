@@ -81,9 +81,13 @@ const lambda: Test = {
       {0: l`country.US & I`, 1: null},
     ]);
   },
-  printing_lambda_expressions_works: () => {
+  parse_handles_whitespace: () => {
     const lambda = l` Tell ( ( R [ a ] . b & c ) | d , ( e . f | ~ ( g ) ) ) `;
     Test.assert_eq(lambda, l`Tell((R[a].b & c) | d, e.f | ~g)`);
+  },
+  printing_returns_sorted_results: () => {
+    const lambda = l`Tell(x) & f.e & (d.c | b.a)`;
+    Test.assert_eq(lambda.repr, '(b.a | d.c) & Tell(x) & f.e');
   },
 };
 
