@@ -9,6 +9,7 @@ type Spec<S> = {
   lhs: string;
   rhs: string[];
   fn: (x: S) => S[][];
+  score?: number;
 };
 
 const make_grammar = <S>(specs: Spec<S>[], value: S): Grammar<S, string> => {
@@ -25,7 +26,7 @@ const make_grammar = <S>(specs: Spec<S>[], value: S): Grammar<S, string> => {
     lhs: x.lhs,
     rhs: x.rhs.map(make_term),
     merge: {fn: (xs: string[]) => xs.join(''), score: 0},
-    split: {fn: x.fn, score: 0},
+    split: {fn: x.fn, score: x.score || 0},
   }));
   return {lexer: {lex, unlex}, rules, start: '$Root'};
 };
@@ -46,34 +47,52 @@ const op = (fn: (x: number, y: number) => number) => (target: number) =>
 
 const num = (x: number) => (target: number) => (x === target ? [[0]] : []);
 
+const arithmetic = (deepness?: number): Grammar<number, string> => {
+  const score = -(deepness || 0);
+  return make_grammar(
+    [
+      {lhs: '$Root', rhs: ['$Add'], fn: x => [[x]]},
+      {lhs: '$Add', rhs: ['$Mul'], fn: x => [[x]], score},
+      {lhs: '$Add', rhs: ['$Add', '+', '$Mul'], fn: op((x, y) => x + y)},
+      {lhs: '$Add', rhs: ['$Add', '-', '$Mul'], fn: op((x, y) => x - y)},
+      {lhs: '$Mul', rhs: ['$Num'], fn: x => [[x]], score},
+      {lhs: '$Mul', rhs: ['$Mul', '*', '$Num'], fn: op((x, y) => x * y)},
+      {lhs: '$Mul', rhs: ['$Mul', '/', '$Num'], fn: op((x, y) => x / y)},
+      {lhs: '$Num', rhs: ['(', '$Add', ')'], fn: x => [[0, x, 0]]},
+      ...range(10).map(i => ({lhs: '$Num', rhs: [`${i}`], fn: num(i)})),
+    ],
+    0,
+  );
+};
+
 const generator: Test = {
   generation_works: () => {
-    const grammar = make_grammar(
-      [
-        {lhs: '$Root', rhs: ['$Add'], fn: x => [[x]]},
-        {lhs: '$Add', rhs: ['$Mul'], fn: x => [[x]]},
-        {lhs: '$Add', rhs: ['$Add', '+', '$Mul'], fn: op((x, y) => x + y)},
-        {lhs: '$Add', rhs: ['$Add', '-', '$Mul'], fn: op((x, y) => x - y)},
-        {lhs: '$Mul', rhs: ['$Num'], fn: x => [[x]]},
-        {lhs: '$Mul', rhs: ['$Mul', '*', '$Num'], fn: op((x, y) => x * y)},
-        {lhs: '$Mul', rhs: ['$Mul', '/', '$Num'], fn: op((x, y) => x / y)},
-        {lhs: '$Num', rhs: ['(', '$Add', ')'], fn: x => [[0, x, 0]]},
-        ...range(10).map(i => ({lhs: '$Num', rhs: [`${i}`], fn: num(i)})),
-      ],
-      0,
-    );
+    const grammar = arithmetic();
     const [seed, target] = [173, 2];
-    const expected: {[op: string]: string} = {
-      '+': '9-8+(7-4)/(7-4)+0',
-      '-': '9-7',
-      '*': '1*(1+1)',
-      '/': '8/4',
-    };
-    for (const op of Object.keys(expected)) {
+    const tests = [
+      {op: '+', expected: '9-5-3+7/7'},
+      {op: '-', expected: '7-4-7/7'},
+      {op: '*', expected: '7/7*2'},
+      {op: '/', expected: '4/2'},
+    ];
+    for (const {op, expected} of tests) {
       const rng = new RNG(seed);
       const rules = grammar.rules.filter(x => x.rhs.some(y => y.value === op));
       const maybe = Generator.generate_from_rules(grammar, rng, rules, target);
-      Test.assert_eq(nonnull(maybe).some, expected[op]);
+      Test.assert_eq(nonnull(maybe).some, expected);
+    }
+  },
+  generation_uses_scores: () => {
+    const [seed, target] = [17, 2];
+    const tests = [
+      {deepness: 3, expected: '7-6+9/9'},
+      {deepness: -3, expected: '2'},
+    ];
+    for (const {deepness, expected} of tests) {
+      const rng = new RNG(seed);
+      const grammar = arithmetic(deepness);
+      const maybe = Generator.generate(grammar, rng, target);
+      Test.assert_eq(nonnull(maybe).some, expected);
     }
   },
 };

@@ -211,17 +211,15 @@ class RNG {
     // tslint:disable-next-line:no-any
     this.rng = new (PcgRandom as any)(s1, s2);
   }
-  next(max?: number): number {
+  int32(max?: number): number {
     return this.rng.integer(max);
   }
-  sample<T>(xs: T[]): T {
-    if (xs.length === 0) throw new Error('sample called on emtpy array!');
-    return xs[this.next(xs.length)];
+  float(max?: number): number {
+    return (max == null ? 1 : max) * this.rng.number();
   }
   split(n: number): RNG[] {
-    return Array(n)
-      .fill(false)
-      .map(() => new RNG(this.next(), this.next()));
+    const range = Array(n).fill(false);
+    return range.map(() => new RNG(this.int32(), this.int32()));
   }
 }
 

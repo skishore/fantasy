@@ -11,6 +11,25 @@ interface Memo<S, T> {
   saved: {[key: string]: Option<T>};
 }
 
+const generate_from_list = <S, T>(
+  memo: Memo<S, T>,
+  rules: Rule<S, T>[],
+  value: S,
+): Option<T> => {
+  const scores: [number, T][] = [];
+  for (const rule of rules) {
+    const option = generate_from_rule(memo, rule, value);
+    if (option) scores.push([2 ** rule.split.score, option.some]);
+  }
+  if (scores.length === 0) return null;
+  let left = memo.rng.float(scores.reduce((acc, x) => acc + x[0], 0));
+  for (const score of scores) {
+    left -= score[0];
+    if (left < 0) return {some: score[1]};
+  }
+  return {some: scores[scores.length - 1][1]};
+};
+
 const generate_from_memo = <S, T>(
   memo: Memo<S, T>,
   term: Term,
@@ -22,17 +41,6 @@ const generate_from_memo = <S, T>(
     memo.saved[key] = generate_from_term(memo, term, value);
   }
   return memo.saved[key];
-};
-
-const generate_from_name = <S, T>(
-  memo: Memo<S, T>,
-  symbol: string,
-  value: S,
-): Option<T> => {
-  const options = (memo.by_name[symbol] || [])
-    .map(x => generate_from_rule(memo, x, value))
-    .filter(x => !!x);
-  return options.length === 0 ? null : memo.rng.sample(options);
 };
 
 const generate_from_rule = <S, T>(
@@ -53,7 +61,7 @@ const generate_from_rule = <S, T>(
     options.push(children);
   }
   if (options.length === 0) return null;
-  return {some: rule.merge.fn(memo.rng.sample(options))};
+  return {some: rule.merge.fn(options[memo.rng.int32(options.length)])};
 };
 
 const generate_from_term = <S, T>(
@@ -61,8 +69,10 @@ const generate_from_term = <S, T>(
   term: Term,
   value: S,
 ): Option<T> => {
-  const {type, value: term_value} = term;
-  if (type === 'name') return generate_from_name(memo, term_value, value);
+  if (term.type === 'name') {
+    const rules = memo.by_name[term.value] || [];
+    return generate_from_list(memo, rules, value);
+  }
   const result = memo.grammar.lexer.unlex(term, value);
   return result ? {some: result.value} : null;
 };
@@ -76,7 +86,6 @@ const index = <S, T>(grammar: Grammar<S, T>): Memo<S, T>['by_name'] => {
 };
 
 // This module supports generation from the root or from a provided ruleset.
-// TODO(skishore): Make use of scores. Sample proportional to 2 ** score.
 
 const generate = <S, T>(
   grammar: Grammar<S, T>,
@@ -84,7 +93,7 @@ const generate = <S, T>(
   value: S,
 ): Option<T> => {
   const memo: Memo<S, T> = {by_name: index(grammar), grammar, rng, saved: {}};
-  return generate_from_name(memo, grammar.start, value);
+  return generate_from_list(memo, memo.by_name[grammar.start] || [], value);
 };
 
 const generate_from_rules = <S, T>(
@@ -94,10 +103,7 @@ const generate_from_rules = <S, T>(
   value: S,
 ): Option<T> => {
   const memo: Memo<S, T> = {by_name: index(grammar), grammar, rng, saved: {}};
-  const options = rules
-    .map(x => generate_from_rule(memo, x, value))
-    .filter(x => !!x);
-  return options.length === 0 ? null : memo.rng.sample(options);
+  return generate_from_list(memo, rules, value);
 };
 
 const Generator = {generate, generate_from_rules};
