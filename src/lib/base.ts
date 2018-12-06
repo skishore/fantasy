@@ -1,3 +1,5 @@
+import {RNG} from './rng';
+
 // tslint:disable-next-line:no-any
 declare const require: any;
 const util = require('util');
@@ -11,9 +13,6 @@ interface Some<T> {
 const assert = (condition: boolean, message?: () => string): void => {
   if (!condition) throw Error(message ? message() : undefined);
 };
-
-const clone = <T>(value: T): T =>
-  value instanceof Object ? JSON.parse(JSON.stringify(value)) : value;
 
 const debug = <T>(value: T): string =>
   util.inspect(value, {breakLength: Infinity, colors: true, depth: null});
@@ -32,14 +31,9 @@ const range = (n: number): number[] =>
     .fill(false)
     .map((_, i) => i);
 
-const sample = <T>(xs: T[]): Option<T> => {
-  if (xs.length === 0) return null;
-  return {some: xs[Math.floor(Math.random() * xs.length)]};
-};
-
 const zip = <S, T>(xs: S[], ys: T[]): [S, T][] => {
   assert(xs.length === ys.length, () => `zip: ${debug(xs)}, ${debug(ys)}`);
   return xs.map((x, i): [S, T] => [x, ys[i]]);
 };
 
-export {Option, assert, clone, debug, flatten, nonnull, range, sample, zip};
+export {Option, RNG, assert, debug, flatten, nonnull, range, zip};

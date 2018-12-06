@@ -1,4 +1,4 @@
-import {nonnull, range} from '../../src/lib/base';
+import {RNG, nonnull, range} from '../../src/lib/base';
 import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/base';
 import {Generator} from '../../src/parsing/generator';
 import {Test} from '../test';
@@ -62,15 +62,18 @@ const generator: Test = {
       ],
       0,
     );
-    const target = 2;
-    for (const op of '+-*/') {
+    const [seed, target] = [173, 2];
+    const expected: {[op: string]: string} = {
+      '+': '9-8+(7-4)/(7-4)+0',
+      '-': '9-7',
+      '*': '1*(1+1)',
+      '/': '8/4',
+    };
+    for (const op of Object.keys(expected)) {
+      const rng = new RNG(seed);
       const rules = grammar.rules.filter(x => x.rhs.some(y => y.value === op));
-      const maybe = Generator.generate_from_rules(grammar, rules, target);
-      const sample = nonnull(maybe).some;
-      Test.assert_eq(sample.includes(op), true);
-      // TODO(skishore): Check the text instead once generator takes a seed.
-      // tslint:disable-next-line:no-eval
-      Test.assert_eq(eval(sample), target);
+      const maybe = Generator.generate_from_rules(grammar, rng, rules, target);
+      Test.assert_eq(nonnull(maybe).some, expected[op]);
     }
   },
 };

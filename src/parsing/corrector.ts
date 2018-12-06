@@ -1,4 +1,4 @@
-import {Option, assert, range} from '../lib/base';
+import {Option, RNG, assert, range} from '../lib/base';
 import {Lambda, Template} from '../template/lambda';
 import {Tense, Tree, XGrammar, XMatch, XRule} from './extensions';
 import {Generator} from './generator';
@@ -14,6 +14,7 @@ interface Mapping<T> {
 interface State<T> {
   grammar: XGrammar<T>;
   mapping: Mapping<T>[];
+  rng: RNG;
   tense: Tense;
 }
 
@@ -75,11 +76,12 @@ const recurse = <T>(old_node: Tree<T>, state: State<T>): Tree<T> => {
   const errors = check_rules(old_node.rule, state.tense);
   if (errors.length > 0) {
     const lhs = old_node.rule.lhs;
-    const rules = state.grammar.rules.filter(
+    const {grammar, rng} = state;
+    const rules = grammar.rules.filter(
       x => x.lhs === lhs && check_rules(x, state.tense).length === 0,
     );
     const value = {some: old_node.value};
-    const maybe = Generator.generate_from_rules(state.grammar, rules, value);
+    const maybe = Generator.generate_from_rules(grammar, rng, rules, value);
     if (maybe) new_node = maybe.some;
   }
   if (new_node.type !== 'node') throw Error('Invalid node replacement!');

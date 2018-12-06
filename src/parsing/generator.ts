@@ -1,4 +1,4 @@
-import {Option, sample} from '../lib/base';
+import {Option, RNG} from '../lib/base';
 import {Lexer, Grammar, Rule, Term, Token} from './base';
 
 // We use a memo both to speed up generation and to avoid infinite loops on
@@ -7,6 +7,7 @@ import {Lexer, Grammar, Rule, Term, Token} from './base';
 interface Memo<S, T> {
   by_name: {[name: string]: Rule<S, T>[]};
   grammar: Grammar<S, T>;
+  rng: RNG;
   saved: {[key: string]: Option<T>};
 }
 
@@ -28,10 +29,10 @@ const generate_from_name = <S, T>(
   symbol: string,
   value: S,
 ): Option<T> => {
-  const options = (memo.by_name[symbol] || []).map(x =>
-    generate_from_rule(memo, x, value),
-  );
-  return sample(options.filter(x => !!x).map(x => x!.some));
+  const options = (memo.by_name[symbol] || [])
+    .map(x => generate_from_rule(memo, x, value))
+    .filter(x => !!x);
+  return options.length === 0 ? null : memo.rng.sample(options);
 };
 
 const generate_from_rule = <S, T>(
@@ -51,8 +52,8 @@ const generate_from_rule = <S, T>(
     if (children.length !== rule.rhs.length) continue;
     options.push(children);
   }
-  const result = sample(options);
-  return result ? {some: rule.merge.fn(result.some)} : null;
+  if (options.length === 0) return null;
+  return {some: rule.merge.fn(memo.rng.sample(options))};
 };
 
 const generate_from_term = <S, T>(
@@ -74,23 +75,29 @@ const index = <S, T>(grammar: Grammar<S, T>): Memo<S, T>['by_name'] => {
   return result;
 };
 
-// The public interface of this module is currently a single static method.
-// TODO(skishore): Make use of scores here. Sample proportional to 2 ** score.
-// TODO(skishore): Take a seed as input and derandomize this algorithm.
+// This module supports generation from the root or from a provided ruleset.
+// TODO(skishore): Make use of scores. Sample proportional to 2 ** score.
 
-const generate = <S, T>(grammar: Grammar<S, T>, value: S): Option<T> => {
-  const memo: Memo<S, T> = {by_name: index(grammar), grammar, saved: {}};
+const generate = <S, T>(
+  grammar: Grammar<S, T>,
+  rng: RNG,
+  value: S,
+): Option<T> => {
+  const memo: Memo<S, T> = {by_name: index(grammar), grammar, rng, saved: {}};
   return generate_from_name(memo, grammar.start, value);
 };
 
 const generate_from_rules = <S, T>(
   grammar: Grammar<S, T>,
+  rng: RNG,
   rules: Rule<S, T>[],
   value: S,
 ): Option<T> => {
-  const memo: Memo<S, T> = {by_name: index(grammar), grammar, saved: {}};
-  const options = rules.map(x => generate_from_rule(memo, x, value));
-  return sample(options.filter(x => !!x).map(x => x!.some));
+  const memo: Memo<S, T> = {by_name: index(grammar), grammar, rng, saved: {}};
+  const options = rules
+    .map(x => generate_from_rule(memo, x, value))
+    .filter(x => !!x);
+  return options.length === 0 ? null : memo.rng.sample(options);
 };
 
 const Generator = {generate, generate_from_rules};
