@@ -48,6 +48,47 @@ const merge_tense = (actual: Tense[]): Tense => {
   return result;
 };
 
+// An algorithm for reconstructing a node to correct top-level issues, which:
+//
+//  1. Identifies rules with the same LHS that match the contextual tense.
+//  2. Generates a tree with the same semantics with one of those rules.
+//  3. Reuses subtrees of the original node with the same LHS and semantics.
+//
+// TODO(skishore): We should use a grammar-defined representation to serialize
+// the node semantics into a key instead of using JSON.stringify. That's also
+// true for the generation logic.
+
+interface Index<T> extends Map<string, Tree<T>> {};
+
+const get_index  = <T>(node: Tree<T>, memo: Index<T>): Index<T> => {
+  if (node.type === 'leaf') return memo;
+  node.children.forEach((x, i) => {
+    const key = JSON.stringify([node.rule.rhs[i], x.value])
+    memo.set(key, x);
+    get_index(x, memo);
+  });
+  return memo;
+};
+
+const use_index = <T>(node: Tree<T>, memo: Index<T>): Tree<T> => {
+  if (node.type === 'leaf') return node;
+  const children = node.children.map((x, i) => {
+    const key = JSON.stringify([node.rule.rhs[i], x.value])
+    return memo.get(key) || use_index(x, memo);
+  });
+  return {...node, children};
+};
+
+const rebuild = <T>(lhs: string, node: Tree<T>, state: State<T>): Tree<T> => {
+  const {grammar, rng} = state;
+  const rules = grammar.rules.filter(
+    x => x.lhs === lhs && check_rules(x, state.tense).length === 0,
+  );
+  const value = {some: node.value};
+  const maybe = Generator.generate_from_rules(grammar, rng, rules, value);
+  return maybe ? use_index(maybe.some, get_index(node, new Map())) : node;
+};
+
 // The core recursive correction algorithm, which operates on a mutable state.
 
 const recurse = <T>(old_node: Tree<T>, state: State<T>): Tree<T> => {
@@ -58,32 +99,17 @@ const recurse = <T>(old_node: Tree<T>, state: State<T>): Tree<T> => {
     if (errors.length > 0) {
       const maybe = state.grammar.lexer.fix(old_node.match, state.tense);
       if (maybe) new_node = {...old_node, match: maybe};
-      if (maybe) assert(apply(maybe.data.tenses, state).length === 0);
+      if (maybe) apply(maybe.data.tenses, state).length;
     }
     state.mapping.push({errors, new_node, old_node});
     return new_node;
   }
 
-  let new_node: Tree<T> = {...old_node};
-  new_node.children = new_node.children.slice();
-
-  // Correct rule errors (where the rule's syntax is incompatible with the
-  // current tense state) by regenerating the entire tree rooted at this node.
-  //
-  // TODO(skishore): We should reuse subtrees that appear in both trees.
-  // For example, if a '$noun rang do' is an invalid rule but '$noun ka rang'
-  // is a valid one, we should reuse the $noun and rang subtrees.
-  const errors = check_rules(old_node.rule, state.tense);
-  if (errors.length > 0) {
-    const lhs = old_node.rule.lhs;
-    const {grammar, rng} = state;
-    const rules = grammar.rules.filter(
-      x => x.lhs === lhs && check_rules(x, state.tense).length === 0,
-    );
-    const value = {some: old_node.value};
-    const maybe = Generator.generate_from_rules(grammar, rng, rules, value);
-    if (maybe) new_node = maybe.some;
-  }
+  // Correct top-level issues by regenerating the entire subtree.
+  const lhs = old_node.rule.lhs;
+  const copy = {...old_node, children: old_node.children.slice()};
+  const errors = check_rules(copy.rule, state.tense);
+  const new_node = errors.length > 0 ? rebuild(lhs, copy, state) : copy;
   if (new_node.type !== 'node') throw Error('Invalid node replacement!');
   apply([new_node.rule.data.tense], state);
 
