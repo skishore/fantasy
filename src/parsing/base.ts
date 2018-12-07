@@ -19,6 +19,7 @@ interface Token<T> {
 // The Grammar interface.
 
 interface Grammar<S, T> {
+  key: (s: S) => string;
   lexer: Lexer<S, T>;
   rules: Rule<S, T>[];
   start: string;

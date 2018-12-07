@@ -35,7 +35,7 @@ const generate_from_memo = <S, T>(
   term: Term,
   value: S,
 ): Option<T> => {
-  const key = JSON.stringify([term, value]);
+  const key = Generator.key(memo.grammar, term, value);
   if (!memo.saved.hasOwnProperty(key)) {
     memo.saved[key] = null;
     memo.saved[key] = generate_from_term(memo, term, value);
@@ -106,6 +106,9 @@ const generate_from_rules = <S, T>(
   return generate_from_list(memo, rules, value);
 };
 
-const Generator = {generate, generate_from_rules};
+const key = <S, T>(grammar: Grammar<S, T>, term: Term, value: S): string =>
+  `${JSON.stringify(term)}-${grammar.key(value)}`;
+
+const Generator = {generate, generate_from_rules, key};
 
 export {Generator};

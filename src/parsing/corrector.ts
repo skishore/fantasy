@@ -53,28 +53,23 @@ const merge_tense = (actual: Tense[]): Tense => {
 //  1. Identifies rules with the same LHS that match the contextual tense.
 //  2. Generates a tree with the same semantics with one of those rules.
 //  3. Reuses subtrees of the original node with the same LHS and semantics.
-//
-// TODO(skishore): We should use a grammar-defined representation to serialize
-// the node semantics into a key instead of using JSON.stringify. That's also
-// true for the generation logic.
 
-interface Index<T> extends Map<string, Tree<T>> {};
+interface Memo<T> extends Map<string, Tree<T>> {}
 
-const get_index  = <T>(node: Tree<T>, memo: Index<T>): Index<T> => {
+const get_memo = <T>(g: XGrammar<T>, node: Tree<T>, memo: Memo<T>): Memo<T> => {
   if (node.type === 'leaf') return memo;
-  node.children.forEach((x, i) => {
-    const key = JSON.stringify([node.rule.rhs[i], x.value])
-    memo.set(key, x);
-    get_index(x, memo);
+  node.children.map((x, i) => {
+    const key = Generator.key(g, node.rule.rhs[i], {some: x.value});
+    return memo.set(key, x) && get_memo(g, x, memo);
   });
   return memo;
 };
 
-const use_index = <T>(node: Tree<T>, memo: Index<T>): Tree<T> => {
+const use_memo = <T>(g: XGrammar<T>, node: Tree<T>, memo: Memo<T>): Tree<T> => {
   if (node.type === 'leaf') return node;
   const children = node.children.map((x, i) => {
-    const key = JSON.stringify([node.rule.rhs[i], x.value])
-    return memo.get(key) || use_index(x, memo);
+    const key = Generator.key(g, node.rule.rhs[i], {some: x.value});
+    return memo.get(key) || use_memo(g, x, memo);
   });
   return {...node, children};
 };
@@ -86,7 +81,9 @@ const rebuild = <T>(lhs: string, node: Tree<T>, state: State<T>): Tree<T> => {
   );
   const value = {some: node.value};
   const maybe = Generator.generate_from_rules(grammar, rng, rules, value);
-  return maybe ? use_index(maybe.some, get_index(node, new Map())) : node;
+  if (!maybe) return node;
+  const memo = get_memo(grammar, node, new Map());
+  return use_memo(grammar, maybe.some, memo);
 };
 
 // The core recursive correction algorithm, which operates on a mutable state.
@@ -99,7 +96,7 @@ const recurse = <T>(old_node: Tree<T>, state: State<T>): Tree<T> => {
     if (errors.length > 0) {
       const maybe = state.grammar.lexer.fix(old_node.match, state.tense);
       if (maybe) new_node = {...old_node, match: maybe};
-      if (maybe) apply(maybe.data.tenses, state).length;
+      if (maybe) apply(maybe.data.tenses, state);
     }
     state.mapping.push({errors, new_node, old_node});
     return new_node;

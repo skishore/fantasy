@@ -133,6 +133,7 @@ const lift5 = <S, T>(lexer: XLexer<T, 0>): XLexer<T> => ({
 // The actual lift method, plus some debugging utilities on parse trees.
 
 const lift = <T>(grammar: XGrammar<T, 0>): XGrammar<T> => ({
+  key: grammar.key,
   lexer: lift5(grammar.lexer),
   rules: grammar.rules.map(x => lift1(x)),
   start: grammar.start,

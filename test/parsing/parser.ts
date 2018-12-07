@@ -18,7 +18,7 @@ const make_grammar = <T>(specs: Spec<T>[], value: T): Grammar<unknown, T> => {
     merge: {fn: x.fn, score: x.score || 0},
     split: {fn: () => [], score: 0},
   }));
-  return {lexer, rules, start: '$Root'};
+  return {key: JSON.stringify, lexer, rules, start: '$Root'};
 };
 
 const make_term = (term: string): Term => {

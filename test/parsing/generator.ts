@@ -28,7 +28,7 @@ const make_grammar = <S>(specs: Spec<S>[], value: S): Grammar<S, string> => {
     merge: {fn: (xs: string[]) => xs.join(''), score: 0},
     split: {fn: x.fn, score: x.score || 0},
   }));
-  return {lexer: {lex, unlex}, rules, start: '$Root'};
+  return {key: JSON.stringify, lexer: {lex, unlex}, rules, start: '$Root'};
 };
 
 const make_term = (term: string): Term => {
