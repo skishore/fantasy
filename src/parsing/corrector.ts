@@ -1,4 +1,4 @@
-import {Option, RNG, assert, range} from '../lib/base';
+import {Option, RNG, assert, flatten, nonnull, range} from '../lib/base';
 import {Lambda, Template} from '../template/lambda';
 import {Tense, Tree, XGrammar, XMatch, XRule} from './extensions';
 import {Generator} from './generator';
@@ -127,12 +127,46 @@ const recurse = <T>(old_node: Tree<T>, state: State<T>): Tree<T> => {
   return new_node;
 };
 
-// TODO(skishore): We need to wrap up this algorithm in a need interface that:
-//
-//  1. Takes the "correct" method for correcting terms as input.
-//  2. Builds the state and calls the recursive algorithm above.
-//  3. Computes a diff between the resulting parse tree and the original one.
-//  4. Take a seed as input and derandomize this algorithm.
-//
-// TODO(skishore): Write a test for this code.
-// TODO(skishore): Write a parser from sexp -> XGrammar<T>.
+// A helper used to compute a diff between an input and its correction.
+
+const diff = <T>(map: Map<Tree<T>, Mapping<T>>, tree: Tree<T>): Diff<T>[] => {
+  const entry = nonnull(map.get(tree) || null);
+  if (entry.errors.length === 0) {
+    return tree.type === 'leaf'
+      ? [{type: 'right', match: tree.match}]
+      : flatten(tree.children.map(x => diff(map, x)));
+  }
+  const o = Tree.matches(entry.old_node);
+  const n = Tree.matches(entry.new_node);
+  return [{type: 'wrong', errors: entry.errors, old: o, new: n}];
+};
+
+// The public interface for this module has one method, correct, which takes
+// a parse tree and returns a corrected tree as well as a best-effort diff.
+// TODO(skishore): Write tests for this interface.
+
+interface Correction<T> {
+  diff: Diff<T>[];
+  tree: Tree<T>;
+}
+
+type Diff<T> =
+  | {type: 'right'; match: XMatch<T>}
+  | {type: 'wrong'; errors: string[]; old: XMatch<T>[]; new: XMatch<T>[]};
+
+const correct = <T>(
+  grammar: XGrammar<T>,
+  rng: RNG,
+  tree: Tree<T>,
+): Correction<T> => {
+  const state: State<T> = {grammar, mapping: [], rng, tense: {}};
+  const new_tree = recurse(tree, state);
+  const map = new Map(
+    state.mapping.map(x => [x.new_node, x] as [Tree<T>, Mapping<T>]),
+  );
+  return {diff: diff(map, new_tree), tree: new_tree};
+};
+
+const Corrector = {correct};
+
+export {Corrector};
