@@ -34,8 +34,8 @@ const check_rules = <T>(rule: XRule<T>, tense: Tense): string[] => {
 
 const check_tense = (actual: Tense, expected: Tense): string[] => {
   return Object.keys(expected)
-    .filter(x => actual[x] !== expected[x])
-    .map(x => `${x} should be ${expected[x]} (was: ${actual[x]}).`);
+    .filter(x => x in actual && actual[x] !== expected[x])
+    .map(x => `${x} should be ${expected[x]} (was: ${actual[x]})`);
 };
 
 const merge_tense = (actual: Tense[]): Tense => {
@@ -143,7 +143,6 @@ const diff = <T>(map: Map<Tree<T>, Mapping<T>>, tree: Tree<T>): Diff<T>[] => {
 
 // The public interface for this module has one method, correct, which takes
 // a parse tree and returns a corrected tree as well as a best-effort diff.
-// TODO(skishore): Write tests for this interface.
 
 interface Correction<T> {
   diff: Diff<T>[];
