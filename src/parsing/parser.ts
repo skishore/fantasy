@@ -1,4 +1,4 @@
-import {Option} from '../lib/base';
+import {Option, flatten} from '../lib/base';
 import {Grammar, Lexer, Match, Rule, Term, Token} from './base';
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
@@ -13,7 +13,7 @@ interface State<T> {
   next?: Next<T>;
   prev?: State<T>;
   rule: IRule<T>;
-  score?: number;
+  score: number;
   start: number;
   wanted_by: State<T>[];
 }
@@ -36,6 +36,7 @@ const make_state = <T>(
 ): State<T> => ({
   cursor: 0,
   rule,
+  score: -Infinity,
   start,
   wanted_by,
 });
@@ -47,8 +48,9 @@ interface Column<T> {
   index: number;
   states: State<T>[];
   structures: {
-    completed: {[name: string]: State<T>[]};
+    completed: State<T>[];
     map: Map<number, [State<T>, Next<T>][]>;
+    nullable: {[name: string]: State<T>[]};
     scannable: State<T>[];
     wanted: {[name: string]: State<T>[]};
   };
@@ -68,6 +70,7 @@ const advance_state = <T>(
     candidates: [],
     cursor: prev.cursor + 1,
     rule: prev.rule,
+    score: -Infinity,
     start: prev.start,
     wanted_by: prev.wanted_by,
   };
@@ -77,7 +80,7 @@ const advance_state = <T>(
 };
 
 const fill_column = <T>(column: Column<T>): Column<T> => {
-  const {completed, map, scannable, wanted} = column.structures;
+  const {completed, map, nullable, scannable, wanted} = column.structures;
   const max_index = column.grammar.max_index;
   const states = column.states;
 
@@ -92,9 +95,12 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
         const prev = wanted_by[j];
         advance_state(map, max_index, prev, states).push([prev, next]);
       }
+      if (state.start === 0) {
+        completed.push(state);
+      }
       if (state.start === column.index) {
         const lhs = state.rule.lhs;
-        (completed[lhs] = completed[lhs] || []).push(state);
+        (nullable[lhs] = nullable[lhs] || []).push(state);
       }
     } else {
       // Queue up scannable states.
@@ -106,7 +112,7 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
       // Queue up predicted states.
       if (wanted[value]) {
         wanted[value].push(state);
-        const nulls = completed[value] || [];
+        const nulls = nullable[value] || [];
         if (nulls.length > 0) {
           const advanced = advance_state(map, max_index, state, states);
           for (let j = nulls.length; j--; ) {
@@ -138,8 +144,9 @@ const make_column = <T>(grammar: IGrammar<T>, index: number): Column<T> => {
     index,
     states: [],
     structures: {
-      completed: {},
+      completed: [],
       map: new Map(),
+      nullable: {},
       scannable: [],
       wanted: {},
     },
@@ -174,7 +181,7 @@ const next_column = <T>(prev: Column<T>, token: Token<T>): Column<T> => {
 };
 
 const score_state = <T>(state: State<T>): number => {
-  if (state.score != null) return state.score;
+  if (state.score > -Infinity) return state.score;
   if (state.cursor === 0) return (state.score = state.rule.score);
   const candidates = state.candidates!;
   let best_candidate: [State<T>, Next<T>] | null = null;
@@ -244,34 +251,63 @@ const index = <S, T>(grammar: Grammar<S, T>): IGrammar<T> => {
   return {...grammar, by_name, max_index} as IGrammar<T>;
 };
 
+// Fault-tolerant parsing helpers.
+
+type Delta<T> = {completed: State<T>[]; scannable: State<T>[]};
+
+const penalize = <T>(penalty: number, states: State<T>[][]) => {
+  if (states.length === 1) return states[0];
+  states = states.slice().reverse();
+  const add = (x: number) => (y: State<T>) => ({...y, score: y.score + x});
+  return flatten(states.map((x, i) => (i === 0 ? x : x.map(add(i * penalty)))));
+};
+
+const update = <T>(column: Column<T>, delta: Delta<T>[], window: number) => {
+  if (delta.length > window) delta.shift();
+  const {completed, scannable} = column.structures;
+  delta.push({completed, scannable});
+};
+
 // Our public interface is a pure parsing function returning an Option<T>.
+
+interface Options {
+  debug?: boolean;
+  penalty?: number;
+  window?: number;
+}
 
 const parse = <S, T>(
   grammar: Grammar<S, T>,
   input: string,
-  debug: boolean = false,
+  options?: Options,
 ): Option<T> => {
-  // Process each token and update our columnar state.
-  const indexed = (grammar as IGrammar<T>).max_index
-    ? (grammar as IGrammar<T>)
-    : index(grammar);
+  // Set default values of our options.
+  const debug = options && options.debug;
+  const penalty = (options && options.penalty) || 0;
+  const window = (options && options.window) || 0;
+
+  // Construct our our first column and our scannable window.
+  const indexed = index(grammar);
   let column = make_column(indexed, 0);
   // tslint:disable-next-line:no-console
   if (debug) console.log(print_column(column));
+  const delta: Delta<T>[] = [];
+
+  // Process each token and update our columnar state.
   if (column.states.length === 0) return null;
   for (const token of grammar.lexer.lex(input)) {
+    update(column, delta, window);
+    const scannable = penalize(penalty, delta.map(x => x.scannable));
+    column.structures.scannable = scannable;
     column = next_column(column, token);
     // tslint:disable-next-line:no-console
     if (debug) console.log(print_column(column));
-    if (column.states.length === 0) return null;
   }
 
   // Get the winning top-level state.
-  const match = (x: State<T>) =>
-    x.cursor === x.rule.rhs.length &&
-    x.rule.lhs === grammar.start &&
-    x.start === 0;
-  const states = column.states.filter(match);
+  update(column, delta, window);
+  const match = (x: State<T>) => x.rule.lhs === grammar.start;
+  const states = penalize(penalty, delta.map(x => x.completed.filter(match)));
   if (states.length === 0) return null;
   states.sort((x, y) => y.score! - x.score!);
   return {some: evaluate_state(states[0])};

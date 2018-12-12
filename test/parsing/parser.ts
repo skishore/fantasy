@@ -74,6 +74,27 @@ const parser: Test = {
     Test.assert_eq(Parser.parse(grammar, 'b?b'), {some: 'bb'});
     Test.assert_eq(Parser.parse(grammar, 'b??'), {some: ''});
   },
+  skipping_works: () => {
+    const grammar = make_grammar(
+      [
+        {lhs: '$Root', rhs: ['$Add', '$Whitespace'], fn: x => x[0]},
+        {lhs: '$Add', rhs: ['$Add', '+', '$Num'], fn: x => x[0] + x[2]},
+        {lhs: '$Add', rhs: ['$Num'], fn: x => x[0]},
+        {lhs: '$Whitespace', rhs: ['$Whitespace', ' '], fn: x => 0},
+        {lhs: '$Whitespace', rhs: [], fn: x => 0},
+        ...range(10).map(i => ({lhs: '$Num', rhs: [`${i}`], fn: () => i})),
+      ],
+      0,
+    );
+    const skip = (window: number) => ({penalty: -1, window});
+    Test.assert_eq(Parser.parse(grammar, '1+2+3  '), {some: 6});
+    Test.assert_eq(Parser.parse(grammar, '1+2?+3 '), null);
+    Test.assert_eq(Parser.parse(grammar, '1+2+3 ?'), null);
+    Test.assert_eq(Parser.parse(grammar, '1+2?+3 ', skip(1)), {some: 6});
+    Test.assert_eq(Parser.parse(grammar, '1+2+3 ?', skip(1)), {some: 6});
+    Test.assert_eq(Parser.parse(grammar, '1+2??+3', skip(1)), null);
+    Test.assert_eq(Parser.parse(grammar, '1+2??+3', skip(2)), {some: 6});
+  },
 };
 
 export {parser};
