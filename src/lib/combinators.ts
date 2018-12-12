@@ -1,4 +1,4 @@
-import {nonnull} from './base';
+import {nonnull, quote} from './base';
 
 type Output<T> =
   | {stop: Stop; i: number; success: true; result: T}
@@ -9,9 +9,6 @@ type Parser<T> = (input: string, index: number) => Output<T>;
 type Stop = {expected: string[]; i: number};
 
 // Parsing primitives, for matching by regex or by string.
-
-const swap_quotes = (x: string): string =>
-  x.replace(/[\'\"]/g, y => (y === '"' ? "'" : '"'));
 
 const fail = <T>(stop: Stop): Output<T> => ({stop, i: stop.i, success: false});
 
@@ -33,7 +30,7 @@ const regexp = (re: RegExp): Parser<string> => {
 };
 
 const string = (st: string): Parser<string> => {
-  const expected = [swap_quotes(JSON.stringify(st))];
+  const expected = [quote(JSON.stringify(st))];
   return (input, i) => {
     const m = input.slice(i, i + st.length) === st;
     return m ? succeed(i + st.length, st) : fail({expected, i});

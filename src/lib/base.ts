@@ -26,6 +26,9 @@ const flatten = <T>(xss: T[][]): T[] => {
 // tslint:disable-next-line:no-any
 const nonnull = <T>(x: T | null): T => (assert(x !== null) as any) || x!;
 
+const quote = (x: string): string =>
+  x.replace(/[\'\"]/g, y => (y === '"' ? "'" : '"'));
+
 const range = (n: number): number[] =>
   Array(n)
     .fill(false)
@@ -36,4 +39,4 @@ const zip = <S, T>(xs: S[], ys: T[]): [S, T][] => {
   return xs.map((x, i): [S, T] => [x, ys[i]]);
 };
 
-export {Option, RNG, assert, debug, flatten, nonnull, range, zip};
+export {Option, RNG, assert, debug, flatten, nonnull, quote, range, zip};

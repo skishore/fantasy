@@ -1,4 +1,4 @@
-import {flatten, nonnull, range} from '../lib/base';
+import {flatten, nonnull, quote, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
 import {Arguments as BA, Template as BT, cross, reindex} from './base';
 
@@ -142,9 +142,6 @@ const variable = (index: number): Template => ({
 
 // prettier-ignore
 const parser: Node<Template> = (() => {
-  const swap_quotes = (x: string): string =>
-    x.replace(/[\'\"]/g, y => (y === '"' ? "'" : '"'));
-
   const ws = Parser.regexp(/\s*/m);
   const id = Parser.regexp(/[a-zA-Z]+/).skip(ws);
   const w = (x: string) => Parser.string(x).skip(ws);
@@ -160,7 +157,7 @@ const parser: Node<Template> = (() => {
 
   const string = Parser.any(
     Parser.regexp(/"[^"]*"/).map(x => JSON.parse(x) as string),
-    Parser.regexp(/'[^']*'/).map(x => JSON.parse(swap_quotes(x)) as string),
+    Parser.regexp(/'[^']*'/).map(x => JSON.parse(quote(x)) as string),
   ).skip(ws);
 
   const spread = Parser.all(w('...$'), number).map(
