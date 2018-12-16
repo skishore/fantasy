@@ -143,7 +143,7 @@ const variable = (index: number): Template => ({
 // prettier-ignore
 const parser: Node<Template> = (() => {
   const ws = Parser.regexp(/\s*/m);
-  const id = Parser.regexp(/[a-zA-Z]+/).skip(ws);
+  const id = Parser.regexp(/[a-zA-Z_]+/).skip(ws);
   const w = (x: string) => Parser.string(x).skip(ws);
   const index = Parser.regexp(/[0-9]+/).skip(ws).map(x => parseInt(x, 10));
 

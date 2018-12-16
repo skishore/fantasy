@@ -128,6 +128,10 @@ const value: Test = {
   parse_fails_on_malformatted_list: () => {
     Test.assert_error(() => Template.parse('["a" "b"]'), 'At line 1, column 6');
   },
+  parse_handles_underscore: () => {
+    const t = Template.parse('{abc_de_f: false}');
+    Test.assert_eq(t.merge([]), {abc_de_f: false});
+  },
   parse_handles_whitespace: () => {
     const t = Template.parse(' { x : [ true , 2 , "3" , ...$0 , $1 ] } ');
     Test.assert_eq(t.merge([[4, 5], 6]), {x: [true, 2, '3', 4, 5, 6]});

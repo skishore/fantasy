@@ -81,6 +81,10 @@ const lambda: Test = {
       {0: l`country.US & I`, 1: null},
     ]);
   },
+  parse_handles_underscore: () => {
+    const lambda = l`abc_de_f(hi_jk.lm_no)`;
+    Test.assert_eq(lambda, l`abc_de_f(hi_jk.lm_no)`);
+  },
   parse_handles_whitespace: () => {
     const lambda = l` Tell ( ( R [ a ] . b & c ) | d , ( e . f | ~ ( g ) ) ) `;
     Test.assert_eq(lambda, l`Tell((R[a].b & c) | d, e.f | ~g)`);
