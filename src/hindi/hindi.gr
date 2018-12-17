@@ -1,155 +1,205 @@
+# TODO(skishore): Improve handling of type-specific noun phrases.
+# These rules are already repetitive and will only get more complicated as we
+# support e.g. lists of nouns separated by "and". However, we do want to
+# support some type-specific behavior, too, like "thora sa %food".
+#
+# TODO(skishore): Deal with count semantics correctly. Right now we are not
+# drawing a semantic distinction between singulars and plurals, but as a
+# result text-generation can be strange. However, if we have to create a new
+# "$NounType -> %noun_singular | %noun_plural" rule for each type, it will
+# interact badly with the already redundant problem above.
+#
+# TODO(skishore): Deal with relations. On their own, "larka" has the semantics
+# of a "boy", but "mera larka" means "my son", not "my boy". We can add
+# relation words to the noun table, but we need to make sure they don't get
+# expanded by %noun, only by %relation.
+#
+# TODO(skishore): Support parsing text with punctuation. That will also be
+# useful for lists, as well as helping with, e.g. the ? at the end of AskName.
+# We can use the existing fault-tolerance, along with support for explicit
+# punctuation text terms.
+#
+# TODO(skishore): Create a way to pass hints to the lexer, like the gender of
+# "I" and of "you", the tone, and the current pronoun categories in scope.
+# This step is probably relatively easy, as long as we can define the API.
+#
+# TODO(skishore): Support '$Food chahie', where the subject "I" is implicit.
+# We can avoid creating more rules if we add support for explicit null rules
+# (e.g. we can make $Noun in $TellWant an explicit $MaybeNoun), where the null
+# rules can still have metadata like scoring, semantics, and syntax. The only
+# thing blocking this change is fixing the optional template handler syntax.
+# (Or does it block? If the null rule has nontrivial semantics, then no.)
+
 # Top-level intents.
 
-.hello (= true)
+$AskFood! (= 'Ask(R[want].you)')
+= ap?^ kya $Khana? chahte^ hain^
+= ap?^ kya $Leenge^
+= $Apko?^ kya $Khana chahie^
+= $Apko? $Main?^ kya $La sakta hun^ (> -1)
+= $Main?^ $Apko? kya $La sakta hun^ (> -1)
+
+$AskName! (= 'Ask(R[name].$0)')
+= $Noun^ kaun hai^
+= $NounKa^ nam* kya hai^
+
+$Hello! (= 'Hello()')
+= hello
 = namaste
 
-.my_name_is
-= $main^ %token hoon^ (= $1)
-= $mera^ nam* %token hai^ (= $2)
+$Mention! (= 'Mention($0)')
+= $Noun
 
-.order_drink
-= $drink (= $0)
-= $main?^ $noun $pioonga^ (= $1)
-= $mujhko? $drink $chahiye (= $1)
+$TellName! (= 'Tell($0, name.$1)')
+= $Noun:0^ %token:1 hai^ (< -10)
+= $NounKa:0^ nam* %token:1 hai^ (< -10)
 
-.order_food
-= $food (= $0)
-= $main?^ $noun $khaoonga^ (= $1)
-= $mujhko? $food $chahiye (= $1)
-
-.what_do_you_want_to_eat (= true)
-= ap?^ kya khana? chahte^ hain^ ?
-= $apko? kya $khana? chahiye ?
-= $apko? $main?^ kya $la sakta hoon^ ? (> 0.5)
-= $main?^ $apko? kya $la sakta hoon^ ? (> 0.5)
-
-.whats_your_name (= true)
-= ap^ kaun ho^ ?
-= $apka^ nam* kya hai^ ?
+$TellWant! (= 'Tell($0, want.$1)')
+= $Noun^ $Noun $WantActive^
+= $Noun^ $Drink piega^
+= $Noun^ $Food khaega^
+= $NounKo $Noun^ $WantPassive^
+= $NounKo $Drink^ pina hai^
+= $NounKo $Food^ khana hai^
 
 # Adjective and noun phrases.
 
-$adjectives (= [...$0, $1])
-= $adjectives? %adjective
+$Adjectives (= '$0 & $1')
+= $Adjectives? %adjective
 
-$drink (= $0)
-= NOUN[%drink_singular, %drink_plural, %drink]
+$Determiner
+= $NounKa (= 'owner.$0')
+= %determiner (= 'context.$0')
 
-$food (= $0)
-= NOUN[%food_singular, %food_plural, %food]
+$BaseNounList
+= %noun (= '$0')
+= %noun aur %noun (= '$0 | $2')
+= %noun %noun aur %noun (= '$0 | $1 | $3')
+< $BaseNounList? %noun (= '$0 | $1') (< -1)
 
-$noun (= $0)
-= NOUN[%noun_singular, %noun_plural, %noun]
-= $drink
-= $food
+$BaseNoun (= '$0 & count.$1 & $2 & $3')
+= $Determiner?^ %number?* $Adjectives?^ $BaseNounList*
 
-NOUN[x, y, z]
-= %determiner?^ $adjectives?^ NOUN_TOKEN[@x, @y]*
-  (= {determiner: $0, modifiers: $1, ...$2})
-= %determiner?^ %number* $adjectives?^ @z*
-  (= {count: $1, determiner: $0, modifiers: $2, noun: $3})
+$Temp (= '$0')
+= $BaseNoun
+= %direct
 
-NOUN_TOKEN[x, y]
-= @x (= {count: 'singular', noun: $0})
-= @y (= {count: 'plural', noun: $0}) (< -0.25)
+$Noun
+= $Temp (= '$0')
+= $Temp aur $Temp (= '$0 | $2')
+= $Temp $Temp aur $Temp (= '$0 | $1 | $3')
+< $Noun? $Temp (= '$0 | $1') (< -1)
+
+$NounKa (= '$0')
+= $BaseNoun ka^
+= %genitive
+< %direct ka^ (< -0.5)
+
+$NounKo (= '$0')
+= $BaseNoun ko^
+= %dative
+< %direct ko^ (< -0.5)
+
+# Specific subtypes of noun phrase.
+
+$Drink (= '$0 & count.$1 & $2 & $3')
+= $Determiner?^ %number?* $Adjectives?^ %drink*
+
+$Food (= '$0 & count.$1 & $2 & $3')
+= $Determiner?^ %number?* $Adjectives?^ %food*
 
 # Simple substitutions.
 
-$chahiye
-= chahiye
+$WantActive
+= leega
+< khaega (< -0.5)
+< piega (< -0.5)
+
+$WantPassive
+= chahie
 = de do
 = dijie
 = do
+< khana hai^ (< -0.5)
+< pina hai^ (< -0.5)
 
-$khana
+$Khana
 = khana
 = khane ke liye
 
-$khaoonga
-= khaoonga
-= loonga
+$Leenge
+= khaenge
+= leenge
+= pienge
 
-$la
+$La
 = de
 = la
 = madad kar
 
-$pioonga
-= loonga
-= pioonga
-
 # Pronouns in various forms.
 
-$apka
-= apka
-< ap ka
-< ap
-
-$apko
+$Apko
 = apko
 < ap ko
 < ap
 
-$main
-= ham
+$Main
+= $MainSingular
+= $MainPlural
+
+$MainSingular
 = main
-< hame
-< hamko
 < mujhe
 < mujhko
 
-$mera
-= hamara
-= mera
-< hamka
-< ham ka
-< mujhka
-< mujh ka
-
-$mujhko
-= hame
-= hamko
-= mujhe
-= mujhko
-< ham
-< ham ko
-< main
-< mujh ko
+$MainPlural
+= ham
+< hame
+< hamko
 
 # The base vocabulary, including several classes of words.
 
-@{%
+lexer: ```
 
 const {flatten} = require('../lib/base');
 const {HindiLexer} = require('../hindi/lexer');
 const {Vocabulary} = require('../hindi/vocabulary');
+const {Lambda} = require('../template/lambda');
 
 const {adjectives, nouns, numbers, particles, pronouns, verbs} = Vocabulary;
 
 const vocabulary = flatten([
   adjectives(`
-    meaning | word
-    --------|-------------
-        bad | kharab/KarAb
-       good | accha/acCA
-      large | bara/baDZA
-       okay | thik/TIk
-      small | chota/cotA
+            meaning | word
+    ----------------|-------------
+        quality.bad | kharab/KarAb
+       quality.good | accha/acCA
+       quality.okay | thik/TIk
+         size.large | bara/baDZA
+         size.small | chota/cotA
   `),
   nouns(`
-    category | meaning | singular      | plural        | gender
-    ---------|---------|---------------|---------------|-------
-    abstract | help    | madad/maxax   | <             | f
-           ^ | name    | nam/nAm       | <             | m
-       drink | tea     | chai/cAy      | <             | f
-           ^ | water   | pani/pAnI     | <             | m
-        food | apple   | seb/seb       | <             | m
-           ^ | bread   | pav/pAv       | <             | m
-           ^ | food    | khana/KAnA    | <             | m
-      person | boy     | larka/ladZakA | larke/ladZake | m
-           ^ | girl    | larki/ladZakI | <             | f
-           ^ | man     | admi/AxmI     | <             | m
-           ^ | woman   | aurat/Oraw    | <             | f
+    # The "role" column encodes gender and declension. Nouns with a "." do not
+    # decline while nouns with an "s" decline in the plural and oblique cases.
+
+      category | meaning                    | word          | role
+      ---------|----------------------------|---------------|-----
+      abstract | type.help                  | madad/maxax   | f.
+             ^ | type.name                  | nam/nAm       | m.
+         drink | type.tea                   | chai/cAy      | f.
+             ^ | type.water                 | pani/pAnI     | m.
+          food | type.apple                 | seb/seb       | m.
+             ^ | type.bread                 | roti/rotI     | m.
+             ^ | type.food                  | khana/KAnA    | m.
+        person | type.child                 | baccha/baccA  | ms
+             ^ | type.adult                 | log/log       | m.
+             ^ | gender.male & type.child   | larka/ladZakA | ms
+             ^ | gender.female & type.child | larki/ladZakI | fs
+             ^ | gender.male & type.adult   | admi/AxmI     | m.
+             ^ | gender.female & type.adult | aurat/Oraw    | fs
+    profession | profession.doctor          | daktar/dAktar | m.
+             ^ | profession.lawyer          | vakil/vakIl   | m.
   `),
   numbers(`
     meaning | word
@@ -165,11 +215,18 @@ const vocabulary = flatten([
           9 | nau/nO
   `),
   particles(`
+    # TODO(skishore): The "temporary" category here contains words that should
+    # appear in some part-of-speech list, but for which we don't yet have the
+    # proper declension. For example, we haven't implemented the reflective
+    # tense "chahie" for "chahna" or the command tense "dijie" for "dena".
+
       category | meaning | word            | declines
     -----------|---------|-----------------|---------
     determiner |    that | voh/vah         | n
              ^ |    this | yeh/yah         | n
-      particle |       - | ka/kA           | y
+      particle |       - | aur/Or          | n
+             ^ |       - | hello/helo      | n
+             ^ |       - | ka/kA           | y
              ^ |       - | ke/ke           | n
              ^ |       - | ko/ko           | n
              ^ |       - | liye/liye       | n
@@ -180,14 +237,9 @@ const vocabulary = flatten([
              ^ |    when | kab/kab         | n
              ^ |   where | kaha/kahA       | n
              ^ |     who | kaun/kOn        | n
-             ^ |     why | kyoon/kyUM      | n
-     # TODO(skishore): We have to eliminate this temporary word hack.
-     temporary |       - | chahiye/cAhIye  | n
+             ^ |     why | kyun/kyUM       | n
+     temporary |       - | chahie/cAhIe    | n
              ^ |       - | dijie/dijIe     | n
-             ^ |       - | loonga/lUngA    | n
-             ^ |       - | hamka/hamkA     | n
-             ^ |       - | mujh/muJ        | n
-             ^ |       - | mujhka/muJkA    | n
   `),
   pronouns(`
     # The "role" column encodes person, number, and, for the 2nd person, tone.
@@ -195,7 +247,7 @@ const vocabulary = flatten([
 
     role | direct   | genitive        | dative (1)   | dative (2)  | copula
     -----|----------|-----------------|--------------|-------------|---------
-     1s. | main/mEM | mera/merA       | mujhko/muJko | mujhe/muJe  | hoon/hUz
+     1s. | main/mEM | mera/merA       | mujhko/muJko | mujhe/muJe  | hun/hUz
      2si | tu/wU    | tera/werA       | tujhko/wuJko | tujhe/wuJe  | hai/hE
      3s. | voh/vah  | uska/uskA       | usko/usko    | use/use     | ^
      1p. | ham/ham  | hamara/hamArA   | hamko/hamko  | hame/hame   | hain/hEM
@@ -204,21 +256,19 @@ const vocabulary = flatten([
      3p. | voh/vah  | uska/uskA       | unko/unko    | usne/usne   | hai/hE
   `),
   verbs(`
-     meaning | word
-    ---------|-----------
-    to bring | lana/lAnA
-       to do | karna/karnA
-    to drink | pina/pInA
-      to eat | khana/KAnA
-     to give | dena/xenA
-    to sleep | sona/sonA
-     to take | lena/lenA
-     to want | chahna/cAhnA
+    meaning | word
+    --------|-------------
+      bring | lana/lAnA
+         do | karna/karnA
+      drink | pina/pInA
+        eat | khana/KAnA
+       give | dena/xenA
+      sleep | sona/sonA
+       take | lena/lenA
+       want | chahna/cAhnA
   `),
 ]);
 
-vocabulary.forEach(x => console.log({stem: x.stem, hindi: x.hindi, latin: x.latin}));
+return new HindiLexer(Lambda, vocabulary);
 
-return new HindiLexer(vocabulary);
-
-%}
+```

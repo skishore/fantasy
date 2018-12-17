@@ -124,7 +124,6 @@ const lift5 = <S, T>(lexer: XLexer<T, 0>): XLexer<T> => ({
 });
 
 // The actual lift method, plus some debugging utilities on parse trees.
-// TODO(skishore): Write a parser from sexp -> XGrammar<T>.
 
 const lift = <T>(grammar: XGrammar<T, 0>): XGrammar<T> => ({
   key: grammar.key,

@@ -1,31 +1,31 @@
 import {assert, flatten} from '../lib/base';
+import {Tense} from '../parsing/extensions';
 
 interface Entry {
+  head: string;
   hindi: string;
   latin: string;
-  stem: string;
+  scores: Map<string, number>;
   tenses: Tense[];
-  texts: Map<string, number>;
-  types: Map<string, number>;
-  value: Value;
+  value: string;
 }
-
-type Tense = {[tense: string]: string};
-type Value = number | string;
 
 // Boilerplate helpers needed to support the core declension routines.
 
-interface Case {
+interface Case extends Word {
+  tense: Tense;
+}
+
+interface Word {
   hindi: string;
   latin: string;
-  tense: Tense;
 }
 
 const kFeminine: Tense = {gender: 'feminine'};
 const kMasculine: Tense = {gender: 'masculine'};
 
-const kPlural: Tense = {number: 'plural'};
-const kSingular: Tense = {number: 'singular'};
+const kPlural: Tense = {count: 'plural'};
+const kSingular: Tense = {count: 'singular'};
 
 const kVerbTenses = [
   {...kMasculine, ...kSingular},
@@ -41,25 +41,24 @@ const option = <T>(x: string, table: {[x: string]: T}, type: string): T => {
   throw new Error(`${type} must be in {${keys}}; got: ${x}`);
 };
 
-const rollup = (cases: Case[], type: string, value: Value): Entry[] => {
+const rollup = (cases: Case[], type: string, value: string): Entry[] => {
   // Collect the set of distinct words and a base entry common to them all.
   assert(cases.length > 0, () => `Invalid cases for type: ${type}`);
-  const stem = `${type}-${cases[0].hindi}`;
-  const base = () => ({stem, types: new Map([[type, 0]]), value});
+  const head = `${type}-${cases[0].hindi}`;
   const hindis = Array.from(new Set(cases.map(x => x.hindi)).keys());
 
   // Return one entry for each distinct Hindi word.
   return hindis.map(hindi => {
-    const local = cases.filter(x => x.hindi === hindi);
-    const tenses = local.map(x => x.tense);
-    const texts = new Map(
-      cases.map(y => <[string, number]>[y.latin, y.hindi === hindi ? 0 : -1]),
-    );
-    return {...base(), hindi, latin: local[0].latin, tenses, texts};
+    const matched_cases = cases.filter(x => x.hindi === hindi);
+    const latin = matched_cases[0].latin;
+    const scores = new Map([[`%${type}`, 0]]);
+    cases.forEach(y => scores.set(y.latin, y.hindi === hindi ? 0 : -1));
+    const tenses = matched_cases.map(x => x.tense);
+    return {head, hindi, latin, scores, tenses, value};
   });
 };
 
-const split = (x: string): {hindi: string; latin: string} => {
+const split = (x: string): Word => {
   const result = x.split('/');
   if (result.length !== 2) throw Error(`Invalid word: ${x}`);
   return {hindi: result[1], latin: result[0]};
@@ -103,6 +102,23 @@ const parse_table = <T>(t: T, table: string): {[k in keyof T]: string}[] => {
   });
 };
 
+// Helpers for automatically computing different forms of words.
+
+const pluralize = (gender: string, noun: Word): Word => {
+  const {hindi, latin} = noun;
+  if (gender === 'm' && hindi.endsWith('A')) {
+    return {hindi: `${hindi.slice(0, -1)}e`, latin: `${latin.slice(0, -1)}e`};
+  } else if (gender === 'f' && hindi.endsWith('I')) {
+    return {hindi: `${hindi}yAM`, latin: `${latin}ya`};
+  }
+  const kOverrides: {[spec: string]: string} = {
+    'aurat/Oraw': 'aurte/Orwe',
+  };
+  const spec = kOverrides[`${latin}/${hindi}`];
+  if (!spec) throw Error(`Unable to pluralize: ${hindi}`);
+  return split(spec);
+};
+
 // Helpers for generating declined adjectives, nouns, and verbs.
 
 const adjectives = (table: string): Entry[] => {
@@ -124,29 +140,34 @@ const adjectives = (table: string): Entry[] => {
 
 const nouns = (table: string): Entry[] => {
   const entries: Entry[][] = [];
-  const t = {category: 0, meaning: 0, singular: 0, plural: 0, gender: 0};
+  const t = {category: 0, role: 0, meaning: 0, word: 0};
   for (const row of parse_table(t, table)) {
-    const {category, meaning, singular, plural, gender} = row;
-    const g = option(gender, {f: kFeminine, m: kMasculine}, 'gender');
-    const base = {...g, person: 'third'};
+    const {category, role, meaning, word} = row;
+    const gender = option(role[0], {f: kFeminine, m: kMasculine}, 'gender');
+    const {hindi, latin} = split(word);
+    const tense = {...gender, person: 'third'};
 
-    // Create entries for the (possibly equal) singular and plural forms.
-    const splits = [singular, plural].map(split);
-    const hindis = splits.map(x => x.hindi);
-    const latins = splits.map(x => x.latin);
-    const tenses = [kSingular, kPlural].map(x => ({...base, ...x}));
-    entries.push(rollup(zip(hindis, latins, tenses), 'noun', meaning));
+    // Create multiple forms for nouns with a plural declension.
+    if (role[1] !== '.') {
+      const singular = {hindi, latin};
+      const splits = [singular, pluralize(role[0], singular)];
+      const hindis = splits.map(x => x.hindi);
+      const latins = splits.map(x => x.latin);
+      const tenses = [kSingular, kPlural].map(x => ({...tense, ...x}));
+      entries.push(rollup(zip(hindis, latins, tenses), 'noun', meaning));
+    } else {
+      entries.push(rollup([{hindi, latin, tense}], 'noun', meaning));
+    }
 
     // Add types to each entry based on the category and the count.
     const xs = entries[entries.length - 1];
     xs.forEach(x => {
-      x.types.set(category, 0);
-      x.tenses.forEach(y => x.types.set(`noun_${y.number}`, 0));
-      x.tenses.forEach(y => x.types.set(`${category}_${y.number}`, 0));
+      x.scores.set(`%${category}`, 0);
+      let counts = x.tenses.filter(x => !!x.count);
+      if (counts.length === 0) counts = [kSingular, kPlural];
+      counts.forEach(y => x.scores.set(`%noun_${y.count}`, 0));
+      counts.forEach(y => x.scores.set(`%${category}_${y.count}`, 0));
     });
-
-    // As an optimization, clean up tenses for non-declining nouns.
-    if (singular === plural) xs.forEach(x => (x.tenses = [{...base}]));
   }
   return flatten(entries);
 };
@@ -159,7 +180,7 @@ const numbers = (table: string): Entry[] => {
     if (isNaN(value)) throw Error(`Invalid number: ${value}`);
     const {hindi, latin} = split(word);
     const tense = value === 1 ? kSingular : kPlural;
-    entries.push(rollup([{latin, hindi, tense}], 'number', value));
+    entries.push(rollup([{latin, hindi, tense}], 'number', meaning));
   }
   return flatten(entries);
 };
@@ -179,7 +200,7 @@ const particles = (table: string): Entry[] => {
     } else {
       entries.push(rollup([{hindi, latin, tense: {}}], 'particle', meaning));
     }
-    entries[entries.length - 1].forEach(x => x.types.set(category, 0));
+    entries[entries.length - 1].forEach(x => x.scores.set(`%${category}`, 0));
   }
   return flatten(entries);
 };
@@ -190,7 +211,7 @@ const pronouns = (table: string): Entry[] => {
   const t = {role: '', direct: '', genitive: '', copula: '', ...d};
 
   const persons = {1: 'first', 2: 'second', 3: 'third'};
-  const numbers = {p: 'plural', s: 'singular'};
+  const counts = {p: 'plural', s: 'singular'};
   const tones = {c: 'casual', f: 'formal', i: 'intimate', ...{'.': null}};
   const meaning = {first: 'I', second: 'you', third: 'they'};
 
@@ -210,10 +231,10 @@ const pronouns = (table: string): Entry[] => {
     for (const row of group_by_person[person]) {
       const {copula, direct, genitive, role} = row;
       if (role.length !== 3) throw Error(`Invalid role: ${role}`);
-      const number = option(role[1], numbers, 'number');
+      const count = option(role[1], counts, 'count');
       const tone = option(role[2], tones, 'tone');
       const base = tone ? {tone} : null;
-      const tense = {person, number, ...base};
+      const tense = {person, count, ...base};
 
       {
         // Handle the direct (subject) case.
@@ -265,11 +286,11 @@ const verbs = (table: string): Entry[] => {
   const kBases = [
     {hindi: '', latin: '', type: 'stem'},
     {hindi: 'ne', latin: 'ne', type: 'gerund'},
+    {hindi: 'nA', latin: 'na', type: 'infinitive'},
   ];
   const kForms = [
     {hindi: '', latin: '', prefix: true, time: 'past'},
     {hindi: 'w', latin: 't', prefix: false, time: 'present'},
-    {hindi: 'Ung', latin: 'oong', prefix: false, time: 'future'},
   ];
   const example = {meaning: 'eat', word: 'khana/KAnA'};
   for (const {meaning, word} of parse_table(example, table)) {
@@ -289,7 +310,7 @@ const verbs = (table: string): Entry[] => {
       const latins = [`${l}${base.latin}`];
       entries.push(rollup(zip(hindis, latins, [{}]), 'verb', meaning));
       const xs = entries[entries.length - 1];
-      xs.forEach(x => x.types.set(`verb_${base.type}`, 0));
+      xs.forEach(x => x.scores.set(`%verb_${base.type}`, 0));
     }
 
     // For each form type, add declined entries for that type.
@@ -300,7 +321,34 @@ const verbs = (table: string): Entry[] => {
       const tenses = kVerbTenses.map(x => ({...x, time: form.time}));
       entries.push(rollup(zip(hindis, latins, tenses), 'verb', meaning));
       const xs = entries[entries.length - 1];
-      xs.forEach(x => x.types.set(`verb_${form.time}`, 0));
+      xs.forEach(x => x.scores.set(`%verb_${form.time}`, 0));
+    }
+
+    // The future tense is special: it has different forms based on person.
+    for (const form of [{time: 'future'}]) {
+      const hs = 'UngA egA egA enge ogA enge enge'.split(' ');
+      const ls = 'unga ega ega enge oga enge enge'.split(' ');
+      const basics = [
+        {...kSingular, person: 'first'},
+        {...kSingular, person: 'second'},
+        {...kSingular, person: 'third'},
+        {...kPlural, person: 'first'},
+        {...kPlural, person: 'second', tone: 'casual'},
+        {...kPlural, person: 'second', tone: 'formal'},
+        {...kPlural, person: 'third'},
+      ];
+      const hindis = hs
+        .concat(hs.map(x => `${x.slice(0, -1)}I`))
+        .map(x => `${h}${x}`);
+      const latins = ls
+        .concat(ls.map(x => `${x.slice(0, -1)}i`))
+        .map(x => `${l}${x}`);
+      const tenses = basics
+        .map(x => ({...x, ...kMasculine, time: 'future'}))
+        .concat(basics.map(x => ({...x, ...kFeminine, time: 'future'})));
+      entries.push(rollup(zip(hindis, latins, tenses), 'verb', meaning));
+      const xs = entries[entries.length - 1];
+      xs.forEach(x => x.scores.set(`%verb_${form.time}`, 0));
     }
   }
   return flatten(entries);
