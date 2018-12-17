@@ -1,6 +1,6 @@
 import {flatten, nonnull, quote, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Arguments as BA, Template as BT, cross, reindex} from './base';
+import {Arguments as BA, Template as BT} from './base';
 
 interface Arguments extends BA<Value> {}
 interface Template extends BT<Value> {}
@@ -51,7 +51,7 @@ const concat = (a: Template, b: Template): Template => ({
     return flatten(
       range(xs.length + 1).map(i => {
         const [ax, bx] = [xs.slice(0, i), xs.slice(i)].map(list_to_null);
-        return cross(a.split(ax), b.split(bx));
+        return BT.cross(a.split(ax), b.split(bx));
       }),
     );
   },
@@ -73,7 +73,7 @@ const map = (dict: Dict): Template => ({
     const keys = Object.keys(dict).sort();
     return keys
       .map(k => dict[k].split(void_to_null(xs[k])))
-      .reduce(cross, [{}]);
+      .reduce(BT.cross, [{}]);
   },
 });
 
@@ -92,7 +92,7 @@ const merge = (a: Template, b: Template): Template => ({
         /* tslint:disable-next-line:no-bitwise */
         keys.forEach((k, j) => (items[(1 << j) & i ? 1 : 0][k] = xs[k]));
         const [ax, bx] = items.map(dict_to_null);
-        return cross(a.split(ax), b.split(bx));
+        return BT.cross(a.split(ax), b.split(bx));
       }),
     );
   },
@@ -188,6 +188,6 @@ const parser: Node<Template> = (() => {
 // Our public interfaces. We support parsing a template from a string and
 // wrapping it in "slots" mapping token indices to template arguments.
 
-const Template = {parse: (x: string) => parser.parse(x), reindex};
+const Template = {parse: (x: string) => parser.parse(x)};
 
 export {Arguments, Template, Value};

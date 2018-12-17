@@ -1,6 +1,6 @@
 import {flatten, nonnull, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Arguments as BA, Template as BT, cross, reindex} from './base';
+import {Arguments as BA, Template as BT} from './base';
 
 interface Arguments extends BA<Lambda | null> {}
 interface Template extends BT<Lambda | null> {}
@@ -73,7 +73,8 @@ const involute = (op: Unary, x: Lambda): Lambda =>
 const involute_or_null = (op: Unary, x: Lambda | null): Lambda | null =>
   x === null ? null : involute(op, x);
 
-const options = <T>(xs: Arguments[][]): Arguments[] => xs.reduce(cross, [{}]);
+const options = <T>(xs: Arguments[][]): Arguments[] =>
+  xs.reduce(BT.cross, [{}]);
 
 const filter_nulls = <T>(xs: (T | null)[]): T[] =>
   xs.filter(x => x === null) as T[];
@@ -102,7 +103,7 @@ const concat = (a: Template, b: Template, op: Binary): Template => ({
         const items: Lambda[][] = [[], []];
         base.map((x, j) => items[(1 << j) & i ? 0 : 1].push(x));
         const [ax, bx] = items.map(x => collapse(op, x));
-        return cross(a.split(ax), b.split(bx));
+        return BT.cross(a.split(ax), b.split(bx));
       }),
     );
     /* tslint:enable:no-bitwise */
@@ -124,7 +125,7 @@ const custom = (xs: Template[], op: string): Template => ({
     if (x === null) return flatten(xs.map(x => x.split(null)));
     if (x.type !== 'custom' || x.op !== op) return [];
     if (x.base.length !== xs.length) return [];
-    return x.base.map((y, i) => xs[i].split(y)).reduce(cross, [{}]);
+    return x.base.map((y, i) => xs[i].split(y)).reduce(BT.cross, [{}]);
   },
 });
 
@@ -191,6 +192,6 @@ const parse_template = (x: string) => parser.parse(x);
 
 const Lambda = {parse: parse_lambda, stringify};
 
-const Template = {parse: parse_template, reindex};
+const Template = {parse: parse_template};
 
 export {Arguments, Lambda, Template};

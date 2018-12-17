@@ -119,29 +119,6 @@ const value: Test = {
     Test.assert_eq(template.split(null), [{0: null, 1: null, 2: null}]);
     Test.assert_eq(template.split([]), []);
   },
-  reindex_works: () => {
-    const slots = [
-      {index: 3, optional: false},
-      {index: 4, optional: false},
-      {index: 5, optional: true},
-    ];
-    const original = Template.parse('[$0, ...$1, ...$2]');
-    const template = Template.reindex(slots, original);
-    Test.assert_eq(template.merge(['a', ['b', 'c'], null]), null);
-    Test.assert_eq(template.merge([null, null, null, 'a', ['b', 'c']]), [
-      'a',
-      'b',
-      'c',
-    ]);
-    Test.assert_eq(template.split(['a', 'b', 'c']), [
-      {3: 'a', 4: ['b'], 5: ['c']},
-      {3: 'a', 4: ['b', 'c'], 5: null},
-    ]);
-    Test.assert_eq(template.split(['a', 'b']), [{3: 'a', 4: ['b'], 5: null}]);
-    Test.assert_eq(template.split(['a']), []);
-    Test.assert_eq(template.split(null), []);
-    Test.assert_eq(template.split([]), []);
-  },
   parse_fails_on_unquoted_string_literal: () => {
     Test.assert_error(() => Template.parse('failed'), 'At line 1, column 1');
   },

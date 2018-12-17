@@ -35,6 +35,8 @@ const reindex = <T>(slots: Slot[], template: Template<T>): Template<T> => ({
     const result = template.split(x);
     return result
       .map(y => {
+        const keys = Object.keys(y).map(i => parseInt(i, 10));
+        if (keys.some(i => i >= slots.length && y[i] !== null)) return dummy;
         if (slots.some((x, i) => !x.optional && y[i] === null)) return dummy;
         const reindexed: Arguments<T> = {};
         slots.forEach((x, i) => i in y && (reindexed[x.index] = y[i]));
@@ -44,4 +46,6 @@ const reindex = <T>(slots: Slot[], template: Template<T>): Template<T> => ({
   },
 });
 
-export {Arguments, Template, cross, reindex};
+const Template = {cross, reindex};
+
+export {Arguments, Slot, Template};

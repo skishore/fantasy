@@ -1,4 +1,4 @@
-import {Arguments as BA, Template as BT, reindex} from './base';
+import {Arguments as BA, Template as BT} from './base';
 import {Lambda as Expr, Template as T} from './expr';
 
 // Lambda is a simple wrapper around Expr that makes typing easier to read.
@@ -47,6 +47,6 @@ const parse_template = (x: string): BT<Lambda | null> => {
 
 const Lambda = {parse: parse_lambda};
 
-const Template = {parse: parse_template, reindex};
+const Template = {parse: parse_template};
 
 export {Arguments, Lambda, Template};
