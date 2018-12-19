@@ -1,5 +1,5 @@
 import {nonnull} from '../../src/lib/base';
-import {Lambda, Template} from '../../src/template/lambda';
+import {Lambda} from '../../src/template/lambda';
 import {Test} from '../test';
 
 const dsl = <T>(fn: (x: string) => T) => (x: TemplateStringsArray): T => {
@@ -8,7 +8,7 @@ const dsl = <T>(fn: (x: string) => T) => (x: TemplateStringsArray): T => {
 };
 
 const l = dsl(Lambda.parse);
-const t = dsl(Template.parse);
+const t = dsl(Lambda.template);
 
 const lambda: Test = {
   merging_joins_works: () => {
@@ -91,7 +91,7 @@ const lambda: Test = {
   },
   printing_returns_sorted_results: () => {
     const lambda = l`Tell(x) & f.e & (d.c | b.a)`;
-    Test.assert_eq(lambda.repr, '(b.a | d.c) & Tell(x) & f.e');
+    Test.assert_eq(nonnull(lambda).repr, '(b.a | d.c) & Tell(x) & f.e');
   },
 };
 

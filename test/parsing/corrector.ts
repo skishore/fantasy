@@ -3,8 +3,8 @@ import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/base';
 import {Tense, Tree, XGrammar, XRule} from '../../src/parsing/extensions';
 import {Corrector} from '../../src/parsing/corrector';
 import {Parser} from '../../src/parsing/parser';
-import {Template as BT} from '../../src/template/base';
-import {Template, Value} from '../../src/template/value';
+import {Template} from '../../src/template/base';
+import {Value} from '../../src/template/value';
 import {Test} from '../test';
 
 // Basic helpers for constructing a generative grammar.
@@ -17,7 +17,7 @@ type Spec = {
   tense?: Tense;
 };
 
-const kDefaultTemplate: Template = {
+const kDefaultTemplate: Template<Value> = {
   merge: xs => null,
   split: x => (x === null ? [{}] : []),
 };
@@ -49,7 +49,7 @@ const make_rule = (spec: Spec): XRule<Value, 0> => {
     precedence: spec.precedence || range(spec.rhs.length),
     tense: spec.tense || {},
   };
-  const template = spec.fn ? Template.parse(spec.fn) : kDefaultTemplate;
+  const template = spec.fn ? Value.template(spec.fn) : kDefaultTemplate;
   const merge = {fn: template.merge.bind(template), score: 0};
   const split = {fn: split_fn(template, spec.rhs.length), score: 0};
   const rhs = spec.rhs.map(make_term);
@@ -60,7 +60,7 @@ const make_term = (name: string): Term => {
   return {name, terminal: !name.startsWith('$')};
 };
 
-const split_fn = <T>(template: BT<T>, n: number) => {
+const split_fn = <T>(template: Template<T>, n: number) => {
   return (x: Option<T>): Option<T>[][] => {
     const xs = x ? template.split(x.some) : [{}];
     return xs.map(x => range(n).map(i => (i in x ? {some: x[i] as T} : null)));

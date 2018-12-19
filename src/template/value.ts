@@ -1,6 +1,6 @@
 import {flatten, nonnull, quote, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Arguments as BA, Template as BT} from './base';
+import {Arguments as BA, DataType, Template as BT} from './base';
 
 interface Arguments extends BA<Value> {}
 interface Template extends BT<Value> {}
@@ -185,9 +185,16 @@ const parser: Node<Template> = (() => {
   ));
 })();
 
-// Our public interfaces. We support parsing a template from a string and
-// wrapping it in "slots" mapping token indices to template arguments.
+// The DataType type class implementation for this type.
 
-const Template = {parse: (x: string) => parser.parse(x)};
+const Value: DataType<Value> = {
+  is_base: x => (typeof x === 'string' ? x : null),
+  is_null: x => x === null,
+  make_base: x => x,
+  make_null: () => null,
+  parse: x => parser.parse(x).merge([]),
+  stringify: JSON.stringify,
+  template: x => parser.parse(x),
+};
 
-export {Arguments, Template, Value};
+export {Value};

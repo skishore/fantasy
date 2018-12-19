@@ -1,5 +1,5 @@
-import {Arguments as BA, Template as BT} from './base';
-import {Lambda as Expr, Template as T} from './expr';
+import {Arguments as BA, DataType, Template as BT} from './base';
+import {Lambda as Expr} from './expr';
 
 // Lambda is a simple wrapper around Expr that makes typing easier to read.
 
@@ -13,13 +13,9 @@ interface Lambda {
 
 // We provide some convenience methods for converting between the two.
 
-const unwrap = (x: Lambda): Expr => x.expr;
+const unwrap = (x: Lambda | null): Expr | null => x && x.expr;
 
-const unwrap_null = (x: Lambda | null): Expr | null => x && x.expr;
-
-const wrap = (x: Expr): Lambda => ({expr: x, repr: Expr.stringify(x)});
-
-const wrap_null = (x: Expr | null): Lambda | null => x && wrap(x);
+const wrap = (x: Expr | null) => x && {expr: x, repr: Expr.stringify(x)};
 
 // Helpers to convert an expression template into a lambda template.
 
@@ -33,20 +29,24 @@ const map_args = <S, T>(args: BA<S>, fn: (s: S) => T): BA<T> => {
   return result;
 };
 
-const parse_lambda = (x: string): Lambda => wrap(Expr.parse(x));
-
-const parse_template = (x: string): BT<Lambda | null> => {
-  const base = T.parse(x);
+const template = (x: string): BT<Lambda | null> => {
+  const base = Expr.template(x);
   return {
-    merge: x => wrap_null(base.merge(map_args(x, unwrap_null))),
-    split: x => base.split(unwrap_null(x)).map(y => map_args(y, wrap_null)),
+    merge: x => wrap(base.merge(map_args(x, unwrap))),
+    split: x => base.split(unwrap(x)).map(y => map_args(y, wrap)),
   };
 };
 
-// Our public APIs are the same as Exprs so Lambda is a drop-in replacement.
+// The DataType type class implementation for this type.
 
-const Lambda = {parse: parse_lambda};
+const Lambda: DataType<Lambda | null> = {
+  is_base: x => Expr.is_base(unwrap(x)),
+  is_null: x => Expr.is_null(unwrap(x)),
+  make_base: x => wrap(Expr.make_base(x)),
+  make_null: () => wrap(Expr.make_null()),
+  parse: x => wrap(Expr.parse(x)),
+  stringify: x => (x === null ? '-' : x.repr),
+  template,
+};
 
-const Template = {parse: parse_template};
-
-export {Arguments, Lambda, Template};
+export {Lambda};

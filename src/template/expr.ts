@@ -1,6 +1,6 @@
 import {flatten, nonnull, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Arguments as BA, Template as BT} from './base';
+import {Arguments as BA, DataType, Template as BT} from './base';
 
 interface Arguments extends BA<Lambda | null> {}
 interface Template extends BT<Lambda | null> {}
@@ -183,15 +183,16 @@ const parser: Node<Template> = (() => {
   return ws.then(ops.reduce((acc, x) => x(acc), Parser.lazy(() => parser)));
 })();
 
-const parse_lambda = (x: string) => nonnull(parse_template(x).merge([]));
+// The DataType type class implementation for this type.
 
-const parse_template = (x: string) => parser.parse(x);
+const Lambda: DataType<Lambda | null> = {
+  is_base: x => (x && x.type === 'single' ? x.base : null),
+  is_null: x => x === null,
+  make_base: x => ({type: 'single', base: x}),
+  make_null: () => null,
+  parse: x => (x.trim() === '-' ? null : nonnull(parser.parse(x).merge([]))),
+  stringify: x => (x === null ? '-' : stringify(x)),
+  template: x => parser.parse(x),
+};
 
-// Our public interfaces. We support parsing a template from a string and
-// wrapping it in "slots" mapping token indices to template arguments.
-
-const Lambda = {parse: parse_lambda, stringify};
-
-const Template = {parse: parse_template};
-
-export {Arguments, Lambda, Template};
+export {Lambda};

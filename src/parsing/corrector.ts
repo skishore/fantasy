@@ -1,5 +1,4 @@
 import {Option, RNG, assert, flatten, nonnull, range} from '../lib/base';
-import {Lambda, Template} from '../template/lambda';
 import {Tense, Tree, XGrammar, XMatch, XRule} from './extensions';
 import {Generator} from './generator';
 
