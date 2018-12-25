@@ -1,19 +1,19 @@
 /* tslint:disable:object-literal-key-quotes */
 const FREQUENCIES: {[wx: string]: {[latin: string]: number}} = {
-  a: {a: 10, e: 0, i: 0, o: 0, u: 0, aa: 5},
-  A: {aa: 14730, a: 13216},
-  i: {a: 36, e: 75, i: 8784, o: 0, u: 4, ee: 94},
-  I: {ee: 1369, i: 8438},
-  u: {a: 6, e: 0, i: 4, o: 22, u: 6241, oo: 73},
-  U: {oo: 1000, u: 1294},
-  ऋ: {ri: 80},
-  ऌ: {li: 0},
-  ऍ: {e: 0},
-  e: {a: 75, e: 14356, i: 37, o: 27, u: 0, ai: 28},
-  E: {ai: 1754, e: 25, a: 83},
-  ऑ: {o: 3},
-  o: {a: 2, e: 6, i: 1, o: 6321, u: 4, au: 2},
-  O: {au: 560, aw: 1, ou: 36, ow: 18, o: 93},
+  a: {a: 10, e: 0, i: 0, o: 0, u: 0, aa: 5, '': 0},
+  A: {aa: 14730, a: 13216, '': 0},
+  i: {a: 36, e: 75, i: 8784, o: 0, u: 4, ee: 94, '': 0},
+  I: {ee: 1369, i: 8438, '': 0},
+  u: {a: 6, e: 0, i: 4, o: 22, u: 6241, oo: 73, '': 0},
+  U: {oo: 1000, u: 1294, '': 0},
+  ऋ: {ri: 80, '': 0},
+  ऌ: {li: 0, '': 0},
+  ऍ: {e: 0, '': 0},
+  e: {a: 75, e: 14356, i: 37, o: 27, u: 0, ai: 28, '': 0},
+  E: {ai: 1754, e: 25, a: 83, '': 0},
+  ऑ: {o: 3, '': 0},
+  o: {a: 2, e: 6, i: 1, o: 6321, u: 4, au: 2, '': 0},
+  O: {au: 560, aw: 1, ou: 36, ow: 18, o: 93, '': 0},
   ॠ: {ru: 0},
   ॡ: {lu: 0},
   k: {k: 10440, kh: 49},
@@ -77,4 +77,6 @@ Object.entries(FREQUENCIES).forEach(([k, v]) => {
   Object.entries(v).forEach(([k, v]) => (log[k] = Math.log((v + reg) / sum)));
 });
 
-export {FREQUENCIES, LOG_FREQUENCIES};
+const VOWEL_SKIP_LOG_FREQUENCY = Math.log(0.1);
+
+export {LOG_FREQUENCIES, VOWEL_SKIP_LOG_FREQUENCY};

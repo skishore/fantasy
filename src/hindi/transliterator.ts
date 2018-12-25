@@ -1,6 +1,6 @@
 import {assert, flatten} from '../lib/base';
 import {DAWG} from '../lib/dawg';
-import {LOG_FREQUENCIES} from './frequencies';
+import {LOG_FREQUENCIES, VOWEL_SKIP_LOG_FREQUENCY} from './frequencies';
 import {is_bindu, is_consonant, is_vowel} from './wx';
 
 // Prepare a set of "hash keys" that will allow us to match input Latin text
@@ -122,7 +122,15 @@ const viterbi = (latin: string, wx: string): number => {
       for (const [option, score] of pieces[i]) {
         if (latin.substring(j, j + option.length) !== option) continue;
         const tail = (i + 1) * row + j + option.length;
-        memo[tail] = Math.max(memo[tail], memo[head] + score);
+        if (memo[tail] >= memo[head] + score) continue;
+        memo[tail] = memo[head] + score;
+        for (let k = j + option.length; k < latin.length; k++) {
+          if (!is_vowel(latin[k])) break;
+          const index = tail + k - j - option.length;
+          const score = memo[index] + VOWEL_SKIP_LOG_FREQUENCY;
+          if (memo[index + 1] >= score) break;
+          memo[index + 1] = score;
+        }
       }
     }
   }
