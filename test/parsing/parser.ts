@@ -11,7 +11,7 @@ const make_grammar = <T>(specs: Spec<T>[], value: T): Grammar<unknown, T> => {
       const m: Match<T> = {score: 0, value};
       return {text: x, text_matches: {[x]: m}, type_matches: {character: m}};
     });
-  const lexer = {lex, unlex: () => null};
+  const lexer = {lex, unlex: () => []};
   const rules = specs.map(x => ({
     lhs: x.lhs,
     rhs: x.rhs.map(make_term),

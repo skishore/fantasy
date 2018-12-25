@@ -25,7 +25,7 @@ const kDefaultTemplate: Template = {
 const make_grammar = (specs: Spec[]): XGrammar<Value> => {
   // Construct the lexer. For the purposes of this text, we will never have to
   // call the "fix" method of the lexer. TODO(skishore): Test a call to fix.
-  const fix = () => null;
+  const fix = () => [];
   const lex = (input: string) =>
     input.split(' ').map(x => {
       const data = {tenses: [{}], text: {latin: x}};
@@ -33,9 +33,9 @@ const make_grammar = (specs: Spec[]): XGrammar<Value> => {
       return {text: x, text_matches: {[x]: m}, type_matches: {character: m}};
     });
   const unlex = (term: Term, value: Option<Value>) => {
-    if (term.type !== 'text' || value) return null;
+    if (term.type !== 'text' || value) return [];
     const data = {tenses: [{}], text: {latin: term.value}};
-    return {data, score: 0, value: term.value};
+    return [{data, score: 0, value: term.value}];
   };
   const lexer = {fix, lex, unlex};
 

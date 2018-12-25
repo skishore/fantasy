@@ -94,7 +94,8 @@ const recurse = <T>(old_node: Tree<T>, state: State<T>): Tree<T> => {
     let new_node = old_node;
     const errors = apply(old_node.match.data.tenses, state);
     if (errors.length > 0) {
-      const maybe = state.grammar.lexer.fix(old_node.match, state.tense);
+      const xs = state.grammar.lexer.fix(old_node.match, state.tense);
+      const maybe = xs.length > 0 ? xs[state.rng.int32(xs.length)] : null;
       if (maybe) new_node = {...old_node, match: maybe};
       if (maybe) apply(maybe.data.tenses, state);
     }

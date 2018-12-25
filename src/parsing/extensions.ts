@@ -54,9 +54,9 @@ interface XGrammar<T, U = 1> extends Grammar<Option<T>, Out<T, U>> {
 }
 
 interface XLexer<T, U = 1> extends Lexer<Option<T>, Out<T, U>> {
-  fix: (match: XMatch<T, U>, tense: Tense) => XMatch<T, U> | null;
+  fix: (match: XMatch<T, U>, tense: Tense) => XMatch<T, U>[];
   lex: (input: string) => XToken<T, U>[];
-  unlex: (term: Term, value: Option<T>) => XMatch<T, U> | null;
+  unlex: (term: Term, value: Option<T>) => XMatch<T, U>[];
 }
 
 interface XMatch<T, U = 1> extends Match<Out<T, U>> {
@@ -100,8 +100,8 @@ const lift2 = <T>(term: Term, match: XMatch<T, 0>): XMatch<T> => {
   return result;
 };
 
-const lift3 = <T>(term: Term, match: XMatch<T, 0> | null): XMatch<T> | null => {
-  return match && lift2(term, match);
+const lift3 = <T>(term: Term, match: XMatch<T, 0>[]): XMatch<T>[] => {
+  return match.map(x => lift2(term, x));
 };
 
 const lift4 = <S, T>(token: XToken<T, 0>): XToken<T> => {
@@ -122,7 +122,7 @@ const lift4 = <S, T>(token: XToken<T, 0>): XToken<T> => {
 
 const lift5 = <S, T>(lexer: XLexer<T, 0>): XLexer<T> => ({
   fix: (x, y) => {
-    if (x.value.type !== 'leaf') return null;
+    if (x.value.type !== 'leaf') return [];
     const {data, score, value} = x.value.match;
     return lift3(x.value.term, lexer.fix({data, score, value: value.value}, y));
   },

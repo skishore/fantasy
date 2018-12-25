@@ -212,6 +212,7 @@ class RNG {
     this.rng = new (PcgRandom as any)(s1, s2);
   }
   int32(max?: number): number {
+    if (max === 1) return 0;
     return this.rng.integer(max);
   }
   float(max?: number): number {

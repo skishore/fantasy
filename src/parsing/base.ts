@@ -2,7 +2,7 @@
 
 interface Lexer<S, T> {
   lex: (input: string) => Token<T>[];
-  unlex: (term: Term, value: S) => Match<T> | null;
+  unlex: (term: Term, value: S) => Match<T>[];
 }
 
 interface Match<T> {

@@ -20,7 +20,7 @@ const make_grammar = <S>(specs: Spec<S>[], value: S): Grammar<S, string> => {
     });
   const unlex = (term: Term, v: S) => {
     const match = v === value && term.type === 'text';
-    return match ? {score: 0, value: term.value} : null;
+    return match ? [{score: 0, value: term.value}] : [];
   };
   const rules = specs.map(x => ({
     lhs: x.lhs,
@@ -70,10 +70,10 @@ const generator: Test = {
     const grammar = arithmetic();
     const [seed, target] = [173, 2];
     const tests = [
-      {op: '+', expected: '9-5-3+7/7'},
-      {op: '-', expected: '7-4-7/7'},
-      {op: '*', expected: '7/7*2'},
-      {op: '/', expected: '4/2'},
+      {op: '+', expected: '6-5+5/5+8*0'},
+      {op: '-', expected: '9-7'},
+      {op: '*', expected: '1*(8-6)*1'},
+      {op: '/', expected: '1*(8-6)/1'},
     ];
     for (const {op, expected} of tests) {
       const rng = new RNG(seed);
@@ -85,7 +85,7 @@ const generator: Test = {
   generation_uses_scores: () => {
     const [seed, target] = [17, 2];
     const tests = [
-      {deepness: 3, expected: '7-6+9/9'},
+      {deepness: 3, expected: '9-8+6/6'},
       {deepness: -3, expected: '2'},
     ];
     for (const {deepness, expected} of tests) {

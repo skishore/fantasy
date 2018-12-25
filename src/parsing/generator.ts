@@ -60,8 +60,8 @@ const generate_from_rule = <S, T>(
     if (children.length !== rule.rhs.length) continue;
     options.push(children);
   }
-  if (options.length === 0) return null;
-  return {some: rule.merge.fn(options[memo.rng.int32(options.length)])};
+  const option = sample(options, memo.rng);
+  return option ? {some: rule.merge.fn(option.some)} : null;
 };
 
 const generate_from_term = <S, T>(
@@ -73,8 +73,8 @@ const generate_from_term = <S, T>(
     const rules = memo.by_name[term.value] || [];
     return generate_from_list(memo, rules, value);
   }
-  const result = memo.grammar.lexer.unlex(term, value);
-  return result ? {some: result.value} : null;
+  const option = sample(memo.grammar.lexer.unlex(term, value), memo.rng);
+  return option ? {some: option.some.value} : null;
 };
 
 const index = <S, T>(grammar: Grammar<S, T>): Memo<S, T>['by_name'] => {
@@ -83,6 +83,11 @@ const index = <S, T>(grammar: Grammar<S, T>): Memo<S, T>['by_name'] => {
     .filter(x => x.split.score !== -Infinity)
     .forEach(x => (result[x.lhs] = result[x.lhs] || []).push(x));
   return result;
+};
+
+const sample = <T>(xs: T[], rng: RNG): Option<T> => {
+  if (xs.length === 0) return null;
+  return {some: xs[rng.int32(xs.length)]};
 };
 
 // This module supports generation from the root or from a provided ruleset.
