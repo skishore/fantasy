@@ -233,22 +233,25 @@ interface IGrammar<T> extends Grammar<unknown, T> {
   max_index: number;
 }
 
-interface IRule<T> extends Rule<unknown, T> {
+interface IRule<T> {
   fn: (xs: T[]) => T;
   index: number;
+  lhs: string;
+  rhs: Term[];
   score: number;
 }
 
 const index = <S, T>(grammar: Grammar<S, T>): IGrammar<T> => {
-  let max_index = 0;
+  let index = 0;
   const by_name: {[name: string]: IRule<T>[]} = {};
   grammar.rules.forEach(x => {
     if (x.merge.score === -Infinity) return;
-    const indexed = {...x, ...x.merge, index: max_index};
-    (by_name[x.lhs] = by_name[x.lhs] || []).push(indexed as IRule<T>);
-    max_index += x.rhs.length + 1;
+    const {lhs, rhs, merge} = x;
+    const {fn, score} = merge;
+    (by_name[lhs] = by_name[lhs] || []).push({fn, index, lhs, rhs, score});
+    index += rhs.length + 1;
   });
-  return {...grammar, by_name, max_index} as IGrammar<T>;
+  return {...grammar, by_name, max_index: index} as IGrammar<T>;
 };
 
 // Fault-tolerant parsing helpers.
