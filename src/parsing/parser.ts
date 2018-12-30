@@ -205,7 +205,15 @@ const score_state = <T>(state: State<T>): number => {
 const get_debug_header = <T>(column: Column<T>): string => {
   const token = column.token;
   if (!token) return `Column ${column.index}`;
-  return `Column ${column.index}: ${JSON.stringify(token.text)}`;
+  const text_matches = get_matches(token.text_matches, '');
+  const type_matches = get_matches(token.type_matches, '%');
+  const matches = text_matches.concat(type_matches).join('\n');
+  return `Column ${column.index}: ${JSON.stringify(token.text)}\n${matches}`;
+};
+
+const get_matches = <T>(m: {[x: string]: Match<T>}, pre: string): string[] => {
+  const xs = Object.keys(m).sort();
+  return xs.map(x => `  ${pre}${x} (score: ${m[x].score})`);
 };
 
 const print_column = <T>(column: Column<T>): string => {
