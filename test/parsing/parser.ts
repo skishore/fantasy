@@ -8,8 +8,8 @@ type Spec<T> = {lhs: string; rhs: string[]; fn: (xs: T[]) => T; score?: number};
 const make_grammar = <T>(specs: Spec<T>[], value: T): Grammar<unknown, T> => {
   const lex = (input: string) =>
     Array.from(input).map(x => {
-      const m: Match<T> = {score: 0, value};
-      return {text: x, text_matches: {[x]: m}, type_matches: {character: m}};
+      const match: Match<T> = {score: 0, value};
+      return {matches: {'%character': match, [x]: match}, text: x};
     });
   const lexer = {lex, unlex: () => []};
   const rules = specs.map(x => ({
@@ -21,10 +21,8 @@ const make_grammar = <T>(specs: Spec<T>[], value: T): Grammar<unknown, T> => {
   return {key: JSON.stringify, lexer, rules, start: '$Root'};
 };
 
-const make_term = (term: string): Term => {
-  if (term.startsWith('$')) return {type: 'name', value: term};
-  if (term.startsWith('%')) return {type: 'type', value: term.substring(1)};
-  return {type: 'text', value: term};
+const make_term = (name: string): Term => {
+  return {name, terminal: !name.startsWith('$')};
 };
 
 const parser: Test = {

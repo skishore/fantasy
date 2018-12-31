@@ -2,7 +2,7 @@
 
 interface Lexer<S, T> {
   lex: (input: string) => Token<T>[];
-  unlex: (term: Term, value: S) => Match<T>[];
+  unlex: (name: string, value: S) => Match<T>[];
 }
 
 interface Match<T> {
@@ -11,9 +11,8 @@ interface Match<T> {
 }
 
 interface Token<T> {
+  matches: {[name: string]: Match<T>};
   text: string;
-  text_matches: {[text: string]: Match<T>};
-  type_matches: {[type: string]: Match<T>};
 }
 
 // The Grammar interface.
@@ -32,9 +31,9 @@ interface Rule<S, T> {
   split: {score: number; fn: (x: S) => S[][]};
 }
 
-type Term =
-  | {type: 'name'; value: string}
-  | {type: 'text'; value: string}
-  | {type: 'type'; value: string};
+interface Term {
+  name: string;
+  terminal: boolean;
+}
 
 export {Grammar, Lexer, Match, Rule, Term, Token};

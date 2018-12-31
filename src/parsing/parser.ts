@@ -104,15 +104,15 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
       }
     } else {
       // Queue up scannable states.
-      const {type, value} = state.rule.rhs[state.cursor];
-      if (type !== 'name') {
+      const {name, terminal} = state.rule.rhs[state.cursor];
+      if (terminal) {
         scannable.push(state);
         continue;
       }
       // Queue up predicted states.
-      if (wanted[value]) {
-        wanted[value].push(state);
-        const nulls = nullable[value] || [];
+      if (wanted[name]) {
+        wanted[name].push(state);
+        const nulls = nullable[name] || [];
         if (nulls.length > 0) {
           const advanced = advance_state(map, max_index, state, states);
           for (let j = nulls.length; j--; ) {
@@ -121,8 +121,8 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
         }
       } else {
         const index = column.index;
-        const rules = column.grammar.by_name[value] || [];
-        const wanted_by = (wanted[value] = [state]);
+        const rules = column.grammar.by_name[name] || [];
+        const wanted_by = (wanted[name] = [state]);
         for (let j = rules.length; j--; ) {
           states.push(make_state(rules[j], index, wanted_by));
         }
@@ -167,10 +167,7 @@ const next_column = <T>(prev: Column<T>, token: Token<T>): Column<T> => {
   const scannable = prev.structures.scannable;
   for (let i = scannable.length; i--; ) {
     const state = scannable[i];
-    const {type, value} = state.rule.rhs[state.cursor];
-    const match =
-      (type === 'text' && token.text_matches[value]) ||
-      (type === 'type' && token.type_matches[value]);
+    const match = token.matches[state.rule.rhs[state.cursor].name];
     if (match) {
       const next: Next<T> = {leaf: true, match};
       advance_state(map, max_index, state, column.states).push([state, next]);
@@ -203,17 +200,8 @@ const score_state = <T>(state: State<T>): number => {
 // Debugging helpers.
 
 const get_debug_header = <T>(column: Column<T>): string => {
-  const token = column.token;
-  if (!token) return `Column ${column.index}`;
-  const text_matches = get_matches(token.text_matches, '');
-  const type_matches = get_matches(token.type_matches, '%');
-  const matches = text_matches.concat(type_matches).join('\n');
-  return `Column ${column.index}: ${JSON.stringify(token.text)}\n${matches}`;
-};
-
-const get_matches = <T>(m: {[x: string]: Match<T>}, pre: string): string[] => {
-  const xs = Object.keys(m).sort();
-  return xs.map(x => `  ${pre}${x} (score: ${m[x].score})`);
+  if (!column.token) return `Column ${column.index}`;
+  return `Column ${column.index}: ${print_token(column.token)}`;
 };
 
 const print_column = <T>(column: Column<T>): string => {
@@ -223,7 +211,7 @@ const print_column = <T>(column: Column<T>): string => {
 };
 
 const print_rule = <T>(rule: IRule<T>, cursor?: number): string => {
-  const terms = rule.rhs.map(x => `${x.type === 'type' ? '%' : ''}${x.value}`);
+  const terms = rule.rhs.map(x => x.name);
   if (cursor != null) terms.splice(cursor, 0, '●');
   return `${rule.lhs} -> ${terms.join(' ')}`;
 };
@@ -231,6 +219,12 @@ const print_rule = <T>(rule: IRule<T>, cursor?: number): string => {
 const print_state = <T>(state: State<T>): string => {
   const suffix = `, from: ${state.start} (score: ${state.score})`;
   return `{${print_rule(state.rule, state.cursor)}}${suffix}`;
+};
+
+const print_token = <T>(token: Token<T>): string => {
+  const keys = Object.keys(token.matches).sort();
+  const text = keys.map(x => `  ${x} (score: ${token.matches[x].score})`);
+  return `${JSON.stringify(token.text)}\n${text.join('\n')}`;
 };
 
 // An IGrammar is a slight modification to grammar that includes extra data

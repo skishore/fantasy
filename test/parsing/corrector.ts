@@ -29,13 +29,13 @@ const make_grammar = (specs: Spec[]): XGrammar<Value> => {
   const lex = (input: string) =>
     input.split(' ').map(x => {
       const data = {tenses: [{}], text: {latin: x}};
-      const m = {data, score: 0, value: x};
-      return {text: x, text_matches: {[x]: m}, type_matches: {character: m}};
+      const match = {data, score: 0, value: x};
+      return {matches: {[x]: match}, text: x};
     });
-  const unlex = (term: Term, value: Option<Value>) => {
-    if (term.type !== 'text' || value) return [];
-    const data = {tenses: [{}], text: {latin: term.value}};
-    return [{data, score: 0, value: term.value}];
+  const unlex = (name: string, value: Option<Value>) => {
+    if (value && name !== value.some) return [];
+    const data = {tenses: [{}], text: {latin: name}};
+    return [{data, score: 0, value: name}];
   };
   const lexer = {fix, lex, unlex};
 
@@ -56,10 +56,8 @@ const make_rule = (spec: Spec): XRule<Value, 0> => {
   return {data, lhs: spec.lhs, rhs, merge, split};
 };
 
-const make_term = (term: string): Term => {
-  if (term.startsWith('$')) return {type: 'name', value: term};
-  if (term.startsWith('%')) return {type: 'type', value: term.substring(1)};
-  return {type: 'text', value: term};
+const make_term = (name: string): Term => {
+  return {name, terminal: !name.startsWith('$')};
 };
 
 const split_fn = <T>(template: BT<T>, n: number) => {

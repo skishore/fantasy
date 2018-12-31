@@ -69,12 +69,13 @@ const generate_from_term = <S, T>(
   term: Term,
   value: S,
 ): Option<T> => {
-  if (term.type === 'name') {
-    const rules = memo.by_name[term.value] || [];
-    return generate_from_list(memo, rules, value);
+  const {name, terminal} = term;
+  if (terminal) {
+    const option = sample(memo.grammar.lexer.unlex(name, value), memo.rng);
+    return option ? {some: option.some.value} : null;
   }
-  const option = sample(memo.grammar.lexer.unlex(term, value), memo.rng);
-  return option ? {some: option.some.value} : null;
+  const rules = memo.by_name[name] || [];
+  return generate_from_list(memo, rules, value);
 };
 
 const index = <S, T>(grammar: Grammar<S, T>): Memo<S, T>['by_name'] => {

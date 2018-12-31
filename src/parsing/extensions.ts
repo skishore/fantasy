@@ -56,7 +56,7 @@ interface XGrammar<T, U = 1> extends Grammar<Option<T>, Out<T, U>> {
 interface XLexer<T, U = 1> extends Lexer<Option<T>, Out<T, U>> {
   fix: (match: XMatch<T, U>, tense: Tense) => XMatch<T, U>[];
   lex: (input: string) => XToken<T, U>[];
-  unlex: (term: Term, value: Option<T>) => XMatch<T, U>[];
+  unlex: (name: string, value: Option<T>) => XMatch<T, U>[];
 }
 
 interface XMatch<T, U = 1> extends Match<Out<T, U>> {
@@ -68,8 +68,7 @@ interface XRule<T, U = 1> extends Rule<Option<T>, Out<T, U>> {
 }
 
 interface XToken<T, U = 1> extends Token<Out<T, U>> {
-  text_matches: {[text: string]: XMatch<T, U>};
-  type_matches: {[type: string]: XMatch<T, U>};
+  matches: {[text: string]: XMatch<T, U>};
 }
 
 // Finally, we define Tree<T>, the parse-tree output of a correctable grammar.
@@ -77,7 +76,7 @@ interface XToken<T, U = 1> extends Token<Out<T, U>> {
 // method that will "lift" a grammar's return type up to a tree.
 
 type Tree<T> =
-  | {type: 'leaf'; value: T; term: Term; match: XMatch<T>}
+  | {type: 'leaf'; value: T; match: XMatch<T>; name: string}
   | {type: 'node'; value: T; rule: XRule<T>; children: Tree<T>[]};
 
 // Some internal implementation details of this lift method.
@@ -92,30 +91,24 @@ const lift1 = <T>(rule: XRule<T, 0>): XRule<T> => {
   return result;
 };
 
-const lift2 = <T>(term: Term, match: XMatch<T, 0>): XMatch<T> => {
+const lift2 = <T>(match: XMatch<T, 0>, name: string): XMatch<T> => {
   const {data, score, value} = match;
   // tslint:disable-next-line:no-any
   const result: XMatch<T> = {data, score, value: null as any};
-  result.value = {type: 'leaf', value, term, match: result};
+  result.value = {type: 'leaf', value, match: result, name};
   return result;
 };
 
-const lift3 = <T>(term: Term, match: XMatch<T, 0>[]): XMatch<T>[] => {
-  return match.map(x => lift2(term, x));
+const lift3 = <T>(match: XMatch<T, 0>[], name: string): XMatch<T>[] => {
+  return match.map(x => lift2(x, name));
 };
 
 const lift4 = <S, T>(token: XToken<T, 0>): XToken<T> => {
-  const text = token.text;
-  const result: XToken<T> = {text, text_matches: {}, type_matches: {}};
-  for (const x of [true, false]) {
-    const k = x ? 'text' : 'type';
-    const v = x ? 'text_matches' : 'type_matches';
-    const [old_matches, new_matches] = [token[v], result[v]];
-    // tslint:disable-next-line:forin
-    for (const y in old_matches) {
-      const term = {type: k, value: y} as Term;
-      new_matches[y] = lift2(term, old_matches[y]);
-    }
+  const result: XToken<T> = {matches: {}, text: token.text};
+  const [old_matches, new_matches] = [token.matches, result.matches];
+  // tslint:disable-next-line:forin
+  for (const y in old_matches) {
+    new_matches[y] = lift2(old_matches[y], y);
   }
   return result;
 };
@@ -124,10 +117,10 @@ const lift5 = <S, T>(lexer: XLexer<T, 0>): XLexer<T> => ({
   fix: (x, y) => {
     if (x.value.type !== 'leaf') return [];
     const {data, score, value} = x.value.match;
-    return lift3(x.value.term, lexer.fix({data, score, value: value.value}, y));
+    return lift3(lexer.fix({data, score, value: value.value}, y), x.value.name);
   },
   lex: x => lexer.lex(x).map(x => lift4(x)),
-  unlex: (x, y) => lift3(x, lexer.unlex(x, y)),
+  unlex: (x, y) => lift3(lexer.unlex(x, y), x),
 });
 
 // The actual lift method, plus some debugging utilities on parse trees.
@@ -148,8 +141,7 @@ const print = <S, T>(x: Tree<T>, script: string, depth?: number): string => {
     .fill('  ')
     .join('');
   if (x.type === 'leaf') {
-    const lhs = `${x.term.type === 'type' ? '%' : ''}${x.term.value}`;
-    return `${padding}${lhs} -> ${x.match.data.text[script]}`;
+    return `${padding}${x.name} -> ${x.match.data.text[script]}`;
   } else {
     const rhs = x.rule.rhs;
     const lines = [`${padding}${x.rule.lhs}:`];

@@ -15,12 +15,12 @@ type Spec<S> = {
 const make_grammar = <S>(specs: Spec<S>[], value: S): Grammar<S, string> => {
   const lex = (input: string) =>
     Array.from(input).map(x => {
-      const m: Match<string> = {score: 0, value: x};
-      return {text: x, text_matches: {[x]: m}, type_matches: {character: m}};
+      const match: Match<string> = {score: 0, value: x};
+      return {matches: {[x]: match}, text: x};
     });
-  const unlex = (term: Term, v: S) => {
-    const match = v === value && term.type === 'text';
-    return match ? [{score: 0, value: term.value}] : [];
+  const unlex = (name: string, v: S) => {
+    const match = v === value && name.length === 1;
+    return match ? [{score: 0, value: name}] : [];
   };
   const rules = specs.map(x => ({
     lhs: x.lhs,
@@ -31,10 +31,8 @@ const make_grammar = <S>(specs: Spec<S>[], value: S): Grammar<S, string> => {
   return {key: JSON.stringify, lexer: {lex, unlex}, rules, start: '$Root'};
 };
 
-const make_term = (term: string): Term => {
-  if (term.startsWith('$')) return {type: 'name', value: term};
-  if (term.startsWith('%')) return {type: 'type', value: term.substring(1)};
-  return {type: 'text', value: term};
+const make_term = (name: string): Term => {
+  return {name, terminal: !name.startsWith('$')};
 };
 
 // Our inverted arithmetic helpers. Each one shows how to construct a given
@@ -77,7 +75,7 @@ const generator: Test = {
     ];
     for (const {op, expected} of tests) {
       const rng = new RNG(seed);
-      const rules = grammar.rules.filter(x => x.rhs.some(y => y.value === op));
+      const rules = grammar.rules.filter(x => x.rhs.some(y => y.name === op));
       const maybe = Generator.generate_from_rules(grammar, rng, rules, target);
       Test.assert_eq(nonnull(maybe).some, expected);
     }
