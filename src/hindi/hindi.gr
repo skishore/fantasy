@@ -1,8 +1,3 @@
-# TODO(skishore): Improve handling of type-specific noun phrases.
-# These rules are already repetitive and will only get more complicated as we
-# support e.g. lists of nouns separated by "and". However, we do want to
-# support some type-specific behavior, too, like "thora sa %food".
-#
 # TODO(skishore): Deal with count semantics correctly. Right now we are not
 # drawing a semantic distinction between singulars and plurals, but as a
 # result text-generation can be strange. However, if we have to create a new
@@ -32,37 +27,37 @@
 
 # Top-level intents.
 
-$AskFood! (= 'Ask(R[want].you)')
-= ap?^ kya $Khana? chahte^ hain^
-= ap?^ kya $Leenge^
-= $Apko?^ kya $Khana chahie^
-= $Apko? $Main?^ kya $La sakta hun^ (> -1)
-= $Main?^ $Apko? kya $La sakta hun^ (> -1)
+$AskFood! (= 'Ask(R[want].$0)')
+= $Person:0?^ kya $Khana? chahte^ hain^
+= $Person:0?^ kya $Leenge^
+= $PersonKo:0?^ kya $Khana chahie^
+= $PersonKo:0? $Main?^ kya $La sakta hun^ (> -1)
+= $Main?^ $PersonKo? kya $La sakta hun^ (> -1)
 
 $AskName! (= 'Ask(R[name].$0)')
-= $Noun^ kaun hai^
-= $NounKa^ nam* kya hai^
+= $Person^ kaun hai^
+= $PersonKa^ nam* kya hai^
 
 $Hello! (= 'Hello()')
 = hello
 = namaste
 
 $Mention! (= 'Mention($0)')
-= $Noun
+= $Noun (< -10)
 
 $TellName! (= 'Tell($0, name.$1)')
-= $Noun:0^ %token:1 hai^ (< -10)
-= $NounKa:0^ nam* %token:1 hai^ (< -10)
+= $Person:0^ %token:1 hai^ (< -10)
+= $PersonKa:0^ nam* %token:1 hai^ (< -10)
 
 $TellWant! (= 'Tell($0, want.$1)')
-= $Noun^ $Noun $WantActive^
-= $Noun^ $Drink piega^
-= $Noun^ $Food khaega^
-= $NounKo $Noun^ $WantPassive^
-= $NounKo $Drink^ pina hai^
-= $NounKo $Food^ khana hai^
+= $Person^ $Noun $WantActive^
+= $Person^ $Drink piega^
+= $Person^ $Food khaega^
+= $PersonKo $Noun^ $WantPassive^
+= $PersonKo $Drink^ pina hai^
+= $PersonKo $Food^ khana hai^
 
-# Adjective and noun phrases.
+# Noun-phrase helpers.
 
 $Adjectives (= '$0 & $1')
 = $Adjectives? %adjective
@@ -71,57 +66,45 @@ $Determiner
 = $NounKa (= 'owner.$0')
 = %determiner (= 'context.$0')
 
-$BaseNounList
-= %noun (= '$0')
-= %noun aur %noun (= '$0 | $2')
-= %noun %noun aur %noun (= '$0 | $1 | $3')
-< $BaseNounList? %noun (= '$0 | $1') (< -1)
+LIST[@item]
+= @item (= '$0')
+= @item aur^ @item (= '$0 | $2') (? count plural) (? person third)
 
-$BaseNoun (= '$0 & count.$1 & $2 & $3')
-= $Determiner?^ %number?* $Adjectives?^ $BaseNounList*
-
-$Temp (= '$0')
-= $BaseNoun
-= %direct
-
-$Noun
-= $Temp (= '$0')
-= $Temp aur $Temp (= '$0 | $2')
-= $Temp $Temp aur $Temp (= '$0 | $1 | $3')
-< $Noun? $Temp (= '$0 | $1') (< -1)
-
-$NounKa (= '$0')
-= $BaseNoun ka^
-= %genitive
-< %direct ka^ (< -0.5)
-
-$NounKo (= '$0')
-= $BaseNoun ko^
-= %dative
-< %direct ko^ (< -0.5)
+NOUN[@term] (= '$0 & count.$1 & $2 & $3')
+= $Determiner?^ %number?* $Adjectives?^ @term*
 
 # Specific subtypes of noun phrase.
 
-$Drink (= '$0 & count.$1 & $2 & $3')
-= $Determiner?^ %number?* $Adjectives?^ %drink*
+$Drink (= '$0')
+= LIST[NOUN[%drink]]
 
-$Food (= '$0 & count.$1 & $2 & $3')
-= $Determiner?^ %number?* $Adjectives?^ %food*
+$Food (= '$0')
+= LIST[NOUN[%food]]
+
+$Noun (= '$0')
+= LIST[NOUN[%noun]]
+= %direct
+
+$NounKa (= '$0')
+= NOUN[%noun] ka^
+= %genitive
+< %direct ka^ (< -0.5)
+
+$Person (= '$0')
+= LIST[NOUN[%person]]
+= %direct
+
+$PersonKa (= '$0')
+= LIST[NOUN[%person]] ka^
+= %genitive
+< %direct ka^ (< -0.5)
+
+$PersonKo (= '$0')
+= LIST[NOUN[%person]] ko^
+= %dative
+< %direct ko^ (< -0.5)
 
 # Simple substitutions.
-
-$WantActive
-= leega
-< khaega (< -0.5)
-< piega (< -0.5)
-
-$WantPassive
-= chahie
-= de do
-= dijie
-= do
-< khana hai^ (< -0.5)
-< pina hai^ (< -0.5)
 
 $Khana
 = khana
@@ -137,13 +120,6 @@ $La
 = la
 = madad kar
 
-# Pronouns in various forms.
-
-$Apko
-= apko
-< ap ko
-< ap
-
 $Main
 = $MainSingular
 = $MainPlural
@@ -151,12 +127,23 @@ $Main
 $MainSingular
 = main
 < mujhe
-< mujhko
 
 $MainPlural
 = ham
 < hame
-< hamko
+
+$WantActive
+= leega
+< khaega (< -0.5)
+< piega (< -0.5)
+
+$WantPassive
+= chahie
+= de do
+= dijie
+= do
+< khana hai^ (< -0.5)
+< pina hai^ (< -0.5)
 
 # The base vocabulary, including several classes of words.
 
