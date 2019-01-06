@@ -193,9 +193,9 @@ const particles = (table: string): Entry[] => {
     const {hindi, latin} = split(word);
     if (option(declines, {n: false, y: true}, 'declines')) {
       if (!hindi.endsWith('A')) throw Error(`Unable to decline: ${hindi}`);
-      const tenses = [kMasculine, kFeminine];
-      const hindis = ['A', 'I'].map(x => `${hindi.slice(0, -1)}${x}`);
-      const latins = ['a', 'i'].map(x => `${latin.slice(0, -1)}${x}`);
+      const hindis = ['A', 'e', 'I'].map(x => `${hindi.slice(0, -1)}${x}`);
+      const latins = ['a', 'e', 'i'].map(x => `${latin.slice(0, -1)}${x}`);
+      const tenses = kVerbTenses;
       entries.push(rollup(zip(hindis, latins, tenses), 'particle', meaning));
     } else {
       entries.push(rollup([{hindi, latin, tense: {}}], 'particle', meaning));
@@ -245,9 +245,9 @@ const pronouns = (table: string): Entry[] => {
         // Handle the genitive (possessive) case.
         const {hindi, latin} = split(genitive);
         if (!hindi.endsWith('A')) throw Error(`Unable to decline: ${hindi}`);
-        const hindis = ['A', 'I'].map(x => `${hindi.slice(0, -1)}${x}`);
-        const latins = ['a', 'i'].map(x => `${latin.slice(0, -1)}${x}`);
-        const tenses = [kMasculine, kFeminine].map(x => ({...base, ...x}));
+        const hindis = ['A', 'e', 'I'].map(x => `${hindi.slice(0, -1)}${x}`);
+        const latins = ['a', 'e', 'i'].map(x => `${latin.slice(0, -1)}${x}`);
+        const tenses = kVerbTenses.map(x => ({...base, ...x}));
         cases.genitive.push(zip(hindis, latins, tenses));
       }
       {

@@ -91,6 +91,8 @@ class HindiLexer<T> implements XLexer<T, 0> {
       if (x.value !== serialized) return false;
       return x.tenses.some(y => agree(tense, y));
     });
+    // TODO(skishore): Return the fixed result closest to the original.
+    // We should always correct "mera" -> "meri" and not to "hamari".
     return fixed.map(x => render(x, /*score=*/ 0));
   }
   lex(input: string): XToken<T, 0>[] {

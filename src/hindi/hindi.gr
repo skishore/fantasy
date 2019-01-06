@@ -17,22 +17,15 @@
 # TODO(skishore): Create a way to pass hints to the lexer, like the gender of
 # "I" and of "you", the tone, and the current pronoun categories in scope.
 # This step is probably relatively easy, as long as we can define the API.
-#
-# TODO(skishore): Support '$Food chahie', where the subject "I" is implicit.
-# We can avoid creating more rules if we add support for explicit null rules
-# (e.g. we can make $Noun in $TellWant an explicit $MaybeNoun), where the null
-# rules can still have metadata like scoring, semantics, and syntax. The only
-# thing blocking this change is fixing the optional template handler syntax.
-# (Or does it block? If the null rule has nontrivial semantics, then no.)
 
 # Top-level intents.
 
 $AskFood! (= 'Ask(R[want].$0)')
-= $Person:0?^ kya $Khana? chahte^ hain^
-= $Person:0?^ kya $Leenge^
-= $PersonKo:0?^ kya $Khana chahie^
-= $PersonKo:0? $Main?^ kya $La sakta hun^ (> -1)
-= $Main?^ $PersonKo? kya $La sakta hun^ (> -1)
+= YOU[$Person]:0^ kya $Khana? chahte^ hain^
+= YOU[$Person]:0^ kya $Leenge^
+= YOU[$PersonKo]:0 kya $Khana? chahie
+= YOU[$PersonKo]:0 $Main?^ kya $La sakta^ hun^ (> -1)
+= $Main?^ YOU[$PersonKo]:0 kya $La sakta^ hun^ (> -1)
 
 $AskName! (= 'Ask(R[name].$0)')
 = $Person^ kaun hai^
@@ -50,12 +43,12 @@ $TellName! (= 'Tell($0, name.$1)')
 = $PersonKa:0^ nam* %token:1 hai^ (< -10)
 
 $TellWant! (= 'Tell($0, want.$1)')
-= $Person^ $Noun $WantActive^
-= $Person^ $Drink piega^
-= $Person^ $Food khaega^
-= $PersonKo $Noun^ $WantPassive^
-= $PersonKo $Drink^ pina hai^
-= $PersonKo $Food^ khana hai^
+= I[$Person]^ $Noun $WantActive^
+= I[$Person]^ $Drink piega^
+= I[$Person]^ $Food khaega^
+= I[$PersonKo] $Noun^ $WantPassive^
+= I[$PersonKo] $Drink^ pina hai^
+= I[$PersonKo] $Food^ khana hai^
 
 # Noun-phrase helpers.
 
@@ -72,6 +65,14 @@ LIST[@item]
 
 NOUN[@term] (= '$0 & count.$1 & $2 & $3')
 = $Determiner?^ %number?* $Adjectives?^ @term*
+
+I[@person]
+= @person (= '$0')
+= NONE (= 'I') (? person first)
+
+YOU[@person]
+= @person (= '$0')
+= NONE (= 'you') (? person second)
 
 # Specific subtypes of noun phrase.
 
@@ -214,11 +215,10 @@ const vocabulary = flatten([
       particle |       - | aur/Or          | n
              ^ |       - | hello/helo      | n
              ^ |       - | ka/kA           | y
-             ^ |       - | ke/ke           | n
              ^ |       - | ko/ko           | n
              ^ |       - | liye/liye       | n
              ^ |       - | namaste/namaswe | n
-             ^ |       - | sakta/sakwA     | n
+             ^ |       - | sakta/sakwA     | y
       question |     how | kaisa/kEsA      | y
              ^ |    what | kya/kyA         | n
              ^ |    when | kab/kab         | n

@@ -59,6 +59,15 @@ const kSignData = {'<': {split: -Infinity}, '>': {merge: -Infinity}, '=': {}};
 const coalesce = <T>(dt: DataType<T>, value: T | void): T =>
   value == null ? dt.make_null() : value;
 
+// TODO(skishore): We're using an optimization here by trying to mark slots
+// as required unless they're explicitly flagged as optional with a ? mark.
+// This optimization doesn't quite work, because terms without a ? can still
+// by null by having a NONE rule without provided semantics, or by parsing to
+// a raw term without semantics.
+//
+// We can replace this optimization with much better ones, such as caching the
+// split value of the base template. Many rules have a single template shared
+// across all their RHS values, just with differences in slot indices.
 const get_slots = (rhs: RHS[]): Slot[] => {
   const marked = [];
   for (let i = 0; i < rhs.length; i++) {
@@ -263,9 +272,10 @@ const parser = (() => {
     (acc, x) => ({...acc, ...x, tense: {...acc.tense, ...x.tense}}), {}));
 
   // A parser for a complete list of RHS options for a macro or rule.
+  const none = st('NONE').map(() => []);
   const sign = Parser.any(st('<'), st('='), st('>'));
-  const list = sign.skip(ws).and(item.repeat(1, Parser.string(' ')));
-  const side = list.skip(ws).and(data);
+  const list = Parser.any(none, item.repeat(1, Parser.string(' ')));
+  const side = sign.skip(ws).and(list).skip(ws).and(data);
   const rule = data.skip(ws).and(side.repeat(1, ws)).map(x => {
     const [base_data, rules] = x;
     return rules.map(y => {
