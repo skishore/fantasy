@@ -59,12 +59,21 @@ $Determiner
 = $NounKa (= 'owner.$0')
 = %determiner (= 'context.$0')
 
+$Relation
+= $PersonKa^ baccha* (= 'parent.$0')
+= $PersonKa^ larka* (= 'gender.male & parent.$0')
+= $PersonKa^ larki* (= 'gender.female & parent.$0')
+
 LIST[@item]
 = @item (= '$0')
 = @item aur^ @item (= '$0 | $2') (? count plural) (? person third)
 
 NOUN[@term] (= '$0 & count.$1 & $2 & $3')
 = $Determiner?^ %number?* $Adjectives?^ @term*
+
+NOUN_OR_RELATION[@term] (= '$0')
+= NOUN[@term]
+= $Relation (< 2)
 
 I[@person]
 = @person (= '$0')
@@ -87,21 +96,21 @@ $Noun (= '$0')
 = %direct
 
 $NounKa (= '$0')
-= NOUN[%noun] ka^
+= NOUN_OR_RELATION[%noun] ka^
 = %genitive
 < %direct ka^ (< -0.5)
 
 $Person (= '$0')
-= LIST[NOUN[%person]]
+= LIST[NOUN_OR_RELATION[%person]]
 = %direct
 
 $PersonKa (= '$0')
-= LIST[NOUN[%person]] ka^
+= LIST[NOUN_OR_RELATION[%person]] ka^
 = %genitive
 < %direct ka^ (< -0.5)
 
 $PersonKo (= '$0')
-= LIST[NOUN[%person]] ko^
+= LIST[NOUN_OR_RELATION[%person]] ko^
 = %dative
 < %direct ko^ (< -0.5)
 

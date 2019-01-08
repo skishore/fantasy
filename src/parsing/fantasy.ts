@@ -389,29 +389,13 @@ if (last !== 'generate' && last !== 'parse') {
   process.exit(1);
 }
 
-const rng = new RNG();
-const maybe = generate
-  ? Generator.generate(grammar, rng, {some: Lambda.parse(text)})
-  : P.parse(grammar, text, {debug: true});
-if (!maybe) throw new Error(`Failed to ${last} input!`);
-const tree = nonnull(maybe).some;
-const result = Corrector.correct(grammar, rng, tree);
-
-const print = <T>(tree: Tree<T>, script: string) =>
-  Tree.matches(tree)
-    .map(x => x.data.text[script])
-    .join(' ');
-
-const script = 'latin';
-console.log(Tree.print(tree, script));
-console.log();
-console.log(Lambda.stringify(tree.value));
-console.log();
-console.log(`Start: ${print(tree, script)}`);
-console.log(`Fixed: ${print(result.tree, script)}`);
-result.diff.forEach(x => {
-  if (x.type === 'right') return;
-  const o = x.old.map(x => x.data.text[script]).join(' ');
-  const n = x.new.map(x => x.data.text[script]).join(' ');
-  console.log(`${o} -> ${n}:\n  ${x.errors.join('\n  ')}`);
-});
+const time = Date.now();
+for (let i = 0; i < 100000; i++) {
+  const rng = new RNG();
+  const maybe = generate
+    ? Generator.generate(grammar, rng, {some: Lambda.parse(text)})
+    : P.parse(grammar, text);
+  if (!maybe) throw new Error(`Failed to ${last} input!`);
+  const tree = nonnull(maybe).some;
+}
+console.log(Date.now() - time);

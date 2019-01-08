@@ -50,9 +50,9 @@ interface Column<T> {
   structures: {
     completed: State<T>[];
     map: Map<number, [State<T>, Next<T>][]>;
-    nullable: {[name: string]: State<T>[]};
+    nullable: (State<T>[] | null)[];
     scannable: State<T>[];
-    wanted: {[name: string]: State<T>[]};
+    wanted: (State<T>[] | null)[];
   };
   token?: Token<T>;
 }
@@ -104,15 +104,16 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
       }
     } else {
       // Queue up scannable states.
-      const {name, terminal} = state.rule.rhs[state.cursor];
-      if (terminal) {
+      const term = state.rule.rhs[state.cursor];
+      if (typeof term === 'string') {
         scannable.push(state);
         continue;
       }
       // Queue up predicted states.
-      if (wanted[name]) {
-        wanted[name].push(state);
-        const nulls = nullable[name] || [];
+      const wants = wanted[term];
+      if (wants) {
+        wants.push(state);
+        const nulls = nullable[term] || [];
         if (nulls.length > 0) {
           const advanced = advance_state(map, max_index, state, states);
           for (let j = nulls.length; j--; ) {
@@ -121,8 +122,8 @@ const fill_column = <T>(column: Column<T>): Column<T> => {
         }
       } else {
         const index = column.index;
-        const rules = column.grammar.by_name[name] || [];
-        const wanted_by = (wanted[name] = [state]);
+        const rules = column.grammar.by_name[term] || [];
+        const wanted_by = (wanted[term] = [state]);
         for (let j = rules.length; j--; ) {
           states.push(make_state(rules[j], index, wanted_by));
         }
@@ -146,9 +147,9 @@ const make_column = <T>(grammar: IGrammar<T>, index: number): Column<T> => {
     structures: {
       completed: [],
       map: new Map(),
-      nullable: {},
+      nullable: Array(grammar.by_name.length),
       scannable: [],
-      wanted: {},
+      wanted: Array(grammar.by_name.length),
     },
   };
   if (index > 0) return column;
@@ -167,7 +168,7 @@ const next_column = <T>(prev: Column<T>, token: Token<T>): Column<T> => {
   const scannable = prev.structures.scannable;
   for (let i = scannable.length; i--; ) {
     const state = scannable[i];
-    const match = token.matches[state.rule.rhs[state.cursor].name];
+    const match = token.matches[state.rule.rhs[state.cursor]];
     if (match) {
       const next: Next<T> = {leaf: true, match};
       advance_state(map, max_index, state, column.states).push([state, next]);
@@ -211,7 +212,7 @@ const print_column = <T>(column: Column<T>): string => {
 };
 
 const print_rule = <T>(rule: IRule<T>, cursor?: number): string => {
-  const terms = rule.rhs.map(x => x.name);
+  const terms = rule.rhs;
   if (cursor != null) terms.splice(cursor, 0, '●');
   return `${rule.lhs} -> ${terms.join(' ')}`;
 };
@@ -230,30 +231,43 @@ const print_token = <T>(token: Token<T>): string => {
 // An IGrammar is a slight modification to grammar that includes extra data
 // structures needed by our parsing algorithm. We use it to implement parse.
 
-interface IGrammar<T> extends Grammar<unknown, T> {
-  by_name: {[lhs: string]: IRule<T>[]};
+interface IGrammar<T> {
+  by_name: IRule<T>[][];
   max_index: number;
+  names: string[];
+  start: number;
 }
 
 interface IRule<T> {
   fn: (xs: T[]) => T;
   index: number;
-  lhs: string;
-  rhs: Term[];
+  lhs: number;
+  rhs: (number | string)[];
   score: number;
 }
 
 const index = <S, T>(grammar: Grammar<S, T>): IGrammar<T> => {
   let index = 0;
-  const by_name: {[name: string]: IRule<T>[]} = {};
+  const by_name: IRule<T>[][] = [];
+  const names: string[] = [];
+  const symbols: Map<string, number> = new Map();
+  const add_symbol = (x: string): number => {
+    const base = symbols.get(x);
+    if (base != null) return base;
+    by_name.push([]);
+    names.push(x);
+    symbols.set(x, by_name.length - 1);
+    return by_name.length - 1;
+  };
   grammar.rules.forEach(x => {
     if (x.merge.score === -Infinity) return;
-    const {lhs, rhs, merge} = x;
-    const {fn, score} = merge;
-    (by_name[lhs] = by_name[lhs] || []).push({fn, index, lhs, rhs, score});
+    const {fn, score} = x.merge;
+    const lhs = add_symbol(x.lhs);
+    const rhs = x.rhs.map(y => y.terminal ? y.name : add_symbol(y.name));
+    by_name[lhs].push({fn, index, lhs, rhs, score});
     index += rhs.length + 1;
   });
-  return {...grammar, by_name, max_index: index} as IGrammar<T>;
+  return {by_name, max_index: index, names, start: add_symbol(grammar.start)};
 };
 
 // Fault-tolerant parsing helpers.
@@ -311,7 +325,7 @@ const parse = <S, T>(
 
   // Get the winning top-level state.
   update(column, delta, window);
-  const match = (x: State<T>) => x.rule.lhs === grammar.start;
+  const match = (x: State<T>) => x.rule.lhs === indexed.start;
   const states = penalize(penalty, delta.map(x => x.completed.filter(match)));
   if (states.length === 0) return null;
   states.sort((x, y) => y.score! - x.score!);
