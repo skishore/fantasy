@@ -1,3 +1,5 @@
+#![feature(test)]
+
 use std::collections::HashMap;
 use std::rc::Rc;
 
