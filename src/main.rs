@@ -183,7 +183,6 @@ fn exponent(x: u8) -> bool {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use combine::ParseResult;
 
   const TEST_STR: &'static str = "1.2345e67";
 
@@ -205,10 +204,12 @@ mod tests {
     b.iter(|| parser.parse("1.2345e56"));
   }
 
-  fn my_number(s: &[u8]) -> ParseResult<(), &[u8]> {
+  #[bench]
+  fn bench_combine(b: &mut Bencher) {
+    use combine::easy::Stream;
     use combine::range::take_while1;
     use combine::*;
-    (
+    let mut parser = (
       token(b'-').map(Some).or(value(None)),
       token(b'0').map(|_| &b"0"[..]).or(take_while1(digit)),
       optional((token(b'.'), take_while1(digit))),
@@ -217,17 +218,9 @@ mod tests {
         token(b'-').map(Some).or(token(b'+').map(Some)).or(value(None)),
         take_while1(digit),
       )),
-    )
-      .map(|_| ())
-      .parse_stream(s)
-  }
-
-  #[bench]
-  fn bench_combine(b: &mut Bencher) {
-    use combine::parser;
-    use combine::Parser;
-    assert_eq!(parser(my_number).parse(TEST_STR.as_bytes()), Ok(((), &b""[..])));
-    b.iter(|| parser(my_number).parse(test::black_box(TEST_STR.as_bytes())))
+    ).map(|_| ());
+    assert_eq!(parser.easy_parse(TEST_STR.as_bytes()), Ok(((), &b""[..])));
+    b.iter(|| parser.easy_parse(test::black_box(TEST_STR.as_bytes())))
   }
 }
 
