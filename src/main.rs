@@ -92,14 +92,9 @@ fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
   Parser::new(move |x, s| {
     let mut remainder = x;
     let mut result = vec![];
-    loop {
-      match (parser.method)(remainder, s) {
-        Some((value, x)) => {
-          remainder = x;
-          result.push(value);
-        }
-        None => break,
-      }
+    while let Some((value, x)) = (parser.method)(remainder, s) {
+      remainder = x;
+      result.push(value);
     }
     if result.len() < min {
       None
@@ -118,12 +113,7 @@ fn opt<'a, A: 'a>(a: Parser<'a, A>) -> Parser<'a, Option<A>> {
 
 fn seq2<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
   Parser::new(move |x, s| {
-    if let Some((a, x)) = (a.method)(x, s) {
-      if let Some((b, x)) = (b.method)(x, s) {
-        return Some(((a, b), x));
-      }
-    }
-    None
+    (a.method)(x, s).and_then(|(a, x)| (b.method)(x, s).and_then(|(b, x)| Some(((a, b), x))))
   })
 }
 
@@ -133,14 +123,9 @@ fn seq3<'a, A: 'a, B: 'a, C: 'a>(
   c: Parser<'a, C>,
 ) -> Parser<'a, (A, B, C)> {
   Parser::new(move |x, s| {
-    if let Some((a, x)) = (a.method)(x, s) {
-      if let Some((b, x)) = (b.method)(x, s) {
-        if let Some((c, x)) = (c.method)(x, s) {
-          return Some(((a, b, c), x));
-        }
-      }
-    }
-    None
+    (a.method)(x, s).and_then(|(a, x)| {
+      (b.method)(x, s).and_then(|(b, x)| (c.method)(x, s).and_then(|(c, x)| Some(((a, b, c), x))))
+    })
   })
 }
 
@@ -151,16 +136,12 @@ fn seq4<'a, A: 'a, B: 'a, C: 'a, D: 'a>(
   d: Parser<'a, D>,
 ) -> Parser<'a, (A, B, C, D)> {
   Parser::new(move |x, s| {
-    if let Some((a, x)) = (a.method)(x, s) {
-      if let Some((b, x)) = (b.method)(x, s) {
-        if let Some((c, x)) = (c.method)(x, s) {
-          if let Some((d, x)) = (d.method)(x, s) {
-            return Some(((a, b, c, d), x));
-          }
-        }
-      }
-    }
-    None
+    (a.method)(x, s).and_then(|(a, x)| {
+      (b.method)(x, s).and_then(|(b, x)| {
+        (c.method)(x, s)
+          .and_then(|(c, x)| (d.method)(x, s).and_then(|(d, x)| Some(((a, b, c, d), x))))
+      })
+    })
   })
 }
 
@@ -170,7 +151,7 @@ fn tag<'a>(tag: &'a str) -> Parser<'a, &'a str> {
     if x.iter().take(tag.len()).eq(tag.as_bytes().iter()) {
       Some((tag, &x[tag.len()..]))
     } else {
-      update(expected.clone(), x.len(), s);
+      update(Rc::clone(&expected), x.len(), s);
       None
     }
   })
@@ -185,7 +166,7 @@ where
     if x.len() > 0 && callback(x[0]) {
       Some((x[0], &x[1..]))
     } else {
-      update(expected.clone(), x.len(), s);
+      update(Rc::clone(&expected), x.len(), s);
       None
     }
   })
@@ -225,8 +206,8 @@ mod tests {
   }
 
   fn my_number(s: &[u8]) -> ParseResult<(), &[u8]> {
-    use combine::*;
     use combine::range::take_while1;
+    use combine::*;
     (
       token(b'-').map(Some).or(value(None)),
       token(b'0').map(|_| &b"0"[..]).or(take_while1(digit)),
