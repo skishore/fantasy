@@ -1,6 +1,7 @@
 #![feature(test)]
 
 #[cfg(test)]
+extern crate combine;
 extern crate test;
 
 use std::collections::BTreeSet;
@@ -115,9 +116,51 @@ fn opt<'a, A: 'a>(a: Parser<'a, A>) -> Parser<'a, Option<A>> {
   })
 }
 
-fn seq<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
+fn seq2<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
   Parser::new(move |x, s| {
-    (a.method)(x, s).map(|(a, x)| (b.method)(x, s).map(|(b, x)| ((a, b), x))).unwrap_or(None)
+    if let Some((a, x)) = (a.method)(x, s) {
+      if let Some((b, x)) = (b.method)(x, s) {
+        return Some(((a, b), x));
+      }
+    }
+    None
+  })
+}
+
+fn seq3<'a, A: 'a, B: 'a, C: 'a>(
+  a: Parser<'a, A>,
+  b: Parser<'a, B>,
+  c: Parser<'a, C>,
+) -> Parser<'a, (A, B, C)> {
+  Parser::new(move |x, s| {
+    if let Some((a, x)) = (a.method)(x, s) {
+      if let Some((b, x)) = (b.method)(x, s) {
+        if let Some((c, x)) = (c.method)(x, s) {
+          return Some(((a, b, c), x));
+        }
+      }
+    }
+    None
+  })
+}
+
+fn seq4<'a, A: 'a, B: 'a, C: 'a, D: 'a>(
+  a: Parser<'a, A>,
+  b: Parser<'a, B>,
+  c: Parser<'a, C>,
+  d: Parser<'a, D>,
+) -> Parser<'a, (A, B, C, D)> {
+  Parser::new(move |x, s| {
+    if let Some((a, x)) = (a.method)(x, s) {
+      if let Some((b, x)) = (b.method)(x, s) {
+        if let Some((c, x)) = (c.method)(x, s) {
+          if let Some((d, x)) = (d.method)(x, s) {
+            return Some(((a, b, c, d), x));
+          }
+        }
+      }
+    }
+    None
   })
 }
 
@@ -159,21 +202,51 @@ fn exponent(x: u8) -> bool {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use combine::ParseResult;
+
+  const TEST_STR: &'static str = "1.2345e67";
 
   #[bench]
   fn float_parser(b: &mut Bencher) {
     let digits1 = mul(predicate(digit, "digit"), 1);
     let digits2 = mul(predicate(digit, "digit"), 1);
     let digits3 = mul(predicate(digit, "digit"), 1);
-    let parser = seq(
-      seq(opt(tag("-")), any(vec![tag("0"), map(digits1, |_| "")])),
-      seq(opt(seq(tag("."), digits2)), opt(seq(predicate(exponent, "exponent"), digits3))),
+    let parser = seq4(
+      opt(tag("-")),
+      any(vec![tag("0"), map(digits1, |_| "")]),
+      opt(seq2(tag("."), digits2)),
+      opt(seq2(predicate(exponent, "exponent"), digits3)),
     );
     assert_eq!(
-      parser.parse("1.2345e56"),
-      Result::Ok(((None, ""), (Some((".", vec![50, 51, 52, 53])), Some((101, vec![53, 54])))))
+      parser.parse(TEST_STR),
+      Result::Ok((None, "", Some((".", vec![50, 51, 52, 53])), Some((101, vec![54, 55]))))
     );
     b.iter(|| parser.parse("1.2345e56"));
+  }
+
+  fn my_number(s: &[u8]) -> ParseResult<(), &[u8]> {
+    use combine::*;
+    use combine::range::take_while1;
+    (
+      token(b'-').map(Some).or(value(None)),
+      token(b'0').map(|_| &b"0"[..]).or(take_while1(digit)),
+      optional((token(b'.'), take_while1(digit))),
+      optional((
+        token(b'e').or(token(b'E')),
+        token(b'-').map(Some).or(token(b'+').map(Some)).or(value(None)),
+        take_while1(digit),
+      )),
+    )
+      .map(|_| ())
+      .parse_stream(s)
+  }
+
+  #[bench]
+  fn bench_combine(b: &mut Bencher) {
+    use combine::parser;
+    use combine::Parser;
+    assert_eq!(parser(my_number).parse(TEST_STR.as_bytes()), Ok(((), &b""[..])));
+    b.iter(|| parser(my_number).parse(test::black_box(TEST_STR.as_bytes())))
   }
 }
 
