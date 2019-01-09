@@ -7,15 +7,15 @@ use std::collections::BTreeSet;
 use std::rc::Rc;
 use test::Bencher;
 
-struct Failure {
+struct State<'a> {
   expected: Vec<Rc<String>>,
+  input: &'a [u8],
   remainder: usize,
-  total: usize,
 }
 
 type Output<'a, T> = Option<(T, &'a [u8])>;
 
-type Method<'a, T> = Fn(&'a [u8], &mut Failure) -> Output<'a, T> + 'a;
+type Method<'a, T> = Fn(&'a [u8], &mut State<'a>) -> Output<'a, T> + 'a;
 
 pub struct Parser<'a, T> {
   method: Box<Method<'a, T>>,
@@ -24,50 +24,51 @@ pub struct Parser<'a, T> {
 impl<'a, T> Parser<'a, T> {
   pub fn new<M>(method: M) -> Parser<'a, T>
   where
-    M: Fn(&'a [u8], &mut Failure) -> Output<'a, T> + 'a,
+    M: Fn(&'a [u8], &mut State<'a>) -> Output<'a, T> + 'a,
   {
     Parser { method: Box::new(method) }
   }
 
   pub fn parse(&self, x: &'a str) -> Result<T, String> {
-    let total = x.len();
-    let mut failure = Failure { expected: vec![], remainder: total, total };
-    match (self.method)(x.as_bytes(), &mut failure) {
-      Some((value, remainder)) => {
-        if remainder.len() > 0 {
-          Result::Err(format(&failure, remainder.len()))
+    let input = x.as_bytes();
+    let mut state = State { expected: vec![], input, remainder: input.len() };
+    match (self.method)(input, &mut state) {
+      Some((value, x)) => {
+        if x.len() > 0 {
+          Result::Err(format(Some(x.len()), &mut state))
         } else {
           Ok(value)
         }
       }
-      None => Result::Err(format(&failure, total)),
+      None => Result::Err(format(None, &mut state)),
     }
   }
 }
 
-fn format(failure: &Failure, remainder: usize) -> String {
-  if failure.remainder > remainder {
-    return format!("At index {}: expected: EOF", failure.total - remainder);
+fn format<'a>(remainder: Option<usize>, state: &mut State<'a>) -> String {
+  if let Some(remainder) = remainder {
+    update(Rc::new("EOF".to_string()), remainder, state);
   }
-  let expected: BTreeSet<_> = failure.expected.iter().map(|x| x.to_string()).collect();
+  let expected: BTreeSet<_> = state.expected.iter().map(|x| x.to_string()).collect();
   let expected: Vec<_> = expected.into_iter().collect();
-  format!("At index {}: expected: {}", failure.total - failure.remainder, expected.join(" | "))
+  let index = state.input.len() - state.remainder;
+  format!("At index {}: expected: {}", index, expected.join(" | "))
 }
 
-fn update(expected: Rc<String>, remainder: usize, failure: &mut Failure) {
-  if failure.remainder < remainder {
+fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {
+  if state.remainder < remainder {
     return;
-  } else if failure.remainder > remainder {
-    failure.expected.clear();
-    failure.remainder = remainder;
+  } else if state.remainder > remainder {
+    state.expected.clear();
+    state.remainder = remainder;
   }
-  failure.expected.push(expected);
+  state.expected.push(expected);
 }
 
 fn any<'a, A: 'a>(parsers: Vec<Parser<'a, A>>) -> Parser<'a, A> {
-  Parser::new(move |x, f| {
+  Parser::new(move |x, s| {
     for parser in &parsers {
-      match (parser.method)(x, f) {
+      match (parser.method)(x, s) {
         Some(x) => return Some(x),
         None => continue,
       }
@@ -80,18 +81,18 @@ fn map<'a, A: 'a, B: 'a, F>(parser: Parser<'a, A>, callback: F) -> Parser<'a, B>
 where
   F: Fn(A) -> B + 'a,
 {
-  Parser::new(move |x, f| match (parser.method)(x, f) {
+  Parser::new(move |x, s| match (parser.method)(x, s) {
     Some((value, x)) => Some((callback(value), x)),
     None => None,
   })
 }
 
 fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
-  Parser::new(move |x, f| {
+  Parser::new(move |x, s| {
     let mut remainder = x;
     let mut result = vec![];
     loop {
-      match (parser.method)(remainder, f) {
+      match (parser.method)(remainder, s) {
         Some((value, x)) => {
           remainder = x;
           result.push(value);
@@ -108,25 +109,25 @@ fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
 }
 
 fn opt<'a, A: 'a>(a: Parser<'a, A>) -> Parser<'a, Option<A>> {
-  Parser::new(move |x, f| match (a.method)(x, f) {
+  Parser::new(move |x, s| match (a.method)(x, s) {
     Some((value, x)) => Some((Some(value), x)),
     None => Some((None, x)),
   })
 }
 
 fn seq<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
-  Parser::new(move |x, f| {
-    (a.method)(x, f).map(|(a, x)| (b.method)(x, f).map(|(b, x)| ((a, b), x))).unwrap_or(None)
+  Parser::new(move |x, s| {
+    (a.method)(x, s).map(|(a, x)| (b.method)(x, s).map(|(b, x)| ((a, b), x))).unwrap_or(None)
   })
 }
 
 fn tag<'a>(tag: &'a str) -> Parser<'a, &'a str> {
   let expected = Rc::new(format!("{:?}", tag));
-  Parser::new(move |x, f| {
+  Parser::new(move |x, s| {
     if x.iter().take(tag.len()).eq(tag.as_bytes().iter()) {
       Some((tag, &x[tag.len()..]))
     } else {
-      update(expected.clone(), x.len(), f);
+      update(expected.clone(), x.len(), s);
       None
     }
   })
@@ -137,11 +138,11 @@ where
   F: Fn(u8) -> bool + 'a,
 {
   let expected = Rc::new(format!("{:?}", name));
-  Parser::new(move |x, f| {
+  Parser::new(move |x, s| {
     if x.len() > 0 && callback(x[0]) {
       Some((x[0], &x[1..]))
     } else {
-      update(expected.clone(), x.len(), f);
+      update(expected.clone(), x.len(), s);
       None
     }
   })
