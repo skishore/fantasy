@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-type Args<T> = HashMap<u32, Rc<T>>;
+mod combine;
+
+type Args<T> = HashMap<usize, Rc<T>>;
 
 trait Template<T> {
   fn merge(xs: Args<T>) -> Rc<T>;
@@ -30,7 +32,7 @@ enum Lambda {
 
 struct Operator {
   commutes: bool,
-  precedence: u32,
+  precedence: usize,
   text: String,
 }
 
@@ -55,10 +57,10 @@ impl Unary {
 
 impl Lambda {
   fn stringify(&self) -> String {
-    self.stringify_at(std::u32::MAX)
+    self.stringify_at(std::usize::MAX)
   }
 
-  fn stringify_at(&self, context: u32) -> String {
+  fn stringify_at(&self, context: usize) -> String {
     match self {
       Lambda::Binary(op, children) => {
         let Operator { commutes, precedence, text } = op.data();
