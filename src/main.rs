@@ -172,6 +172,25 @@ where
   })
 }
 
+fn take_while<'a, F>(callback: F, name: &str, min: usize) -> Parser<'a, ()>
+where
+  F: Fn(u8) -> bool + 'a,
+{
+  let expected = Rc::new(format!("{:?}", name));
+  Parser::new(move |x, s| {
+    let mut remainder = x;
+    while remainder.len() > 0 && callback(remainder[0]) {
+      remainder = &remainder[1..];
+    }
+    if x.len() - remainder.len() >= min {
+      Some(((), remainder))
+    } else {
+      update(Rc::clone(&expected), remainder.len(), s);
+      None
+    }
+  })
+}
+
 fn digit(x: u8) -> bool {
   b'0' <= x && x <= b'9'
 }
@@ -188,9 +207,9 @@ mod tests {
 
   #[bench]
   fn float_parser(b: &mut Bencher) {
-    let digits1 = mul(predicate(digit, "digit"), 1);
-    let digits2 = mul(predicate(digit, "digit"), 1);
-    let digits3 = mul(predicate(digit, "digit"), 1);
+    let digits1 = take_while(digit, "digits", 1);
+    let digits2 = take_while(digit, "digits", 1);
+    let digits3 = take_while(digit, "digits", 1);
     let parser = seq4(
       opt(tag("-")),
       any(vec![tag("0"), map(digits1, |_| "")]),
@@ -199,7 +218,7 @@ mod tests {
     );
     assert_eq!(
       parser.parse(TEST_STR),
-      Result::Ok((None, "", Some((".", vec![50, 51, 52, 53])), Some((101, vec![54, 55]))))
+      Result::Ok((None, "", Some((".", ())), Some((101, ()))))
     );
     b.iter(|| parser.parse("1.2345e56"));
   }
