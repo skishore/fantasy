@@ -1,39 +1,39 @@
 #![feature(test)]
 
+extern crate regex;
+
 #[cfg(test)]
-extern crate combine;
 extern crate test;
 
+use regex::Regex;
 use std::collections::BTreeSet;
 use std::rc::Rc;
-use test::Bencher;
 
 struct State<'a> {
   expected: Vec<Rc<String>>,
-  input: &'a [u8],
+  input: &'a str,
   remainder: usize,
 }
 
-type Output<'a, T> = Option<(T, &'a [u8])>;
+type Output<'a, T> = Option<(T, &'a str)>;
 
-type Method<'a, T> = Fn(&'a [u8], &mut State<'a>) -> Output<'a, T> + 'a;
+type Method<'a, T> = Fn(&'a str, &mut State<'a>) -> Output<'a, T> + 'a;
 
 pub struct Parser<'a, T> {
   method: Box<Method<'a, T>>,
 }
 
 impl<'a, T> Parser<'a, T> {
-  pub fn new<M>(method: M) -> Parser<'a, T>
+  fn new<M>(method: M) -> Parser<'a, T>
   where
-    M: Fn(&'a [u8], &mut State<'a>) -> Output<'a, T> + 'a,
+    M: Fn(&'a str, &mut State<'a>) -> Output<'a, T> + 'a,
   {
     Parser { method: Box::new(method) }
   }
 
   pub fn parse(&self, x: &'a str) -> Result<T, String> {
-    let input = x.as_bytes();
-    let mut state = State { expected: vec![], input, remainder: input.len() };
-    match (self.method)(input, &mut state) {
+    let mut state = State { expected: vec![], input: x, remainder: x.len() };
+    match (self.method)(x, &mut state) {
       Some((value, x)) => {
         if x.len() > 0 {
           Result::Err(format(Some(x.len()), &mut state))
@@ -53,7 +53,7 @@ fn format<'a>(remainder: Option<usize>, state: &mut State<'a>) -> String {
   let expected: BTreeSet<_> = state.expected.iter().map(|x| x.to_string()).collect();
   let expected: Vec<_> = expected.into_iter().collect();
   let index = state.input.len() - state.remainder;
-  format!("At index {}: expected: {}", index, expected.join(" | "))
+  format!("At {}: expected: {}", index, expected.join(" | "))
 }
 
 fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {
@@ -66,7 +66,7 @@ fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {
   state.expected.push(expected);
 }
 
-fn any<'a, A: 'a>(parsers: Vec<Parser<'a, A>>) -> Parser<'a, A> {
+pub fn any<'a, A: 'a>(parsers: Vec<Parser<'a, A>>) -> Parser<'a, A> {
   Parser::new(move |x, s| {
     for parser in &parsers {
       match (parser.method)(x, s) {
@@ -78,7 +78,7 @@ fn any<'a, A: 'a>(parsers: Vec<Parser<'a, A>>) -> Parser<'a, A> {
   })
 }
 
-fn map<'a, A: 'a, B: 'a, F>(parser: Parser<'a, A>, callback: F) -> Parser<'a, B>
+pub fn map<'a, A: 'a, B: 'a, F>(parser: Parser<'a, A>, callback: F) -> Parser<'a, B>
 where
   F: Fn(A) -> B + 'a,
 {
@@ -88,7 +88,7 @@ where
   })
 }
 
-fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
+pub fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
   Parser::new(move |x, s| {
     let mut remainder = x;
     let mut result = vec![];
@@ -104,143 +104,68 @@ fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
   })
 }
 
-fn opt<'a, A: 'a>(a: Parser<'a, A>) -> Parser<'a, Option<A>> {
+pub fn opt<'a, A: 'a>(a: Parser<'a, A>) -> Parser<'a, Option<A>> {
   Parser::new(move |x, s| match (a.method)(x, s) {
     Some((value, x)) => Some((Some(value), x)),
     None => Some((None, x)),
   })
 }
 
-fn seq2<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
+pub fn seq<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
   Parser::new(move |x, s| {
     (a.method)(x, s).and_then(|(a, x)| (b.method)(x, s).and_then(|(b, x)| Some(((a, b), x))))
   })
 }
 
-fn seq3<'a, A: 'a, B: 'a, C: 'a>(
-  a: Parser<'a, A>,
-  b: Parser<'a, B>,
-  c: Parser<'a, C>,
-) -> Parser<'a, (A, B, C)> {
+pub fn regexp<'a>(re: &str) -> Parser<'a, &'a str> {
+  let expected = Rc::new(format!("/{}/", re));
+  let re = Box::new(Regex::new(&format!("^{}", re)).unwrap());
   Parser::new(move |x, s| {
-    (a.method)(x, s).and_then(|(a, x)| {
-      (b.method)(x, s).and_then(|(b, x)| (c.method)(x, s).and_then(|(c, x)| Some(((a, b, c), x))))
-    })
+    if let Some(m) = re.find(x) {
+      return Some(x.split_at(m.end()));
+    }
+    update(Rc::clone(&expected), x.len(), s);
+    None
   })
 }
 
-fn seq4<'a, A: 'a, B: 'a, C: 'a, D: 'a>(
-  a: Parser<'a, A>,
-  b: Parser<'a, B>,
-  c: Parser<'a, C>,
-  d: Parser<'a, D>,
-) -> Parser<'a, (A, B, C, D)> {
+pub fn string<'a>(st: &'a str) -> Parser<'a, &'a str> {
+  let expected = Rc::new(format!("{:?}", st));
   Parser::new(move |x, s| {
-    (a.method)(x, s).and_then(|(a, x)| {
-      (b.method)(x, s).and_then(|(b, x)| {
-        (c.method)(x, s)
-          .and_then(|(c, x)| (d.method)(x, s).and_then(|(d, x)| Some(((a, b, c, d), x))))
-      })
-    })
-  })
-}
-
-fn tag<'a>(tag: &'a str) -> Parser<'a, &'a str> {
-  let expected = Rc::new(format!("{:?}", tag));
-  Parser::new(move |x, s| {
-    if x.iter().take(tag.len()).eq(tag.as_bytes().iter()) {
-      Some((tag, &x[tag.len()..]))
+    if x.starts_with(st) {
+      return Some(x.split_at(st.len()));
     } else {
       update(Rc::clone(&expected), x.len(), s);
       None
     }
   })
-}
-
-fn predicate<'a, F>(callback: F, name: &str) -> Parser<'a, u8>
-where
-  F: Fn(u8) -> bool + 'a,
-{
-  let expected = Rc::new(format!("{:?}", name));
-  Parser::new(move |x, s| {
-    if x.len() > 0 && callback(x[0]) {
-      Some((x[0], &x[1..]))
-    } else {
-      update(Rc::clone(&expected), x.len(), s);
-      None
-    }
-  })
-}
-
-fn take_while<'a, F>(callback: F, name: &str, min: usize) -> Parser<'a, ()>
-where
-  F: Fn(u8) -> bool + 'a,
-{
-  let expected = Rc::new(format!("{:?}", name));
-  Parser::new(move |x, s| {
-    let mut remainder = x;
-    while remainder.len() > 0 && callback(remainder[0]) {
-      remainder = &remainder[1..];
-    }
-    if x.len() - remainder.len() >= min {
-      Some(((), remainder))
-    } else {
-      update(Rc::clone(&expected), remainder.len(), s);
-      None
-    }
-  })
-}
-
-fn digit(x: u8) -> bool {
-  b'0' <= x && x <= b'9'
-}
-
-fn exponent(x: u8) -> bool {
-  x == b'e' || x == b'E'
 }
 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use test::Bencher;
 
-  const TEST_STR: &'static str = "1.2345e67";
-
-  #[bench]
-  fn float_parser(b: &mut Bencher) {
-    let digits1 = take_while(digit, "digits", 1);
-    let digits2 = take_while(digit, "digits", 1);
-    let digits3 = take_while(digit, "digits", 1);
-    let parser = seq4(
-      opt(tag("-")),
-      any(vec![tag("0"), map(digits1, |_| "")]),
-      opt(seq2(tag("."), digits2)),
-      opt(seq2(predicate(exponent, "exponent"), digits3)),
-    );
-    assert_eq!(
-      parser.parse(TEST_STR),
-      Result::Ok((None, "", Some((".", ())), Some((101, ()))))
-    );
-    b.iter(|| parser.parse("1.2345e56"));
+  fn float_parser<'a>() -> Parser<'a, (&'a str, Option<(&'a str, &'a str)>)> {
+    let base = regexp("-?(0|[1-9][0-9]*)([.][0-9]+)?");
+    let exponent = regexp("(0|[1-9][0-9]*)");
+    return seq(base, opt(seq(any(vec![string("e"), string("E")]), exponent)));
   }
 
   #[bench]
-  fn bench_combine(b: &mut Bencher) {
-    use combine::easy::Stream;
-    use combine::range::take_while1;
-    use combine::*;
-    let mut parser = (
-      token(b'-').map(Some).or(value(None)),
-      token(b'0').map(|_| &b"0"[..]).or(take_while1(digit)),
-      optional((token(b'.'), take_while1(digit))),
-      optional((
-        token(b'e').or(token(b'E')),
-        token(b'-').map(Some).or(token(b'+').map(Some)).or(value(None)),
-        take_while1(digit),
-      )),
-    ).map(|_| ());
-    assert_eq!(parser.easy_parse(TEST_STR.as_bytes()), Ok(((), &b""[..])));
-    b.iter(|| parser.easy_parse(test::black_box(TEST_STR.as_bytes())))
+  fn benchmark(b: &mut Bencher) {
+    let parser = float_parser();
+    b.iter(|| parser.parse("-1.23e45"));
+  }
+
+  #[test]
+  fn smoke_test() {
+    let parser = float_parser();
+    assert_eq!(parser.parse("-1.23"), Ok(("-1.23", None)));
+    assert_eq!(parser.parse("-1.23e45"), Ok(("-1.23", Some(("e", "45")))));
+    assert_eq!(parser.parse("-1.23E45"), Ok(("-1.23", Some(("E", "45")))));
+    assert_eq!(parser.parse("-1.23e"), Err("At 6: expected: /(0|[1-9][0-9]*)/".to_string()));
+    assert_eq!(parser.parse("-1.23f45"), Err(r#"At 5: expected: "E" | "e" | EOF"#.to_string()));
+    assert_eq!(parser.parse("-1.23e45 "), Err("At 8: expected: EOF".to_string()));
   }
 }
-
-fn main() {}
