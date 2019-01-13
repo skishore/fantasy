@@ -196,3 +196,37 @@ const Lambda: DataType<Lambda | null> = {
 };
 
 export {Lambda};
+
+// A matching parser to the Rust parser, for performance testing.
+
+const p: Node<Lambda> = (() => {
+  const ws = Parser.regexp(/\s*/m);
+  const id = Parser.regexp(/[a-zA-Z0-9_]+/).skip(ws);
+
+  const args = (root: Node<Lambda>) =>
+    Parser.all(w('('), root.repeat(0, w(',')), w(')')).map(x => x[1]);
+
+  const base = (root: Node<Lambda>) => Parser.any(
+    Parser.all(w('R'), w('['), root, w(']')).map(x => ({type: 'unary', base: x[2], op: '!'} as Lambda)),
+    id.and(Parser.any(args(root), Parser.succeed(null))).map(a),
+    Parser.all(w('('), root, w(')')).map(x => x[1]),
+  );
+
+  const a = ([x, y]: [string, Lambda[] | null]) =>
+    y ? ({type: 'custom', base: y, op: x} as Lambda) : ({type: 'single', base: x} as Lambda);
+
+  const b = (ops: Binary[]) => (root: Node<Lambda>) =>
+    root.and(Parser.any(...s(ops)(root))).map(([a, b]) =>
+      b.length === 0 ? a : ({type: 'binary', base: [a].concat(b.map(x => x[1])), op: b[0][0]} as Lambda));
+
+  const s = (ops: Binary[]) => (root: Node<Lambda>) =>
+    ops.map(x => w(x).and(root).repeat(1)).concat([Parser.succeed([])]);
+
+  const u = (op: Unary) => (root: Node<Lambda>) =>
+    root.or(w(op).then(root).map(x => ({type: 'unary', base: x, op} as Lambda)));
+
+  const w = <T extends string>(x: T) => Parser.string(x).skip(ws) as Node<T>;
+
+  const ops = [base, b(['.']), u('~'), b(['&', '|'])];
+  return ws.then(ops.reduce((acc, x) => x(acc), Parser.lazy(() => p)));
+})();

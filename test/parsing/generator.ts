@@ -95,4 +95,4 @@ const generator: Test = {
   },
 };
 
-export {generator};
+export {arithmetic, generator};
