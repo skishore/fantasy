@@ -9,6 +9,8 @@ pub trait Template<T> {
 
 // A lambda DCS type used for utterance semantics.
 
+type OptionLambda = Option<Rc<Lambda>>;
+
 #[derive(Clone, Copy, PartialEq)]
 pub enum Binary {
   Conjunction,
@@ -36,6 +38,10 @@ impl Lambda {
 
   pub fn stringify(&self) -> String {
     stringify(self, std::u32::MAX)
+  }
+
+  pub fn template(input: &str) -> Result<Rc<Template<OptionLambda>>, String> {
+    template(input)
   }
 }
 
@@ -80,12 +86,13 @@ fn parse(input: &str) -> Result<Rc<Lambda>, String> {
           seq4((st("R"), st("["), x.clone(), st("]")), |x| {
             Rc::new(Lambda::Unary(Unary::Reverse, x.2))
           }),
-          seq2((id.clone(), opt(st("(").then(sep(x.clone(), st(","), 0)).skip(st(")")))), |x| {
-            match x.1 {
+          seq2(
+            (id.clone(), opt(st("(").then(x.clone().separate(st(","), 0)).skip(st(")")))),
+            |x| match x.1 {
               Some(xs) => Rc::new(Lambda::Custom(x.0, xs)),
               None => Rc::new(Lambda::Terminal(x.0)),
-            }
-          }),
+            },
+          ),
           seq3((st("("), x.clone(), st(")")), |x| x.1),
         ])
       };
@@ -159,11 +166,67 @@ fn stringify(lambda: &Lambda, context: u32) -> String {
   }
 }
 
+fn template(input: &str) -> Result<Rc<Template<OptionLambda>>, String> {
+  use combine::*;
+  type Node = Parser<Rc<Template<OptionLambda>>>;
+  lazy_static! {
+    static ref kParser: Node = {
+      let ws = regexp(r#"\s*"#, |_| ());
+      let id = regexp("[a-zA-Z0-9_]+", |x| x.to_string()).skip(ws.clone());
+      let st = |x| string(x, |_| ()).skip(ws.clone());
+      let number = regexp("(0|[1-9][0-9]*)", |x| x.parse::<usize>().unwrap()).skip(ws.clone());
+
+      let base = |x: Node| {
+        any(vec![
+          seq4((st("R"), st("["), x.clone(), st("]")), |x| helpers::unary(Unary::Reverse, x.2)),
+          seq2(
+            (id.clone(), opt(st("(").then(x.clone().separate(st(","), 0)).skip(st(")")))),
+            |x| match x.1 {
+              Some(xs) => helpers::custom(x.0, xs),
+              None => helpers::terminal(x.0),
+            },
+          ),
+          seq3((st("("), x.clone(), st(")")), |x| x.1),
+          seq2((st("$"), number.clone()), |x| helpers::variable(x.1)),
+        ])
+      };
+
+      let binaries = |ops: Vec<(&'static str, Binary)>| {
+        move |x: Node| {
+          let mut options = vec![];
+          for (name, op) in ops.iter() {
+            let op = op.clone();
+            options.push(st(name).then(x.clone()).repeat(1).map(move |x| Some((op, x))));
+          }
+          options.push(succeed(|| None));
+          seq2((x, any(options)), |x| match x.1 {
+            Some((op, mut xs)) => xs.drain(..).fold(x.0, |acc, x| helpers::binary(op, acc, x)),
+            None => x.0,
+          })
+        }
+      };
+
+      let unary = |name: &'static str, op: Unary| {
+        move |x: Node| x.clone().or(seq2((st(name), x), move |x| helpers::unary(op, x.1)))
+      };
+
+      let (cell, root) = lazy();
+      let precedence: Vec<Box<Fn(Node) -> Node>> = vec![
+        Box::new(base),
+        Box::new(binaries(vec![(".", Binary::Join)])),
+        Box::new(unary("~", Unary::Not)),
+        Box::new(binaries(vec![("&", Binary::Conjunction), ("|", Binary::Disjunction)])),
+      ];
+      cell.replace(precedence.iter().fold(root.clone(), |x, f| f(x)));
+      root
+    };
+  }
+  kParser.parse(input)
+}
+
 // Templates that operate on lambda DCS expressions.
 
-type OptionLambda = Option<Rc<Lambda>>;
-
-fn append<T>(xs: &Vec<Args<T>>, ys: &Vec<Args<T>>, zs: &mut Vec<Args<T>>)
+fn append<T>(xs: &[Args<T>], ys: &[Args<T>], zs: &mut Vec<Args<T>>)
 where
   T: Clone,
 {
@@ -195,26 +258,37 @@ fn expand(op: Binary, x: OptionLambda) -> Vec<Rc<Lambda>> {
   }
 }
 
-struct Concat(Box<Template<OptionLambda>>, Box<Template<OptionLambda>>, Binary);
+fn involute(op: Unary, x: OptionLambda) -> OptionLambda {
+  x.map(|x| {
+    if let Lambda::Unary(y, ref ys) = *x {
+      if y == op {
+        return ys.clone();
+      }
+    }
+    x
+  })
+}
 
-impl Template<OptionLambda> for Concat {
+struct BinaryTemplate(Binary, Rc<Template<OptionLambda>>, Rc<Template<OptionLambda>>);
+
+impl Template<OptionLambda> for BinaryTemplate {
   fn merge(&self, xs: &Args<OptionLambda>) -> OptionLambda {
-    let mut x0 = expand(self.2, self.0.merge(xs));
-    let mut x1 = expand(self.2, self.1.merge(xs));
-    if self.2.data().commutes || (!x0.is_empty() && !x1.is_empty()) {
-      x0.append(&mut x1);
-      collapse(self.2, x0)
+    let mut x1 = expand(self.0, self.1.merge(xs));
+    let mut x2 = expand(self.0, self.2.merge(xs));
+    if self.0.data().commutes || (!x1.is_empty() && !x2.is_empty()) {
+      x1.append(&mut x2);
+      collapse(self.0, x1)
     } else {
       None
     }
   }
   fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
-    let base = expand(self.2, x);
-    let commutes = self.2.data().commutes;
+    let base = expand(self.0, x);
+    let commutes = self.0.data().commutes;
     if !commutes && base.is_empty() {
-      let mut a = self.0.split(None);
-      let mut b = self.1.split(None);
-      return a.drain(..).chain(b.drain(..)).collect();
+      let mut x1 = self.1.split(None);
+      let mut x2 = self.2.split(None);
+      return x1.drain(..).chain(x2.drain(..)).collect();
     }
     let bits: Vec<_> = if commutes {
       (0..(1 << base.len())).collect()
@@ -231,19 +305,53 @@ impl Template<OptionLambda> for Concat {
           xs.1.push(x.clone());
         }
       }
-      let x0 = self.0.split(collapse(self.2, xs.0));
-      let x1 = self.1.split(collapse(self.2, xs.1));
-      append(&x0, &x1, &mut result);
+      let x1 = self.1.split(collapse(self.0, xs.0));
+      let x2 = self.2.split(collapse(self.0, xs.1));
+      append(&x1, &x2, &mut result);
     }
     result
   }
 }
 
-struct Terminal(String);
+struct CustomTemplate(String, Vec<Rc<Template<OptionLambda>>>);
 
-impl Template<OptionLambda> for Terminal {
+impl Template<OptionLambda> for CustomTemplate {
+  fn merge(&self, xs: &Args<OptionLambda>) -> OptionLambda {
+    let xs: Vec<_> = self.1.iter().filter_map(|x| x.merge(xs)).collect();
+    if xs.len() < self.1.len() {
+      None
+    } else {
+      Some(Rc::new(Lambda::Custom(self.0.clone(), xs)))
+    }
+  }
+  fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
+    match x {
+      Some(x) => {
+        if let Lambda::Custom(ref y, ref ys) = *x {
+          if *y == self.0 && ys.len() == self.1.len() {
+            return self.1.iter().enumerate().fold(vec![vec![]], |acc, (i, x)| {
+              let mut result = vec![];
+              append(&acc, &x.split(Some(ys[i].clone())), &mut result);
+              result
+            });
+          }
+        }
+        vec![]
+      }
+      None => {
+        let mut result = vec![];
+        self.1.iter().for_each(|x| result.append(&mut x.split(None)));
+        result
+      }
+    }
+  }
+}
+
+struct TerminalTemplate(String, OptionLambda);
+
+impl Template<OptionLambda> for TerminalTemplate {
   fn merge(&self, _: &Args<OptionLambda>) -> OptionLambda {
-    Some(Rc::new(Lambda::Terminal(self.0.clone())))
+    self.1.clone()
   }
   fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
     let matched = x.map(|y| match *y {
@@ -258,9 +366,20 @@ impl Template<OptionLambda> for Terminal {
   }
 }
 
-struct Variable(usize);
+struct UnaryTemplate(Unary, Rc<Template<OptionLambda>>);
 
-impl Template<OptionLambda> for Variable {
+impl Template<OptionLambda> for UnaryTemplate {
+  fn merge(&self, xs: &Args<OptionLambda>) -> OptionLambda {
+    involute(self.0, self.1.merge(xs))
+  }
+  fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
+    self.1.split(involute(self.0, x))
+  }
+}
+
+struct VariableTemplate(usize);
+
+impl Template<OptionLambda> for VariableTemplate {
   fn merge(&self, xs: &Args<OptionLambda>) -> OptionLambda {
     xs.iter().filter_map(|(i, x)| if *i == self.0 { x.clone() } else { None }).next()
   }
@@ -269,23 +388,28 @@ impl Template<OptionLambda> for Variable {
   }
 }
 
-pub fn main() {
-  let lambda = Some(Lambda::parse("a & b & c.d").unwrap());
-  let template = Concat(
-    Box::new(Concat(Box::new(Variable(0)), Box::new(Variable(1)), Binary::Conjunction)),
-    Box::new(Concat(Box::new(Terminal("c".to_owned())), Box::new(Variable(2)), Binary::Join)),
-    Binary::Conjunction,
-  );
-  for (i, option) in template.split(lambda).iter().enumerate() {
-    println!("Option {}:", i);
-    let mut result: Vec<_> = option
-      .iter()
-      .map(|(k, v)| {
-        format!("    Key {}: {}", k, v.as_ref().map(|x| x.stringify()).unwrap_or("{}".to_string()))
-      })
-      .collect();
-    result.sort();
-    result.iter().for_each(|x| println!("{}", x));
+mod helpers {
+  use super::*;
+  type Node = Rc<Template<OptionLambda>>;
+
+  pub fn binary(op: Binary, a: Node, b: Node) -> Node {
+    Rc::new(BinaryTemplate(op, a, b))
+  }
+
+  pub fn custom(op: String, args: Vec<Node>) -> Node {
+    Rc::new(CustomTemplate(op.to_string(), args))
+  }
+
+  pub fn terminal(x: String) -> Node {
+    Rc::new(TerminalTemplate(x.clone(), Some(Rc::new(Lambda::Terminal(x)))))
+  }
+
+  pub fn unary(op: Unary, a: Node) -> Node {
+    Rc::new(UnaryTemplate(op, a))
+  }
+
+  pub fn variable(i: usize) -> Node {
+    Rc::new(VariableTemplate(i))
   }
 }
 
@@ -295,26 +419,33 @@ mod tests {
   use test::Bencher;
 
   #[bench]
-  fn parser_benchmark(b: &mut Bencher) {
+  fn lambda_parser_benchmark(b: &mut Bencher) {
     b.iter(|| Lambda::parse("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap());
   }
 
   #[bench]
-  fn template_benchmark_1(b: &mut Bencher) {
+  fn template_parse_benchmark(b: &mut Bencher) {
+    b.iter(|| Lambda::template("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap());
+  }
+
+  #[bench]
+  fn template_merge_benchmark(b: &mut Bencher) {
+    let template = Lambda::template("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap();
+    b.iter(|| template.merge(&vec![]).unwrap());
+  }
+
+  #[bench]
+  fn split_benchmark_easy(b: &mut Bencher) {
     let lambda = Some(Lambda::parse("foo & bar & baz").unwrap());
-    let template = Concat(Box::new(Variable(0)), Box::new(Variable(1)), Binary::Conjunction);
+    let template = Lambda::template("$0 & $1").unwrap();
     assert_eq!(template.split(lambda.clone()).len(), 8);
     b.iter(|| template.split(lambda.clone()));
   }
 
   #[bench]
-  fn template_benchmark_2(b: &mut Bencher) {
+  fn split_benchmark_hard(b: &mut Bencher) {
     let lambda = Some(Lambda::parse("a & b & c.d").unwrap());
-    let template = Concat(
-      Box::new(Concat(Box::new(Variable(0)), Box::new(Variable(1)), Binary::Conjunction)),
-      Box::new(Concat(Box::new(Terminal("c".to_owned())), Box::new(Variable(2)), Binary::Join)),
-      Binary::Conjunction,
-    );
+    let template = Lambda::template("$0 & $1 & c.$2").unwrap();
     assert_eq!(template.split(lambda.clone()).len(), 12);
     b.iter(|| template.split(lambda.clone()));
   }
