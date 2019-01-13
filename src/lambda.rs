@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub type Args<T> = HashMap<usize, T>;
+pub type Args<T> = Vec<(usize, T)>;
 
 pub trait Template<T> {
   fn merge(&self, xs: &Args<T>) -> T;
@@ -172,14 +172,9 @@ where
   let mut result = vec![];
   for x in xs {
     for y in ys {
-      let mut map = HashMap::new();
-      for (k, v) in x.iter() {
-        map.insert(*k, v.clone());
-      }
-      for (k, v) in y.iter() {
-        map.insert(*k, v.clone());
-      }
-      result.push(map);
+      let mut item = x.to_vec();
+      y.iter().for_each(|z| item.push(z.clone()));
+      result.push(item);
     }
   }
   result
@@ -263,7 +258,7 @@ impl Template<OptionLambda> for Terminal {
       _ => false,
     });
     if matched.unwrap_or(false) {
-      vec![HashMap::new()]
+      vec![vec![]]
     } else {
       vec![]
     }
@@ -274,12 +269,10 @@ struct Variable(usize);
 
 impl Template<OptionLambda> for Variable {
   fn merge(&self, xs: &Args<OptionLambda>) -> OptionLambda {
-    xs.get(&self.0).map(|x| x.clone()).unwrap_or(None)
+    xs.iter().filter_map(|(i, x)| if *i == self.0 { x.clone() } else { None }).next()
   }
   fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
-    let mut result = HashMap::new();
-    result.insert(self.0, x);
-    vec![result]
+    vec![vec![(self.0, x)]]
   }
 }
 
