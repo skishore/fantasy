@@ -10,9 +10,7 @@ struct State<'a> {
   remainder: usize,
 }
 
-type Output<'a, T: 'a> = Option<(T, &'a str)>;
-
-type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Output<'a, T>;
+type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>;
 
 pub struct Parser<T> {
   method: Arc<Method<T>>,
@@ -29,7 +27,7 @@ impl<T> Clone for Parser<T> {
 impl<T: 'static> Parser<T> {
   fn new<M: 'static>(method: M) -> Parser<T>
   where
-    M: for<'a> Fn(&'a str, &mut State<'a>) -> Output<'a, T>,
+    M: for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>,
   {
     Parser { method: Arc::new(method) }
   }
@@ -48,13 +46,8 @@ impl<T: 'static> Parser<T> {
   pub fn parse(&self, x: &str) -> Result<T, String> {
     let mut state = State { expected: vec![], input: x, remainder: x.len() };
     match (self.method)(x, &mut state) {
-      Some((value, x)) => {
-        if x.len() > 0 {
-          Result::Err(format(Some(x.len()), &mut state))
-        } else {
-          Ok(value)
-        }
-      }
+      Some((value, "")) => Ok(value),
+      Some((_, x)) => Result::Err(format(Some(x.len()), &mut state)),
       None => Result::Err(format(None, &mut state)),
     }
   }
@@ -97,26 +90,21 @@ fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {
 }
 
 pub fn any<A: 'static>(parsers: Vec<Parser<A>>) -> Parser<A> {
+  Parser::new(move |x, s| parsers.iter().filter_map(|y| (y.method)(x, s)).next())
+}
+
+pub fn fail<A: 'static>(message: &str) -> Parser<A> {
+  let expected = Rc::new(message.to_string());
   Parser::new(move |x, s| {
-    for parser in &parsers {
-      match (parser.method)(x, s) {
-        Some(x) => return Some(x),
-        None => continue,
-      }
-    }
+    update(Rc::clone(&expected), x.len(), s);
     None
   })
 }
 
-pub fn laz<A: 'static>() -> (Rc<RefCell<Option<Parser<A>>>>, Parser<A>) {
-  let result: Rc<RefCell<Option<Parser<A>>>> = Rc::new(RefCell::new(None));
+pub fn lazy<A: 'static>() -> (Rc<RefCell<Parser<A>>>, Parser<A>) {
+  let result = Rc::new(RefCell::new(fail("Uninitialized lazy!")));
   let helper = Rc::clone(&result);
-  let parser = Parser::new(move |x, s| {
-    match *helper.borrow() {
-      Some(ref p) => (p.method)(x, s),
-      None => None,
-    }
-  });
+  let parser = Parser::new(move |x, s| (helper.borrow().method)(x, s));
   (result, parser)
 }
 
@@ -124,10 +112,7 @@ pub fn map<A: 'static, B: 'static, F: 'static>(parser: Parser<A>, callback: F) -
 where
   F: Fn(A) -> B,
 {
-  Parser::new(move |x, s| match (parser.method)(x, s) {
-    Some((value, x)) => Some((callback(value), x)),
-    None => None,
-  })
+  Parser::new(move |x, s| (parser.method)(x, s).map(|(value, x)| (callback(value), x)))
 }
 
 pub fn mul<A: 'static>(parser: Parser<A>, min: usize) -> Parser<Vec<A>> {
@@ -250,10 +235,9 @@ where
     if x.starts_with(&st) {
       let (l, r) = x.split_at(st.len());
       return Some((callback(l), r));
-    } else {
-      update(Rc::clone(&expected), x.len(), s);
-      None
     }
+    update(Rc::clone(&expected), x.len(), s);
+    None
   })
 }
 

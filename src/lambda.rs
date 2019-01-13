@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::rc::Rc;
 
 pub type Args<T> = Vec<(usize, T)>;
@@ -71,7 +70,7 @@ fn parse(input: &str) -> Result<Rc<Lambda>, String> {
   use combine::*;
   type Node = Parser<Rc<Lambda>>;
   lazy_static! {
-    static ref PARSER: Node = {
+    static ref kParser: Node = {
       let ws = regexp(r#"\s*"#, |_| ());
       let id = regexp("[a-zA-Z0-9_]+", |x| x.to_string()).skip(ws.clone());
       let st = |x| string(x, |_| ()).skip(ws.clone());
@@ -99,11 +98,10 @@ fn parse(input: &str) -> Result<Rc<Lambda>, String> {
             options.push(st(name).then(x.clone()).repeat(1).map(move |x| Some((op, x))));
           }
           options.push(succeed(|| None));
-          seq2((x, any(options)), |mut x| match &mut x.1 {
-            Some((ref op, ref mut xs)) => {
-              let mut result = vec![x.0];
-              result.append(xs);
-              Rc::new(Lambda::Binary(*op, result))
+          seq2((x, any(options)), |x| match x.1 {
+            Some((op, mut xs)) => {
+              let xs: Vec<_> = std::iter::once(x.0).chain(xs.drain(..)).collect();
+              Rc::new(Lambda::Binary(op, xs))
             }
             None => x.0,
           })
@@ -114,18 +112,18 @@ fn parse(input: &str) -> Result<Rc<Lambda>, String> {
         move |x: Node| x.clone().or(seq2((st(name), x), move |x| Rc::new(Lambda::Unary(op, x.1))))
       };
 
-      let (cell, init) = laz();
+      let (cell, root) = lazy();
       let precedence: Vec<Box<Fn(Node) -> Node>> = vec![
         Box::new(base),
         Box::new(binaries(vec![(".", Binary::Join)])),
         Box::new(unary("~", Unary::Not)),
         Box::new(binaries(vec![("&", Binary::Conjunction), ("|", Binary::Disjunction)])),
       ];
-      cell.replace(Some(precedence.iter().fold(init.clone(), |x, f| f(x))));
-      init
+      cell.replace(precedence.iter().fold(root.clone(), |x, f| f(x)));
+      root
     };
   }
-  PARSER.parse(input)
+  kParser.parse(input)
 }
 
 fn stringify(lambda: &Lambda, context: u32) -> String {
@@ -165,34 +163,29 @@ fn stringify(lambda: &Lambda, context: u32) -> String {
 
 type OptionLambda = Option<Rc<Lambda>>;
 
-fn cross<T>(xs: &Vec<Args<T>>, ys: &Vec<Args<T>>) -> Vec<Args<T>>
+fn append<T>(xs: &Vec<Args<T>>, ys: &Vec<Args<T>>, zs: &mut Vec<Args<T>>)
 where
   T: Clone,
 {
-  let mut result = vec![];
   for x in xs {
     for y in ys {
-      let mut item = x.to_vec();
-      y.iter().for_each(|z| item.push(z.clone()));
-      result.push(item);
+      zs.push(x.iter().chain(y.iter()).map(|z| z.clone()).collect());
     }
   }
-  result
 }
 
 fn collapse(op: Binary, mut x: Vec<Rc<Lambda>>) -> OptionLambda {
-  if x.len() > 1 {
-    Some(Rc::new(Lambda::Binary(op, x)))
-  } else {
-    x.pop()
+  match x.len() {
+    0 | 1 => x.pop(),
+    _ => Some(Rc::new(Lambda::Binary(op, x))),
   }
 }
 
 fn expand(op: Binary, x: OptionLambda) -> Vec<Rc<Lambda>> {
   match x {
     Some(x) => {
-      if let Lambda::Binary(ref y, ref ys) = *x {
-        if *y == op {
+      if let Lambda::Binary(y, ref ys) = *x {
+        if y == op {
           return ys.to_vec();
         }
       }
@@ -218,17 +211,17 @@ impl Template<OptionLambda> for Concat {
   fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
     let base = expand(self.2, x);
     let commutes = self.2.data().commutes;
-    let mut result = vec![];
     if !commutes && base.is_empty() {
-      result.append(&mut self.0.split(None));
-      result.append(&mut self.1.split(None));
-      return result;
+      let mut a = self.0.split(None);
+      let mut b = self.1.split(None);
+      return a.drain(..).chain(b.drain(..)).collect();
     }
     let bits: Vec<_> = if commutes {
       (0..(1 << base.len())).collect()
     } else {
       (0..(base.len() - 1)).map(|i| 1 << (i + 1) - 1).collect()
     };
+    let mut result = vec![];
     for i in bits {
       let mut xs = (vec![], vec![]);
       for (j, x) in base.iter().enumerate() {
@@ -240,7 +233,7 @@ impl Template<OptionLambda> for Concat {
       }
       let x0 = self.0.split(collapse(self.2, xs.0));
       let x1 = self.1.split(collapse(self.2, xs.1));
-      result.append(&mut cross(&x0, &x1));
+      append(&x0, &x1, &mut result);
     }
     result
   }
