@@ -13,15 +13,29 @@ type Output<'a, T> = Option<(T, &'a str)>;
 type Method<'a, T> = Fn(&'a str, &mut State<'a>) -> Output<'a, T> + 'a;
 
 pub struct Parser<'a, T> {
-  method: Box<Method<'a, T>>,
+  method: Rc<Method<'a, T>>,
 }
 
-impl<'a, T> Parser<'a, T> {
+impl<'a, T> Clone for Parser<'a, T> {
+  fn clone(&self) -> Parser<'a, T> {
+    return Parser { method: Rc::clone(&self.method) };
+  }
+}
+
+impl<'a, T: 'a> Parser<'a, T> {
   fn new<M>(method: M) -> Parser<'a, T>
   where
     M: Fn(&'a str, &mut State<'a>) -> Output<'a, T> + 'a,
   {
-    Parser { method: Box::new(method) }
+    Parser { method: Rc::new(method) }
+  }
+
+  pub fn and<U: 'a>(self, other: Parser<'a, U>) -> Parser<'a, (T, U)> {
+    seq(self, other)
+  }
+
+  pub fn or(self, other: Parser<'a, T>) -> Parser<'a, T> {
+    any(vec![self, other])
   }
 
   pub fn parse(&self, x: &'a str) -> Result<T, String> {
@@ -36,6 +50,22 @@ impl<'a, T> Parser<'a, T> {
       }
       None => Result::Err(format(None, &mut state)),
     }
+  }
+
+  pub fn repeat(self, min: usize) -> Parser<'a, Vec<T>> {
+    mul(self, min)
+  }
+
+  pub fn separate<U: 'a>(self, seperator: Parser<'a, U>, min: usize) -> Parser<'a, Vec<T>> {
+    sep(self, seperator, min)
+  }
+
+  pub fn skip<U: 'a>(self, other: Parser<'a, U>) -> Parser<'a, T> {
+    map(seq(self, other), |(t, u)| t)
+  }
+
+  pub fn then<U: 'a>(self, other: Parser<'a, U>) -> Parser<'a, U> {
+    map(seq(self, other), |(t, u)| u)
   }
 }
 
@@ -104,6 +134,21 @@ pub fn opt<'a, A: 'a>(a: Parser<'a, A>) -> Parser<'a, Option<A>> {
   })
 }
 
+pub fn sep<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>, min: usize) -> Parser<'a, Vec<A>> {
+  let m = if min == 0 { 0 } else { min - 1 };
+  let list = map(seq(a.clone(), mul(seq(b, a), m)), |(a, bas)| {
+    let mut result = vec![a];
+    result.reserve(bas.len() + 1);
+    bas.into_iter().for_each(|(_, a)| result.push(a));
+    result
+  });
+  if min == 0 {
+    any(vec![list, succeed(|| vec![])])
+  } else {
+    list
+  }
+}
+
 pub fn seq<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
   Parser::new(move |x, s| {
     (a.method)(x, s).and_then(|(a, x)| (b.method)(x, s).and_then(|(b, x)| Some(((a, b), x))))
@@ -134,6 +179,13 @@ pub fn string<'a>(st: &'a str) -> Parser<'a, &'a str> {
   })
 }
 
+pub fn succeed<'a, A: 'a, F>(callback: F) -> Parser<'a, A>
+where
+  F: Fn() -> A + 'a,
+{
+  Parser::new(move |x, s| Some((callback(), x)))
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -149,6 +201,36 @@ mod tests {
   fn benchmark(b: &mut Bencher) {
     let parser = float_parser();
     b.iter(|| parser.parse("-1.23e45"));
+  }
+
+  #[test]
+  fn comma_test() {
+    let parser = sep(string("a"), string(","), 0);
+    assert_eq!(parser.parse(""), Ok(vec![]));
+    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
+    assert_eq!(parser.parse("a,a"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
+    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
+    let parser = sep(string("a"), string(","), 1);
+    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
+    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
+    assert_eq!(parser.parse("a,a"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
+    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
+  }
+
+  #[test]
+  fn range_test() {
+    let parser = mul(string("a"), 0);
+    assert_eq!(parser.parse(""), Ok(vec![]));
+    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
+    assert_eq!(parser.parse("aa"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
+    let parser = mul(string("a"), 1);
+    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
+    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
+    assert_eq!(parser.parse("aa"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
   }
 
   #[test]
