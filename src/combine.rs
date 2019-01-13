@@ -1,6 +1,8 @@
 use regex::Regex;
+use std::cell::RefCell;
 use std::collections::BTreeSet;
 use std::rc::Rc;
+use std::sync::Arc;
 
 struct State<'a> {
   expected: Vec<Rc<String>>,
@@ -13,12 +15,14 @@ type Output<'a, T: 'a> = Option<(T, &'a str)>;
 type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Output<'a, T>;
 
 pub struct Parser<T> {
-  method: Rc<Method<T>>,
+  method: Arc<Method<T>>,
 }
 
-impl<'a, T> Clone for Parser<T> {
+unsafe impl<T> Sync for Parser<T> {}
+
+impl<T> Clone for Parser<T> {
   fn clone(&self) -> Parser<T> {
-    return Parser { method: Rc::clone(&self.method) };
+    return Parser { method: Arc::clone(&self.method) };
   }
 }
 
@@ -27,7 +31,7 @@ impl<T: 'static> Parser<T> {
   where
     M: for<'a> Fn(&'a str, &mut State<'a>) -> Output<'a, T>,
   {
-    Parser { method: Rc::new(method) }
+    Parser { method: Arc::new(method) }
   }
 
   pub fn or(self, other: Parser<T>) -> Parser<T> {
@@ -64,11 +68,11 @@ impl<T: 'static> Parser<T> {
   }
 
   pub fn skip<U: 'static>(self, other: Parser<U>) -> Parser<T> {
-    seq2(self, other, |x, _| x)
+    seq2((self, other), |x| x.0)
   }
 
   pub fn then<U: 'static>(self, other: Parser<U>) -> Parser<U> {
-    seq2(self, other, |_, x| x)
+    seq2((self, other), |x| x.1)
   }
 }
 
@@ -102,6 +106,18 @@ pub fn any<A: 'static>(parsers: Vec<Parser<A>>) -> Parser<A> {
     }
     None
   })
+}
+
+pub fn laz<A: 'static>() -> (Rc<RefCell<Option<Parser<A>>>>, Parser<A>) {
+  let result: Rc<RefCell<Option<Parser<A>>>> = Rc::new(RefCell::new(None));
+  let helper = Rc::clone(&result);
+  let parser = Parser::new(move |x, s| {
+    match *helper.borrow() {
+      Some(ref p) => (p.method)(x, s),
+      None => None,
+    }
+  });
+  (result, parser)
 }
 
 pub fn map<A: 'static, B: 'static, F: 'static>(parser: Parser<A>, callback: F) -> Parser<B>
@@ -139,9 +155,9 @@ pub fn opt<A: 'static>(a: Parser<A>) -> Parser<Option<A>> {
 
 pub fn sep<A: 'static, B: 'static>(a: Parser<A>, b: Parser<B>, min: usize) -> Parser<Vec<A>> {
   let m = if min == 0 { 0 } else { min - 1 };
-  let list = seq2(a.clone(), mul(seq2(b, a, |_, x| x), m), |x, mut xs| {
-    let mut result = vec![x];
-    result.append(&mut xs);
+  let list = seq2((a.clone(), mul(seq2((b, a), |x| x.1), m)), |mut x| {
+    let mut result = vec![x.0];
+    result.append(&mut x.1);
     result
   });
   if min == 0 {
@@ -152,17 +168,16 @@ pub fn sep<A: 'static, B: 'static>(a: Parser<A>, b: Parser<B>, min: usize) -> Pa
 }
 
 pub fn seq2<A: 'static, B: 'static, F: 'static, T: 'static>(
-  a: Parser<A>,
-  b: Parser<B>,
+  parsers: (Parser<A>, Parser<B>),
   callback: F,
 ) -> Parser<T>
 where
-  F: Fn(A, B) -> T,
+  F: Fn((A, B)) -> T,
 {
   Parser::new(move |x, s| {
-    if let Some((a, x)) = (a.method)(x, s) {
-      if let Some((b, x)) = (b.method)(x, s) {
-        return Some((callback(a, b), x));
+    if let Some((a, x)) = (parsers.0.method)(x, s) {
+      if let Some((b, x)) = (parsers.1.method)(x, s) {
+        return Some((callback((a, b)), x));
       }
     }
     None
@@ -170,19 +185,17 @@ where
 }
 
 pub fn seq3<A: 'static, B: 'static, C: 'static, F: 'static, T: 'static>(
-  a: Parser<A>,
-  b: Parser<B>,
-  c: Parser<C>,
+  parsers: (Parser<A>, Parser<B>, Parser<C>),
   callback: F,
 ) -> Parser<T>
 where
-  F: Fn(A, B, C) -> T,
+  F: Fn((A, B, C)) -> T,
 {
   Parser::new(move |x, s| {
-    if let Some((a, x)) = (a.method)(x, s) {
-      if let Some((b, x)) = (b.method)(x, s) {
-        if let Some((c, x)) = (c.method)(x, s) {
-          return Some((callback(a, b, c), x));
+    if let Some((a, x)) = (parsers.0.method)(x, s) {
+      if let Some((b, x)) = (parsers.1.method)(x, s) {
+        if let Some((c, x)) = (parsers.2.method)(x, s) {
+          return Some((callback((a, b, c)), x));
         }
       }
     }
@@ -191,21 +204,18 @@ where
 }
 
 pub fn seq4<A: 'static, B: 'static, C: 'static, D: 'static, F: 'static, T: 'static>(
-  a: Parser<A>,
-  b: Parser<B>,
-  c: Parser<C>,
-  d: Parser<D>,
+  parsers: (Parser<A>, Parser<B>, Parser<C>, Parser<D>),
   callback: F,
 ) -> Parser<T>
 where
-  F: Fn(A, B, C, D) -> T,
+  F: Fn((A, B, C, D)) -> T,
 {
   Parser::new(move |x, s| {
-    if let Some((a, x)) = (a.method)(x, s) {
-      if let Some((b, x)) = (b.method)(x, s) {
-        if let Some((c, x)) = (c.method)(x, s) {
-          if let Some((d, x)) = (d.method)(x, s) {
-            return Some((callback(a, b, c, d), x));
+    if let Some((a, x)) = (parsers.0.method)(x, s) {
+      if let Some((b, x)) = (parsers.1.method)(x, s) {
+        if let Some((c, x)) = (parsers.2.method)(x, s) {
+          if let Some((d, x)) = (parsers.3.method)(x, s) {
+            return Some((callback((a, b, c, d)), x));
           }
         }
       }
@@ -270,7 +280,7 @@ mod tests {
   fn float_parser<'a>() -> Parser<(f32, Option<i32>)> {
     let base = regexp("-?(0|[1-9][0-9]*)([.][0-9]+)?", |x| x.parse::<f32>().unwrap());
     let exponent = regexp("-?(0|[1-9][0-9]*)", |x| x.parse::<i32>().unwrap());
-    return seq2(base, opt(any(vec![st("e"), st("E")]).then(exponent)), |x, y| (x, y));
+    return seq2((base, opt(any(vec![st("e"), st("E")]).then(exponent))), |x| x);
   }
 
   #[bench]

@@ -10,12 +10,14 @@ pub trait Template<T> {
 
 // A lambda DCS type used for utterance semantics.
 
+#[derive(Clone, Copy)]
 pub enum Binary {
   Conjunction,
   Disjunction,
   Join,
 }
 
+#[derive(Clone, Copy)]
 pub enum Unary {
   Not,
   Reverse,
@@ -29,8 +31,8 @@ pub enum Lambda {
 }
 
 impl Lambda {
-  pub fn parse(input: &str) -> Result<Lambda, String> {
-    unimplemented!()
+  pub fn parse(input: &str) -> Result<Rc<Lambda>, String> {
+    parse(input)
   }
 
   pub fn stringify(&self) -> String {
@@ -49,9 +51,9 @@ struct Operator {
 impl Binary {
   fn data(&self) -> Operator {
     match self {
-      Binary::Conjunction => Operator { commutes: true, precedence: 2, text: " & ".to_owned() },
-      Binary::Disjunction => Operator { commutes: true, precedence: 2, text: " | ".to_owned() },
-      Binary::Join => Operator { commutes: false, precedence: 0, text: ".".to_owned() },
+      Binary::Conjunction => Operator { commutes: true, precedence: 2, text: " & ".to_string() },
+      Binary::Disjunction => Operator { commutes: true, precedence: 2, text: " | ".to_string() },
+      Binary::Join => Operator { commutes: false, precedence: 0, text: ".".to_string() },
     }
   }
 }
@@ -59,14 +61,71 @@ impl Binary {
 impl Unary {
   fn data(&self) -> Operator {
     match self {
-      Unary::Not => Operator { commutes: false, precedence: 3, text: "R".to_owned() },
-      Unary::Reverse => Operator { commutes: false, precedence: 1, text: "~".to_owned() },
+      Unary::Not => Operator { commutes: false, precedence: 1, text: "~".to_string() },
+      Unary::Reverse => Operator { commutes: false, precedence: 3, text: "R".to_string() },
     }
   }
 }
 
-fn parse(input: &str) -> Result<Lambda, String> {
-  unimplemented!()
+fn parse(input: &str) -> Result<Rc<Lambda>, String> {
+  use combine::*;
+  type Node = Parser<Rc<Lambda>>;
+  lazy_static! {
+    static ref PARSER: Node = {
+      let ws = re(r#"\s*"#);
+      let id = regexp("[a-zA-Z0-9_]+", |x| x.to_string()).skip(ws.clone());
+      let st = |x| st(x).skip(ws.clone());
+
+      let base = |x: Node| {
+        any(vec![
+          seq4((st("R"), st("["), x.clone(), st("]")), |x| {
+            Rc::new(Lambda::Unary(Unary::Reverse, x.2))
+          }),
+          seq2((id.clone(), opt(st("(").then(sep(x.clone(), st(","), 0)).skip(st(")")))), |x| {
+            match x.1 {
+              Some(xs) => Rc::new(Lambda::Custom(x.0, xs)),
+              None => Rc::new(Lambda::Terminal(x.0)),
+            }
+          }),
+          seq3((st("("), x.clone(), st(")")), |x| x.1),
+        ])
+      };
+
+      let binaries = |ops: Vec<(&'static str, Binary)>| {
+        move |x: Node| {
+          let mut options = vec![];
+          for (name, op) in ops.iter() {
+            let op = op.clone();
+            options.push(st(name).then(x.clone()).repeat(1).map(move |x| Some((op, x))));
+          }
+          options.push(succeed(|| None));
+          seq2((x, any(options)), |mut x| match &mut x.1 {
+            Some((ref op, ref mut xs)) => {
+              let mut result = vec![x.0];
+              result.append(xs);
+              Rc::new(Lambda::Binary(*op, result))
+            }
+            None => x.0,
+          })
+        }
+      };
+
+      let unary = |name: &'static str, op: Unary| {
+        move |x: Node| x.clone().or(seq2((st(name), x), move |x| Rc::new(Lambda::Unary(op, x.1))))
+      };
+
+      let (cell, init) = laz();
+      let precedence: Vec<Box<Fn(Node) -> Node>> = vec![
+        Box::new(base),
+        Box::new(binaries(vec![(".", Binary::Join)])),
+        Box::new(unary("~", Unary::Not)),
+        Box::new(binaries(vec![("&", Binary::Conjunction), ("|", Binary::Disjunction)])),
+      ];
+      cell.replace(Some(precedence.iter().fold(init.clone(), |x, f| f(x))));
+      init
+    };
+  }
+  PARSER.parse(input)
 }
 
 fn stringify(lambda: &Lambda, context: u32) -> String {
@@ -87,7 +146,7 @@ fn stringify(lambda: &Lambda, context: u32) -> String {
       let base: Vec<_> = children.into_iter().map(|x| x.stringify()).collect();
       format!("{}({})", name, base.join(", "))
     }
-    Lambda::Terminal(name) => name.to_owned(),
+    Lambda::Terminal(name) => name.to_string(),
     Lambda::Unary(op, child) => {
       let Operator { precedence, text, .. } = op.data();
       let base = stringify(child, precedence);
@@ -96,8 +155,24 @@ fn stringify(lambda: &Lambda, context: u32) -> String {
       } else if precedence < context {
         format!("{}{}", text, base)
       } else {
-        format!("{}({})", text, base)
+        format!("({}{})", text, base)
       }
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use test::Bencher;
+
+  #[bench]
+  fn benchmark(b: &mut Bencher) {
+    b.iter(|| Lambda::parse("Test(foo.bar.baz, a.b.c)").unwrap());
+  }
+
+  #[test]
+  fn smoke_test() {
+    Lambda::parse("Test(foo.bar.baz, a.b.c)").unwrap();
   }
 }
