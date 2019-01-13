@@ -224,10 +224,6 @@ where
   })
 }
 
-pub fn re(re: &str) -> Parser<()> {
-  regexp(re, |_| ())
-}
-
 pub fn regexp<A: 'static, F: 'static>(re: &str, callback: F) -> Parser<A>
 where
   F: for<'a> Fn(&'a str) -> A,
@@ -242,10 +238,6 @@ where
     update(Rc::clone(&expected), x.len(), s);
     None
   })
-}
-
-pub fn st(st: &str) -> Parser<()> {
-  string(st, |_| ())
 }
 
 pub fn string<A: 'static, F: 'static>(st: &str, callback: F) -> Parser<A>
@@ -280,7 +272,11 @@ mod tests {
   fn float_parser<'a>() -> Parser<(f32, Option<i32>)> {
     let base = regexp("-?(0|[1-9][0-9]*)([.][0-9]+)?", |x| x.parse::<f32>().unwrap());
     let exponent = regexp("-?(0|[1-9][0-9]*)", |x| x.parse::<i32>().unwrap());
-    return seq2((base, opt(any(vec![st("e"), st("E")]).then(exponent))), |x| x);
+    return seq2((base, opt(any(vec![tag("e"), tag("E")]).then(exponent))), |x| x);
+  }
+
+  fn tag(x: &str) -> Parser<()> {
+    string(x, |_| ())
   }
 
   #[bench]
@@ -291,13 +287,13 @@ mod tests {
 
   #[test]
   fn comma_test() {
-    let parser = sep(st("a"), st(","), 0);
+    let parser = sep(tag("a"), tag(","), 0);
     assert_eq!(parser.parse(""), Ok(vec![]));
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
     assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
     assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
-    let parser = sep(st("a"), st(","), 1);
+    let parser = sep(tag("a"), tag(","), 1);
     assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
@@ -307,12 +303,12 @@ mod tests {
 
   #[test]
   fn range_test() {
-    let parser = mul(st("a"), 0);
+    let parser = mul(tag("a"), 0);
     assert_eq!(parser.parse(""), Ok(vec![]));
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
     assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
-    let parser = mul(st("a"), 1);
+    let parser = mul(tag("a"), 1);
     assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));

@@ -72,9 +72,9 @@ fn parse(input: &str) -> Result<Rc<Lambda>, String> {
   type Node = Parser<Rc<Lambda>>;
   lazy_static! {
     static ref PARSER: Node = {
-      let ws = re(r#"\s*"#);
+      let ws = regexp(r#"\s*"#, |_| ());
       let id = regexp("[a-zA-Z0-9_]+", |x| x.to_string()).skip(ws.clone());
-      let st = |x| st(x).skip(ws.clone());
+      let st = |x| string(x, |_| ()).skip(ws.clone());
 
       let base = |x: Node| {
         any(vec![
@@ -168,11 +168,11 @@ mod tests {
 
   #[bench]
   fn benchmark(b: &mut Bencher) {
-    b.iter(|| Lambda::parse("Test(foo.bar.baz, a.b.c)").unwrap());
+    b.iter(|| Lambda::parse("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap());
   }
 
   #[test]
   fn smoke_test() {
-    Lambda::parse("Test(foo.bar.baz, a.b.c)").unwrap();
+    Lambda::parse("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap();
   }
 }
