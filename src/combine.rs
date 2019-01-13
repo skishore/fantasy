@@ -8,37 +8,40 @@ struct State<'a> {
   remainder: usize,
 }
 
-type Output<'a, T> = Option<(T, &'a str)>;
+type Output<'a, T: 'a> = Option<(T, &'a str)>;
 
-type Method<'a, T> = Fn(&'a str, &mut State<'a>) -> Output<'a, T> + 'a;
+type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Output<'a, T>;
 
-pub struct Parser<'a, T> {
-  method: Rc<Method<'a, T>>,
+pub struct Parser<T> {
+  method: Rc<Method<T>>,
 }
 
-impl<'a, T> Clone for Parser<'a, T> {
-  fn clone(&self) -> Parser<'a, T> {
+impl<'a, T> Clone for Parser<T> {
+  fn clone(&self) -> Parser<T> {
     return Parser { method: Rc::clone(&self.method) };
   }
 }
 
-impl<'a, T: 'a> Parser<'a, T> {
-  fn new<M>(method: M) -> Parser<'a, T>
+impl<T: 'static> Parser<T> {
+  fn new<M: 'static>(method: M) -> Parser<T>
   where
-    M: Fn(&'a str, &mut State<'a>) -> Output<'a, T> + 'a,
+    M: for<'a> Fn(&'a str, &mut State<'a>) -> Output<'a, T>,
   {
     Parser { method: Rc::new(method) }
   }
 
-  pub fn and<U: 'a>(self, other: Parser<'a, U>) -> Parser<'a, (T, U)> {
-    seq(self, other)
-  }
-
-  pub fn or(self, other: Parser<'a, T>) -> Parser<'a, T> {
+  pub fn or(self, other: Parser<T>) -> Parser<T> {
     any(vec![self, other])
   }
 
-  pub fn parse(&self, x: &'a str) -> Result<T, String> {
+  pub fn map<U: 'static, F: 'static>(self, callback: F) -> Parser<U>
+  where
+    F: Fn(T) -> U,
+  {
+    map(self, callback)
+  }
+
+  pub fn parse(&self, x: &str) -> Result<T, String> {
     let mut state = State { expected: vec![], input: x, remainder: x.len() };
     match (self.method)(x, &mut state) {
       Some((value, x)) => {
@@ -52,20 +55,20 @@ impl<'a, T: 'a> Parser<'a, T> {
     }
   }
 
-  pub fn repeat(self, min: usize) -> Parser<'a, Vec<T>> {
+  pub fn repeat(self, min: usize) -> Parser<Vec<T>> {
     mul(self, min)
   }
 
-  pub fn separate<U: 'a>(self, seperator: Parser<'a, U>, min: usize) -> Parser<'a, Vec<T>> {
+  pub fn separate<U: 'static>(self, seperator: Parser<U>, min: usize) -> Parser<Vec<T>> {
     sep(self, seperator, min)
   }
 
-  pub fn skip<U: 'a>(self, other: Parser<'a, U>) -> Parser<'a, T> {
-    map(seq(self, other), |(t, u)| t)
+  pub fn skip<U: 'static>(self, other: Parser<U>) -> Parser<T> {
+    seq2(self, other, |x, _| x)
   }
 
-  pub fn then<U: 'a>(self, other: Parser<'a, U>) -> Parser<'a, U> {
-    map(seq(self, other), |(t, u)| u)
+  pub fn then<U: 'static>(self, other: Parser<U>) -> Parser<U> {
+    seq2(self, other, |_, x| x)
   }
 }
 
@@ -89,7 +92,7 @@ fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {
   state.expected.push(expected);
 }
 
-pub fn any<'a, A: 'a>(parsers: Vec<Parser<'a, A>>) -> Parser<'a, A> {
+pub fn any<A: 'static>(parsers: Vec<Parser<A>>) -> Parser<A> {
   Parser::new(move |x, s| {
     for parser in &parsers {
       match (parser.method)(x, s) {
@@ -101,9 +104,9 @@ pub fn any<'a, A: 'a>(parsers: Vec<Parser<'a, A>>) -> Parser<'a, A> {
   })
 }
 
-pub fn map<'a, A: 'a, B: 'a, F>(parser: Parser<'a, A>, callback: F) -> Parser<'a, B>
+pub fn map<A: 'static, B: 'static, F: 'static>(parser: Parser<A>, callback: F) -> Parser<B>
 where
-  F: Fn(A) -> B + 'a,
+  F: Fn(A) -> B,
 {
   Parser::new(move |x, s| match (parser.method)(x, s) {
     Some((value, x)) => Some((callback(value), x)),
@@ -111,7 +114,7 @@ where
   })
 }
 
-pub fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
+pub fn mul<A: 'static>(parser: Parser<A>, min: usize) -> Parser<Vec<A>> {
   Parser::new(move |x, s| {
     let mut remainder = x;
     let mut result = vec![];
@@ -127,19 +130,18 @@ pub fn mul<'a, A: 'a>(parser: Parser<'a, A>, min: usize) -> Parser<'a, Vec<A>> {
   })
 }
 
-pub fn opt<'a, A: 'a>(a: Parser<'a, A>) -> Parser<'a, Option<A>> {
+pub fn opt<A: 'static>(a: Parser<A>) -> Parser<Option<A>> {
   Parser::new(move |x, s| match (a.method)(x, s) {
     Some((value, x)) => Some((Some(value), x)),
     None => Some((None, x)),
   })
 }
 
-pub fn sep<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>, min: usize) -> Parser<'a, Vec<A>> {
+pub fn sep<A: 'static, B: 'static>(a: Parser<A>, b: Parser<B>, min: usize) -> Parser<Vec<A>> {
   let m = if min == 0 { 0 } else { min - 1 };
-  let list = map(seq(a.clone(), mul(seq(b, a), m)), |(a, bas)| {
-    let mut result = vec![a];
-    result.reserve(bas.len() + 1);
-    bas.into_iter().for_each(|(_, a)| result.push(a));
+  let list = seq2(a.clone(), mul(seq2(b, a, |_, x| x), m), |x, mut xs| {
+    let mut result = vec![x];
+    result.append(&mut xs);
     result
   });
   if min == 0 {
@@ -149,29 +151,103 @@ pub fn sep<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>, min: usize) -> 
   }
 }
 
-pub fn seq<'a, A: 'a, B: 'a>(a: Parser<'a, A>, b: Parser<'a, B>) -> Parser<'a, (A, B)> {
+pub fn seq2<A: 'static, B: 'static, F: 'static, T: 'static>(
+  a: Parser<A>,
+  b: Parser<B>,
+  callback: F,
+) -> Parser<T>
+where
+  F: Fn(A, B) -> T,
+{
   Parser::new(move |x, s| {
-    (a.method)(x, s).and_then(|(a, x)| (b.method)(x, s).and_then(|(b, x)| Some(((a, b), x))))
+    if let Some((a, x)) = (a.method)(x, s) {
+      if let Some((b, x)) = (b.method)(x, s) {
+        return Some((callback(a, b), x));
+      }
+    }
+    None
   })
 }
 
-pub fn regexp<'a>(re: &str) -> Parser<'a, &'a str> {
+pub fn seq3<A: 'static, B: 'static, C: 'static, F: 'static, T: 'static>(
+  a: Parser<A>,
+  b: Parser<B>,
+  c: Parser<C>,
+  callback: F,
+) -> Parser<T>
+where
+  F: Fn(A, B, C) -> T,
+{
+  Parser::new(move |x, s| {
+    if let Some((a, x)) = (a.method)(x, s) {
+      if let Some((b, x)) = (b.method)(x, s) {
+        if let Some((c, x)) = (c.method)(x, s) {
+          return Some((callback(a, b, c), x));
+        }
+      }
+    }
+    None
+  })
+}
+
+pub fn seq4<A: 'static, B: 'static, C: 'static, D: 'static, F: 'static, T: 'static>(
+  a: Parser<A>,
+  b: Parser<B>,
+  c: Parser<C>,
+  d: Parser<D>,
+  callback: F,
+) -> Parser<T>
+where
+  F: Fn(A, B, C, D) -> T,
+{
+  Parser::new(move |x, s| {
+    if let Some((a, x)) = (a.method)(x, s) {
+      if let Some((b, x)) = (b.method)(x, s) {
+        if let Some((c, x)) = (c.method)(x, s) {
+          if let Some((d, x)) = (d.method)(x, s) {
+            return Some((callback(a, b, c, d), x));
+          }
+        }
+      }
+    }
+    None
+  })
+}
+
+pub fn re(re: &str) -> Parser<()> {
+  regexp(re, |_| ())
+}
+
+pub fn regexp<A: 'static, F: 'static>(re: &str, callback: F) -> Parser<A>
+where
+  F: for<'a> Fn(&'a str) -> A,
+{
   let expected = Rc::new(format!("/{}/", re));
   let re = Box::new(Regex::new(&format!("^{}", re)).unwrap());
   Parser::new(move |x, s| {
     if let Some(m) = re.find(x) {
-      return Some(x.split_at(m.end()));
+      let (l, r) = x.split_at(m.end());
+      return Some((callback(l), r));
     }
     update(Rc::clone(&expected), x.len(), s);
     None
   })
 }
 
-pub fn string<'a>(st: &'a str) -> Parser<'a, &'a str> {
+pub fn st(st: &str) -> Parser<()> {
+  string(st, |_| ())
+}
+
+pub fn string<A: 'static, F: 'static>(st: &str, callback: F) -> Parser<A>
+where
+  F: for<'a> Fn(&'a str) -> A,
+{
+  let st = st.to_string();
   let expected = Rc::new(format!("{:?}", st));
   Parser::new(move |x, s| {
-    if x.starts_with(st) {
-      return Some(x.split_at(st.len()));
+    if x.starts_with(&st) {
+      let (l, r) = x.split_at(st.len());
+      return Some((callback(l), r));
     } else {
       update(Rc::clone(&expected), x.len(), s);
       None
@@ -179,11 +255,11 @@ pub fn string<'a>(st: &'a str) -> Parser<'a, &'a str> {
   })
 }
 
-pub fn succeed<'a, A: 'a, F>(callback: F) -> Parser<'a, A>
+pub fn succeed<A: 'static, F: 'static>(callback: F) -> Parser<A>
 where
-  F: Fn() -> A + 'a,
+  F: Fn() -> A,
 {
-  Parser::new(move |x, s| Some((callback(), x)))
+  Parser::new(move |x, _| Some((callback(), x)))
 }
 
 #[cfg(test)]
@@ -191,10 +267,10 @@ mod tests {
   use super::*;
   use test::Bencher;
 
-  fn float_parser<'a>() -> Parser<'a, (&'a str, Option<(&'a str, &'a str)>)> {
-    let base = regexp("-?(0|[1-9][0-9]*)([.][0-9]+)?");
-    let exponent = regexp("(0|[1-9][0-9]*)");
-    return seq(base, opt(seq(any(vec![string("e"), string("E")]), exponent)));
+  fn float_parser<'a>() -> Parser<(f32, Option<i32>)> {
+    let base = regexp("-?(0|[1-9][0-9]*)([.][0-9]+)?", |x| x.parse::<f32>().unwrap());
+    let exponent = regexp("-?(0|[1-9][0-9]*)", |x| x.parse::<i32>().unwrap());
+    return seq2(base, opt(any(vec![st("e"), st("E")]).then(exponent)), |x, y| (x, y));
   }
 
   #[bench]
@@ -205,41 +281,41 @@ mod tests {
 
   #[test]
   fn comma_test() {
-    let parser = sep(string("a"), string(","), 0);
+    let parser = sep(st("a"), st(","), 0);
     assert_eq!(parser.parse(""), Ok(vec![]));
-    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
-    assert_eq!(parser.parse("a,a"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
     assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
     assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
-    let parser = sep(string("a"), string(","), 1);
+    let parser = sep(st("a"), st(","), 1);
     assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
-    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
-    assert_eq!(parser.parse("a,a"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
     assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
     assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
   }
 
   #[test]
   fn range_test() {
-    let parser = mul(string("a"), 0);
+    let parser = mul(st("a"), 0);
     assert_eq!(parser.parse(""), Ok(vec![]));
-    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
-    assert_eq!(parser.parse("aa"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
     assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
-    let parser = mul(string("a"), 1);
+    let parser = mul(st("a"), 1);
     assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
-    assert_eq!(parser.parse("a"), Ok(vec!["a"]));
-    assert_eq!(parser.parse("aa"), Ok(vec!["a", "a"]));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
     assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
   }
 
   #[test]
   fn smoke_test() {
     let parser = float_parser();
-    assert_eq!(parser.parse("-1.23"), Ok(("-1.23", None)));
-    assert_eq!(parser.parse("-1.23e45"), Ok(("-1.23", Some(("e", "45")))));
-    assert_eq!(parser.parse("-1.23E45"), Ok(("-1.23", Some(("E", "45")))));
-    assert_eq!(parser.parse("-1.23e"), Err("At 6: expected: /(0|[1-9][0-9]*)/".to_string()));
+    assert_eq!(parser.parse("-1.23"), Ok((-1.23, None)));
+    assert_eq!(parser.parse("-1.23e45"), Ok((-1.23, Some(45))));
+    assert_eq!(parser.parse("-1.23E45"), Ok((-1.23, Some(45))));
+    assert_eq!(parser.parse("-1.23e"), Err("At 6: expected: /-?(0|[1-9][0-9]*)/".to_string()));
     assert_eq!(parser.parse("-1.23f45"), Err(r#"At 5: expected: "E" | "e" | EOF"#.to_string()));
     assert_eq!(parser.parse("-1.23e45 "), Err("At 8: expected: EOF".to_string()));
   }
