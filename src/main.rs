@@ -10,4 +10,6 @@ extern crate test;
 mod combine;
 mod lambda;
 
-fn main() {}
+fn main() {
+  lambda::main();
+}
