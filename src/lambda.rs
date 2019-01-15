@@ -11,19 +11,20 @@ pub trait Template<T> {
 
 type OptionLambda = Option<Rc<Lambda>>;
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Binary {
   Conjunction,
   Disjunction,
   Join,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Unary {
   Not,
   Reverse,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum Lambda {
   Binary(Binary, Vec<Rc<Lambda>>),
   Custom(String, Vec<Rc<Lambda>>),
@@ -342,24 +343,148 @@ mod tests {
   use super::*;
   use test::Bencher;
 
-  #[bench]
-  fn lambda_parser_benchmark(b: &mut Bencher) {
-    b.iter(|| Lambda::parse("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap());
+  fn l(input: &str) -> OptionLambda {
+    Some(Lambda::parse(input).unwrap())
+  }
+
+  fn t(input: &str) -> Rc<Template<OptionLambda>> {
+    Lambda::template(input).unwrap()
+  }
+
+  fn merge(template: &Template<OptionLambda>, args: Vec<OptionLambda>) -> OptionLambda {
+    template.merge(&args.into_iter().enumerate().collect())
+  }
+
+  #[test]
+  fn merging_joins_works() {
+    let template = t("color.$0");
+    assert_eq!(merge(&*template, vec![l("red")]), l("color.red"));
+    assert_eq!(merge(&*template, vec![None]), None);
+  }
+
+  #[test]
+  fn merging_binary_operators_works() {
+    let template = t("$0 & country.$1");
+    assert_eq!(merge(&*template, vec![l("I"), l("US")]), l("I & country.US"));
+    assert_eq!(merge(&*template, vec![l("I"), None]), l("I"));
+    assert_eq!(merge(&*template, vec![None, l("US")]), l("country.US"));
+    assert_eq!(merge(&*template, vec![None, None]), None);
+  }
+
+  #[test]
+  fn merging_unary_operators_works() {
+    let template = t("R[$0].I & ~$1");
+    assert_eq!(merge(&*template, vec![l("name"), l("X")]), l("R[name].I & ~X"));
+    assert_eq!(merge(&*template, vec![l("R[name]"), l("X")]), l("name.I & ~X"));
+    assert_eq!(merge(&*template, vec![l("name"), l("~X")]), l("R[name].I & X"));
+    assert_eq!(merge(&*template, vec![l("R[name]"), l("~X")]), l("name.I & X"));
+    assert_eq!(merge(&*template, vec![l("name"), None]), l("R[name].I"));
+    assert_eq!(merge(&*template, vec![None, l("~X")]), l("X"));
+    assert_eq!(merge(&*template, vec![None, None]), None);
+  }
+
+  #[test]
+  fn merging_custom_functions_works() {
+    let template = t("Tell($0, name.$1)");
+    assert_eq!(merge(&*template, vec![l("I"), l("X")]), l("Tell(I, name.X)"));
+    assert_eq!(merge(&*template, vec![l("I"), None]), None);
+    assert_eq!(merge(&*template, vec![None, l("X")]), None);
+    assert_eq!(merge(&*template, vec![None, None]), None);
+  }
+
+  #[test]
+  fn splitting_joins_works() {
+    let template = t("color.$0");
+    assert_eq!(template.split(l("color.red")), vec![vec![(0, l("red"))]]);
+    assert_eq!(template.split(None), vec![vec![(0, None)]]);
+  }
+
+  #[test]
+  fn splitting_binary_operators_works() {
+    let template = t("$0 & country.$1");
+    assert_eq!(template.split(l("I & country.US")), vec![
+      vec![(0, l("I")), (1, l("US"))],
+      vec![(0, l("I & country.US")), (1, None)],
+    ]);
+    assert_eq!(template.split(l("country.US & I")), [
+      vec![(0, l("I")), (1, l("US"))],
+      vec![(0, l("country.US & I")), (1, None)],
+    ]);
+    assert_eq!(template.split(l("country.US")), [
+      vec![(0, None), (1, l("US"))],
+      vec![(0, l("country.US")), (1, None)],
+    ]);
+    assert_eq!(template.split(l("I")), vec![vec![(0, l("I")), (1, None)]]);
+    assert_eq!(template.split(None), vec![vec![(0, None), (1, None)]]);
+  }
+
+  #[test]
+  fn splitting_unary_operators_works() {
+    let template = t("R[$0].I & ~$1");
+    assert_eq!(template.split(l("R[name].I & ~Ann")), vec![
+      vec![(0, None), (1, l("~(R[name].I & ~Ann)"))],
+      vec![(0, l("name")), (1, l("Ann"))],
+    ]);
+  }
+
+  #[test]
+  fn splitting_custom_functions_works() {
+    let template = t("Tell($0, name.$1)");
+    assert_eq!(template.split(l("Tell(I, name.X)")), vec![vec![(0, l("I")), (1, l("X"))]]);
+    assert_eq!(template.split(None), vec![vec![(0, None)], vec![(1, None)]]);
+  }
+
+  #[test]
+  fn binary_operators_commute() {
+    let template = t("$0 & country.$1");
+    assert_eq!(template.split(l("country.US & I")), [
+      vec![(0, l("I")), (1, l("US"))],
+      vec![(0, l("country.US & I")), (1, None)],
+    ]);
+  }
+
+  #[test]
+  fn parse_handles_underscore() {
+    let lambda = l("abc_de_f(hi_jk.lm_no)");
+    assert_eq!(lambda, l("abc_de_f(hi_jk.lm_no)"));
+  }
+
+  #[test]
+  fn parse_handles_whitespace() {
+    let lambda = l(" Tell ( ( R [ a ] . b & c ) | d , ( e . f | ~ ( g ) ) ) ");
+    assert_eq!(lambda, l("Tell((R[a].b & c) | d, e.f | ~g)"));
+  }
+
+  #[test]
+  fn stringify_sorts_terms() {
+    let lambda = l("Tell(x) & f.e & (d.c | b.a)").unwrap();
+    assert_eq!(lambda.stringify(), "(b.a | d.c) & Tell(x) & f.e".to_string());
   }
 
   #[bench]
-  fn template_parse_benchmark(b: &mut Bencher) {
-    b.iter(|| Lambda::template("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap());
+  fn lambda_parse_benchmark(b: &mut Bencher) {
+    b.iter(|| Lambda::parse("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap());
+  }
+
+  #[bench]
+  fn lambda_stringify_benchmark(b: &mut Bencher) {
+    let lambda = Lambda::parse("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap();
+    b.iter(|| lambda.stringify());
+  }
+
+  #[bench]
+  fn lambda_template_benchmark(b: &mut Bencher) {
+    b.iter(|| Lambda::template("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap());
   }
 
   #[bench]
   fn template_merge_benchmark(b: &mut Bencher) {
-    let template = Lambda::template("Test(abc & def.ghi, jkl | (mno & pqr))").unwrap();
+    let template = Lambda::template("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap();
     b.iter(|| template.merge(&vec![]).unwrap());
   }
 
   #[bench]
-  fn split_benchmark_easy(b: &mut Bencher) {
+  fn template_split_easy_benchmark(b: &mut Bencher) {
     let lambda = Some(Lambda::parse("foo & bar & baz").unwrap());
     let template = Lambda::template("$0 & $1").unwrap();
     assert_eq!(template.split(lambda.clone()).len(), 8);
@@ -367,7 +492,7 @@ mod tests {
   }
 
   #[bench]
-  fn split_benchmark_hard(b: &mut Bencher) {
+  fn template_split_hard_benchmark(b: &mut Bencher) {
     let lambda = Some(Lambda::parse("a & b & c.d").unwrap());
     let template = Lambda::template("$0 & $1 & c.$2").unwrap();
     assert_eq!(template.split(lambda.clone()).len(), 12);

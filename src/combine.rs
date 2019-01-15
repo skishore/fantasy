@@ -14,18 +14,6 @@ type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>;
 
 pub struct Parser<T>(Rc<Method<T>>);
 
-impl<T> AsRef<Parser<T>> for Parser<T> {
-  fn as_ref(&self) -> &Parser<T> {
-    self
-  }
-}
-
-impl<T> Into<Parser<T>> for &Parser<T> {
-  fn into(self) -> Parser<T> {
-    Parser(Rc::clone(&self.0))
-  }
-}
-
 impl<T: 'static> Parser<T> {
   fn new<F: for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)> + 'static>(f: F) -> Self {
     Parser(Rc::new(f))
@@ -38,6 +26,20 @@ impl<T: 'static> Parser<T> {
       Some((_, x)) => Result::Err(format(Some(x.len()), &mut state)),
       None => Result::Err(format(None, &mut state)),
     }
+  }
+}
+
+// Provided so that parser combinators can be called by value or by reference.
+
+impl<T> AsRef<Parser<T>> for Parser<T> {
+  fn as_ref(&self) -> &Parser<T> {
+    self
+  }
+}
+
+impl<T> Into<Parser<T>> for &Parser<T> {
+  fn into(self) -> Parser<T> {
+    Parser(Rc::clone(&self.0))
   }
 }
 
@@ -74,6 +76,19 @@ pub fn opt<A: 'static>(parser: impl Into<Parser<A>>) -> Parser<Option<A>> {
   Parser::new(move |x, s| match (parser.0)(x, s) {
     Some((value, x)) => Some((Some(value), x)),
     None => Some((None, x)),
+  })
+}
+
+pub fn regexp<A: 'static, F: Fn(&str) -> A + 'static>(re: &str, callback: F) -> Parser<A> {
+  let expected = Rc::new(format!("/{}/", re));
+  let re = Box::new(Regex::new(&format!("^{}", re)).unwrap());
+  Parser::new(move |x, s| {
+    if let Some(m) = re.find(x) {
+      let (l, r) = x.split_at(m.end());
+      return Some((callback(l), r));
+    }
+    update(Rc::clone(&expected), x.len(), s);
+    None
   })
 }
 
@@ -155,19 +170,6 @@ where
   })
 }
 
-pub fn regexp<A: 'static, F: Fn(&str) -> A + 'static>(re: &str, callback: F) -> Parser<A> {
-  let expected = Rc::new(format!("/{}/", re));
-  let re = Box::new(Regex::new(&format!("^{}", re)).unwrap());
-  Parser::new(move |x, s| {
-    if let Some(m) = re.find(x) {
-      let (l, r) = x.split_at(m.end());
-      return Some((callback(l), r));
-    }
-    update(Rc::clone(&expected), x.len(), s);
-    None
-  })
-}
-
 pub fn string<A: 'static, F: Fn(&str) -> A + 'static>(st: &str, callback: F) -> Parser<A> {
   let st = st.to_string();
   let expected = Rc::new(format!("{:?}", st));
@@ -222,12 +224,6 @@ mod tests {
     string(x, |_| ())
   }
 
-  #[bench]
-  fn float_parser_benchmark(b: &mut Bencher) {
-    let parser = float_parser();
-    b.iter(|| parser.parse("-1.23e45"));
-  }
-
   #[test]
   fn float_parser_test() {
     let parser = float_parser();
@@ -267,5 +263,11 @@ mod tests {
     assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
     assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
     assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
+  }
+
+  #[bench]
+  fn float_parser_benchmark(b: &mut Bencher) {
+    let parser = float_parser();
+    b.iter(|| parser.parse("-1.23e45"));
   }
 }
