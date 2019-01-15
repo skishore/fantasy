@@ -33,7 +33,7 @@ pub enum Lambda {
 
 impl Lambda {
   pub fn parse(input: &str) -> Result<Rc<Lambda>, String> {
-    parse(input)
+    template(input)?.merge(&vec![]).ok_or("Empty lambda expression!".to_string())
   }
 
   pub fn stringify(&self) -> String {
@@ -72,67 +72,6 @@ impl Unary {
   }
 }
 
-fn parse(input: &str) -> Result<Rc<Lambda>, String> {
-  use combine::*;
-  type Node = Parser<Rc<Lambda>>;
-  lazy_static! {
-    static ref kParser: Node = {
-      let ws = regexp(r#"\s*"#, |_| ());
-      let id = regexp("[a-zA-Z0-9_]+", |x| x.to_string()).skip(ws.clone());
-      let st = |x| string(x, |_| ()).skip(ws.clone());
-
-      let base = |x: Node| {
-        any(vec![
-          seq4((st("R"), st("["), x.clone(), st("]")), |x| {
-            Rc::new(Lambda::Unary(Unary::Reverse, x.2))
-          }),
-          seq2(
-            (id.clone(), opt(st("(").then(x.clone().separate(st(","), 0)).skip(st(")")))),
-            |x| match x.1 {
-              Some(xs) => Rc::new(Lambda::Custom(x.0, xs)),
-              None => Rc::new(Lambda::Terminal(x.0)),
-            },
-          ),
-          seq3((st("("), x.clone(), st(")")), |x| x.1),
-        ])
-      };
-
-      let binaries = |ops: Vec<(&'static str, Binary)>| {
-        move |x: Node| {
-          let mut options = vec![];
-          for (name, op) in ops.iter() {
-            let op = op.clone();
-            options.push(st(name).then(x.clone()).repeat(1).map(move |x| Some((op, x))));
-          }
-          options.push(succeed(|| None));
-          seq2((x, any(options)), |x| match x.1 {
-            Some((op, mut xs)) => {
-              let xs: Vec<_> = std::iter::once(x.0).chain(xs.drain(..)).collect();
-              Rc::new(Lambda::Binary(op, xs))
-            }
-            None => x.0,
-          })
-        }
-      };
-
-      let unary = |name: &'static str, op: Unary| {
-        move |x: Node| x.clone().or(seq2((st(name), x), move |x| Rc::new(Lambda::Unary(op, x.1))))
-      };
-
-      let (cell, root) = lazy();
-      let precedence: Vec<Box<Fn(Node) -> Node>> = vec![
-        Box::new(base),
-        Box::new(binaries(vec![(".", Binary::Join)])),
-        Box::new(unary("~", Unary::Not)),
-        Box::new(binaries(vec![("&", Binary::Conjunction), ("|", Binary::Disjunction)])),
-      ];
-      cell.replace(precedence.iter().fold(root.clone(), |x, f| f(x)));
-      root
-    };
-  }
-  kParser.parse(input)
-}
-
 fn stringify(lambda: &Lambda, context: u32) -> String {
   match lambda {
     Lambda::Binary(op, children) => {
@@ -168,106 +107,74 @@ fn stringify(lambda: &Lambda, context: u32) -> String {
 
 fn template(input: &str) -> Result<Rc<Template<OptionLambda>>, String> {
   use combine::*;
-  type Node = Parser<Rc<Template<OptionLambda>>>;
-  lazy_static! {
-    static ref kParser: Node = {
-      let ws = regexp(r#"\s*"#, |_| ());
-      let id = regexp("[a-zA-Z0-9_]+", |x| x.to_string()).skip(ws.clone());
-      let st = |x| string(x, |_| ()).skip(ws.clone());
-      let number = regexp("(0|[1-9][0-9]*)", |x| x.parse::<usize>().unwrap()).skip(ws.clone());
+  use std::thread_local;
 
-      let base = |x: Node| {
-        any(vec![
-          seq4((st("R"), st("["), x.clone(), st("]")), |x| helpers::unary(Unary::Reverse, x.2)),
+  type Node = Rc<Template<OptionLambda>>;
+
+  pub fn wrap(x: impl Template<OptionLambda> + 'static) -> Node {
+    Rc::new(x)
+  }
+
+  thread_local! {
+    static PARSER: Parser<Node> = {
+      let ws = regexp(r#"\s*"#, |_| ());
+      let st = |x| seq2((string(x, |_| ()), &ws), |x| x.0);
+      let id = seq2((regexp("[a-zA-Z0-9_]+", |x| x.to_string()), &ws), |x| x.0);
+      let number = seq2((regexp("(0|[1-9][0-9]*)", |x| x.parse::<usize>().unwrap()), &ws), |x| x.0);
+
+      let base = |x: Parser<Node>| {
+        any(&[
+          seq4((st("R"), st("["), &x, st("]")), |x| wrap(UnaryTemplate(Unary::Reverse, x.2))),
           seq2(
-            (id.clone(), opt(st("(").then(x.clone().separate(st(","), 0)).skip(st(")")))),
+            (&id, opt(seq3((st("("), separate(&x, st(","), 0), st(")")), |x| x.1))),
             |x| match x.1 {
-              Some(xs) => helpers::custom(x.0, xs),
-              None => helpers::terminal(x.0),
+              Some(xs) => wrap(CustomTemplate(x.0, xs)),
+              None => wrap(TerminalTemplate(x.0.clone(), Some(Rc::new(Lambda::Terminal(x.0))))),
             },
           ),
-          seq3((st("("), x.clone(), st(")")), |x| x.1),
-          seq2((st("$"), number.clone()), |x| helpers::variable(x.1)),
+          seq3((st("("), &x, st(")")), |x| x.1),
+          seq2((st("$"), &number), |x| wrap(VariableTemplate(x.1))),
         ])
       };
 
       let binaries = |ops: Vec<(&'static str, Binary)>| {
-        move |x: Node| {
-          let mut options = vec![];
+        move |x: Parser<Node>| {
+          let mut options = Vec::with_capacity(ops.len() + 1);
           for (name, op) in ops.iter() {
             let op = op.clone();
-            options.push(st(name).then(x.clone()).repeat(1).map(move |x| Some((op, x))));
+            options.push(map(repeat(seq2((st(name), &x), |x| x.1), 1), move |x| Some((op, x))));
           }
           options.push(succeed(|| None));
-          seq2((x, any(options)), |x| match x.1 {
-            Some((op, mut xs)) => xs.drain(..).fold(x.0, |acc, x| helpers::binary(op, acc, x)),
+          seq2((x, any(&options)), |x| match x.1 {
+            Some((op, mut xs)) => xs.drain(..).fold(x.0, |acc, x| wrap(BinaryTemplate(op, acc, x))),
             None => x.0,
           })
         }
       };
 
       let unary = |name: &'static str, op: Unary| {
-        move |x: Node| x.clone().or(seq2((st(name), x), move |x| helpers::unary(op, x.1)))
+        move |x: Parser<Node>| {
+          any(&[&x, &seq2((st(name), &x), move |x| wrap(UnaryTemplate(op, x.1)))])
+        }
       };
 
       let (cell, root) = lazy();
-      let precedence: Vec<Box<Fn(Node) -> Node>> = vec![
+      let result = seq2((&ws, &root), |x| x.1);
+      let precedence: Vec<Box<Fn(Parser<Node>) -> Parser<Node>>> = vec![
         Box::new(base),
         Box::new(binaries(vec![(".", Binary::Join)])),
         Box::new(unary("~", Unary::Not)),
         Box::new(binaries(vec![("&", Binary::Conjunction), ("|", Binary::Disjunction)])),
       ];
-      cell.replace(precedence.iter().fold(root.clone(), |x, f| f(x)));
-      root
+      cell.replace(precedence.iter().fold(root, |x, f| f(x)));
+      result
     };
   }
-  kParser.parse(input)
+
+  PARSER.with(|x| x.parse(input))
 }
 
 // Templates that operate on lambda DCS expressions.
-
-fn append<T>(xs: &[Args<T>], ys: &[Args<T>], zs: &mut Vec<Args<T>>)
-where
-  T: Clone,
-{
-  for x in xs {
-    for y in ys {
-      zs.push(x.iter().chain(y.iter()).map(|z| z.clone()).collect());
-    }
-  }
-}
-
-fn collapse(op: Binary, mut x: Vec<Rc<Lambda>>) -> OptionLambda {
-  match x.len() {
-    0 | 1 => x.pop(),
-    _ => Some(Rc::new(Lambda::Binary(op, x))),
-  }
-}
-
-fn expand(op: Binary, x: OptionLambda) -> Vec<Rc<Lambda>> {
-  match x {
-    Some(x) => {
-      if let Lambda::Binary(y, ref ys) = *x {
-        if y == op {
-          return ys.to_vec();
-        }
-      }
-      vec![x]
-    }
-    None => vec![],
-  }
-}
-
-fn involute(op: Unary, x: OptionLambda) -> OptionLambda {
-  x.map(|x| {
-    if let Lambda::Unary(y, ref ys) = *x {
-      if y == op {
-        return ys.clone();
-      }
-    }
-    x
-  })
-}
 
 struct BinaryTemplate(Binary, Rc<Template<OptionLambda>>, Rc<Template<OptionLambda>>);
 
@@ -339,7 +246,7 @@ impl Template<OptionLambda> for CustomTemplate {
         vec![]
       }
       None => {
-        let mut result = vec![];
+        let mut result = Vec::with_capacity(self.1.len());
         self.1.iter().for_each(|x| result.append(&mut x.split(None)));
         result
       }
@@ -388,29 +295,46 @@ impl Template<OptionLambda> for VariableTemplate {
   }
 }
 
-mod helpers {
-  use super::*;
-  type Node = Rc<Template<OptionLambda>>;
+// Internal helpers for the templates above.
 
-  pub fn binary(op: Binary, a: Node, b: Node) -> Node {
-    Rc::new(BinaryTemplate(op, a, b))
+fn append<T: Clone>(xs: &[Args<T>], ys: &[Args<T>], zs: &mut Vec<Args<T>>) {
+  for x in xs {
+    for y in ys {
+      zs.push(x.iter().chain(y.iter()).map(|z| z.clone()).collect());
+    }
   }
+}
 
-  pub fn custom(op: String, args: Vec<Node>) -> Node {
-    Rc::new(CustomTemplate(op.to_string(), args))
+fn collapse(op: Binary, mut x: Vec<Rc<Lambda>>) -> OptionLambda {
+  match x.len() {
+    0 | 1 => x.pop(),
+    _ => Some(Rc::new(Lambda::Binary(op, x))),
   }
+}
 
-  pub fn terminal(x: String) -> Node {
-    Rc::new(TerminalTemplate(x.clone(), Some(Rc::new(Lambda::Terminal(x)))))
+fn expand(op: Binary, x: OptionLambda) -> Vec<Rc<Lambda>> {
+  match x {
+    Some(x) => {
+      if let Lambda::Binary(y, ref ys) = *x {
+        if y == op {
+          return ys.to_vec();
+        }
+      }
+      vec![x]
+    }
+    None => vec![],
   }
+}
 
-  pub fn unary(op: Unary, a: Node) -> Node {
-    Rc::new(UnaryTemplate(op, a))
-  }
-
-  pub fn variable(i: usize) -> Node {
-    Rc::new(VariableTemplate(i))
-  }
+fn involute(op: Unary, x: OptionLambda) -> OptionLambda {
+  x.map(|x| {
+    if let Lambda::Unary(y, ref ys) = *x {
+      if y == op {
+        return ys.clone();
+      }
+    }
+    Rc::new(Lambda::Unary(op, x))
+  })
 }
 
 #[cfg(test)]

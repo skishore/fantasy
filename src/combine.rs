@@ -1,8 +1,8 @@
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
+use std::convert::Into;
 use std::rc::Rc;
-use std::sync::Arc;
 
 struct State<'a> {
   expected: Vec<Rc<String>>,
@@ -12,62 +12,180 @@ struct State<'a> {
 
 type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>;
 
-pub struct Parser<T> {
-  method: Arc<Method<T>>,
+pub struct Parser<T>(Rc<Method<T>>);
+
+impl<T> AsRef<Parser<T>> for Parser<T> {
+  fn as_ref(&self) -> &Parser<T> {
+    self
+  }
 }
 
-unsafe impl<T> Sync for Parser<T> {}
-
-impl<T> Clone for Parser<T> {
-  fn clone(&self) -> Parser<T> {
-    return Parser { method: Arc::clone(&self.method) };
+impl<T> Into<Parser<T>> for &Parser<T> {
+  fn into(self) -> Parser<T> {
+    Parser(Rc::clone(&self.0))
   }
 }
 
 impl<T: 'static> Parser<T> {
-  fn new<M: 'static>(method: M) -> Parser<T>
-  where
-    M: for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>,
-  {
-    Parser { method: Arc::new(method) }
-  }
-
-  pub fn or(self, other: Parser<T>) -> Parser<T> {
-    any(vec![self, other])
-  }
-
-  pub fn map<U: 'static, F: 'static>(self, callback: F) -> Parser<U>
-  where
-    F: Fn(T) -> U,
-  {
-    map(self, callback)
+  fn new<F: for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)> + 'static>(f: F) -> Self {
+    Parser(Rc::new(f))
   }
 
   pub fn parse(&self, x: &str) -> Result<T, String> {
     let mut state = State { expected: vec![], input: x, remainder: x.len() };
-    match (self.method)(x, &mut state) {
+    match (self.0)(x, &mut state) {
       Some((value, "")) => Ok(value),
       Some((_, x)) => Result::Err(format(Some(x.len()), &mut state)),
       None => Result::Err(format(None, &mut state)),
     }
   }
+}
 
-  pub fn repeat(self, min: usize) -> Parser<Vec<T>> {
-    mul(self, min)
-  }
+// Methods for constructing parsers.
 
-  pub fn separate<U: 'static>(self, seperator: Parser<U>, min: usize) -> Parser<Vec<T>> {
-    sep(self, seperator, min)
-  }
+pub fn any<A: 'static>(parsers: &[impl AsRef<Parser<A>>]) -> Parser<A> {
+  let parsers: Vec<Parser<A>> = parsers.iter().map(|x| x.as_ref().into()).collect();
+  Parser::new(move |x, s| parsers.iter().filter_map(|y| (y.0)(x, s)).next())
+}
 
-  pub fn skip<U: 'static>(self, other: Parser<U>) -> Parser<T> {
-    seq2((self, other), |x| x.0)
-  }
+pub fn fail<A: 'static>(message: &str) -> Parser<A> {
+  let expected = Rc::new(message.to_string());
+  Parser::new(move |x, s| {
+    update(Rc::clone(&expected), x.len(), s);
+    None
+  })
+}
 
-  pub fn then<U: 'static>(self, other: Parser<U>) -> Parser<U> {
-    seq2((self, other), |x| x.1)
+pub fn lazy<A: 'static>() -> (Rc<RefCell<Parser<A>>>, Parser<A>) {
+  let result = Rc::new(RefCell::new(fail("Uninitialized lazy!")));
+  (Rc::clone(&result), Parser::new(move |x, s| (result.borrow().0)(x, s)))
+}
+
+pub fn map<A: 'static, B: 'static, F: Fn(A) -> B + 'static>(
+  parser: impl Into<Parser<A>>,
+  callback: F,
+) -> Parser<B> {
+  let parser = parser.into();
+  Parser::new(move |x, s| (parser.0)(x, s).map(|(value, x)| (callback(value), x)))
+}
+
+pub fn opt<A: 'static>(parser: impl Into<Parser<A>>) -> Parser<Option<A>> {
+  let parser = parser.into();
+  Parser::new(move |x, s| match (parser.0)(x, s) {
+    Some((value, x)) => Some((Some(value), x)),
+    None => Some((None, x)),
+  })
+}
+
+pub fn repeat<A: 'static>(parser: impl Into<Parser<A>>, min: usize) -> Parser<Vec<A>> {
+  let parser = parser.into();
+  Parser::new(move |x, s| {
+    let mut remainder = x;
+    let mut result = vec![];
+    while let Some((value, x)) = (parser.0)(remainder, s) {
+      remainder = x;
+      result.push(value);
+    }
+    if result.len() < min {
+      None
+    } else {
+      Some((result, remainder))
+    }
+  })
+}
+
+pub fn separate<A: 'static, B: 'static>(
+  item: impl Into<Parser<A>>,
+  separator: impl Into<Parser<B>>,
+  min: usize,
+) -> Parser<Vec<A>> {
+  let (item, separator) = (item.into(), separator.into());
+  let m = if min == 0 { 0 } else { min - 1 };
+  let list = seq2((&item, repeat(seq2((separator, &item), |x| x.1), m)), |mut x| {
+    let mut result = vec![x.0];
+    result.append(&mut x.1);
+    result
+  });
+  if min == 0 {
+    any(&[list, succeed(|| vec![])])
+  } else {
+    list
   }
 }
+
+pub fn seq2<A: 'static, B: 'static, F: Fn((A, B)) -> T + 'static, T: 'static>(
+  parsers: (impl Into<Parser<A>>, impl Into<Parser<B>>),
+  callback: F,
+) -> Parser<T> {
+  let (a, b) = (parsers.0.into(), parsers.1.into());
+  Parser::new(move |x, s| {
+    let (a, x) = a.0(x, s)?;
+    let (b, x) = b.0(x, s)?;
+    Some((callback((a, b)), x))
+  })
+}
+
+pub fn seq3<A: 'static, B: 'static, C: 'static, F: Fn((A, B, C)) -> T + 'static, T: 'static>(
+  parsers: (impl Into<Parser<A>>, impl Into<Parser<B>>, impl Into<Parser<C>>),
+  callback: F,
+) -> Parser<T> {
+  let (a, b, c) = (parsers.0.into(), parsers.1.into(), parsers.2.into());
+  Parser::new(move |x, s| {
+    let (a, x) = a.0(x, s)?;
+    let (b, x) = b.0(x, s)?;
+    let (c, x) = c.0(x, s)?;
+    Some((callback((a, b, c)), x))
+  })
+}
+
+pub fn seq4<A: 'static, B: 'static, C: 'static, D: 'static, F: 'static, T: 'static>(
+  parsers: (impl Into<Parser<A>>, impl Into<Parser<B>>, impl Into<Parser<C>>, impl Into<Parser<D>>),
+  callback: F,
+) -> Parser<T>
+where
+  F: Fn((A, B, C, D)) -> T,
+{
+  let (a, b, c, d) = (parsers.0.into(), parsers.1.into(), parsers.2.into(), parsers.3.into());
+  Parser::new(move |x, s| {
+    let (a, x) = a.0(x, s)?;
+    let (b, x) = b.0(x, s)?;
+    let (c, x) = c.0(x, s)?;
+    let (d, x) = d.0(x, s)?;
+    Some((callback((a, b, c, d)), x))
+  })
+}
+
+pub fn regexp<A: 'static, F: Fn(&str) -> A + 'static>(re: &str, callback: F) -> Parser<A> {
+  let expected = Rc::new(format!("/{}/", re));
+  let re = Box::new(Regex::new(&format!("^{}", re)).unwrap());
+  Parser::new(move |x, s| {
+    if let Some(m) = re.find(x) {
+      let (l, r) = x.split_at(m.end());
+      return Some((callback(l), r));
+    }
+    update(Rc::clone(&expected), x.len(), s);
+    None
+  })
+}
+
+pub fn string<A: 'static, F: Fn(&str) -> A + 'static>(st: &str, callback: F) -> Parser<A> {
+  let st = st.to_string();
+  let expected = Rc::new(format!("{:?}", st));
+  Parser::new(move |x, s| {
+    if x.starts_with(&st) {
+      let (l, r) = x.split_at(st.len());
+      return Some((callback(l), r));
+    }
+    update(Rc::clone(&expected), x.len(), s);
+    None
+  })
+}
+
+pub fn succeed<A: 'static, F: Fn() -> A + 'static>(callback: F) -> Parser<A> {
+  Parser::new(move |x, _| Some((callback(), x)))
+}
+
+// Internal helpers used for error handling.
 
 fn format<'a>(remainder: Option<usize>, state: &mut State<'a>) -> String {
   if let Some(remainder) = remainder {
@@ -89,165 +207,6 @@ fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {
   state.expected.push(expected);
 }
 
-pub fn any<A: 'static>(parsers: Vec<Parser<A>>) -> Parser<A> {
-  Parser::new(move |x, s| parsers.iter().filter_map(|y| (y.method)(x, s)).next())
-}
-
-pub fn fail<A: 'static>(message: &str) -> Parser<A> {
-  let expected = Rc::new(message.to_string());
-  Parser::new(move |x, s| {
-    update(Rc::clone(&expected), x.len(), s);
-    None
-  })
-}
-
-pub fn lazy<A: 'static>() -> (Rc<RefCell<Parser<A>>>, Parser<A>) {
-  let result = Rc::new(RefCell::new(fail("Uninitialized lazy!")));
-  let helper = Rc::clone(&result);
-  let parser = Parser::new(move |x, s| (helper.borrow().method)(x, s));
-  (result, parser)
-}
-
-pub fn map<A: 'static, B: 'static, F: 'static>(parser: Parser<A>, callback: F) -> Parser<B>
-where
-  F: Fn(A) -> B,
-{
-  Parser::new(move |x, s| (parser.method)(x, s).map(|(value, x)| (callback(value), x)))
-}
-
-pub fn mul<A: 'static>(parser: Parser<A>, min: usize) -> Parser<Vec<A>> {
-  Parser::new(move |x, s| {
-    let mut remainder = x;
-    let mut result = vec![];
-    while let Some((value, x)) = (parser.method)(remainder, s) {
-      remainder = x;
-      result.push(value);
-    }
-    if result.len() < min {
-      None
-    } else {
-      Some((result, remainder))
-    }
-  })
-}
-
-pub fn opt<A: 'static>(a: Parser<A>) -> Parser<Option<A>> {
-  Parser::new(move |x, s| match (a.method)(x, s) {
-    Some((value, x)) => Some((Some(value), x)),
-    None => Some((None, x)),
-  })
-}
-
-pub fn sep<A: 'static, B: 'static>(a: Parser<A>, b: Parser<B>, min: usize) -> Parser<Vec<A>> {
-  let m = if min == 0 { 0 } else { min - 1 };
-  let list = seq2((a.clone(), mul(seq2((b, a), |x| x.1), m)), |mut x| {
-    let mut result = vec![x.0];
-    result.append(&mut x.1);
-    result
-  });
-  if min == 0 {
-    any(vec![list, succeed(|| vec![])])
-  } else {
-    list
-  }
-}
-
-pub fn seq2<A: 'static, B: 'static, F: 'static, T: 'static>(
-  parsers: (Parser<A>, Parser<B>),
-  callback: F,
-) -> Parser<T>
-where
-  F: Fn((A, B)) -> T,
-{
-  Parser::new(move |x, s| {
-    if let Some((a, x)) = (parsers.0.method)(x, s) {
-      if let Some((b, x)) = (parsers.1.method)(x, s) {
-        return Some((callback((a, b)), x));
-      }
-    }
-    None
-  })
-}
-
-pub fn seq3<A: 'static, B: 'static, C: 'static, F: 'static, T: 'static>(
-  parsers: (Parser<A>, Parser<B>, Parser<C>),
-  callback: F,
-) -> Parser<T>
-where
-  F: Fn((A, B, C)) -> T,
-{
-  Parser::new(move |x, s| {
-    if let Some((a, x)) = (parsers.0.method)(x, s) {
-      if let Some((b, x)) = (parsers.1.method)(x, s) {
-        if let Some((c, x)) = (parsers.2.method)(x, s) {
-          return Some((callback((a, b, c)), x));
-        }
-      }
-    }
-    None
-  })
-}
-
-pub fn seq4<A: 'static, B: 'static, C: 'static, D: 'static, F: 'static, T: 'static>(
-  parsers: (Parser<A>, Parser<B>, Parser<C>, Parser<D>),
-  callback: F,
-) -> Parser<T>
-where
-  F: Fn((A, B, C, D)) -> T,
-{
-  Parser::new(move |x, s| {
-    if let Some((a, x)) = (parsers.0.method)(x, s) {
-      if let Some((b, x)) = (parsers.1.method)(x, s) {
-        if let Some((c, x)) = (parsers.2.method)(x, s) {
-          if let Some((d, x)) = (parsers.3.method)(x, s) {
-            return Some((callback((a, b, c, d)), x));
-          }
-        }
-      }
-    }
-    None
-  })
-}
-
-pub fn regexp<A: 'static, F: 'static>(re: &str, callback: F) -> Parser<A>
-where
-  F: for<'a> Fn(&'a str) -> A,
-{
-  let expected = Rc::new(format!("/{}/", re));
-  let re = Box::new(Regex::new(&format!("^{}", re)).unwrap());
-  Parser::new(move |x, s| {
-    if let Some(m) = re.find(x) {
-      let (l, r) = x.split_at(m.end());
-      return Some((callback(l), r));
-    }
-    update(Rc::clone(&expected), x.len(), s);
-    None
-  })
-}
-
-pub fn string<A: 'static, F: 'static>(st: &str, callback: F) -> Parser<A>
-where
-  F: for<'a> Fn(&'a str) -> A,
-{
-  let st = st.to_string();
-  let expected = Rc::new(format!("{:?}", st));
-  Parser::new(move |x, s| {
-    if x.starts_with(&st) {
-      let (l, r) = x.split_at(st.len());
-      return Some((callback(l), r));
-    }
-    update(Rc::clone(&expected), x.len(), s);
-    None
-  })
-}
-
-pub fn succeed<A: 'static, F: 'static>(callback: F) -> Parser<A>
-where
-  F: Fn() -> A,
-{
-  Parser::new(move |x, _| Some((callback(), x)))
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -256,7 +215,7 @@ mod tests {
   fn float_parser<'a>() -> Parser<(f32, Option<i32>)> {
     let base = regexp("-?(0|[1-9][0-9]*)([.][0-9]+)?", |x| x.parse::<f32>().unwrap());
     let exponent = regexp("-?(0|[1-9][0-9]*)", |x| x.parse::<i32>().unwrap());
-    return seq2((base, opt(any(vec![tag("e"), tag("E")]).then(exponent))), |x| x);
+    return seq2((base, opt(seq2((any(&[tag("e"), tag("E")]), exponent), |x| x.1))), |x| x);
   }
 
   fn tag(x: &str) -> Parser<()> {
@@ -264,43 +223,13 @@ mod tests {
   }
 
   #[bench]
-  fn benchmark(b: &mut Bencher) {
+  fn float_parser_benchmark(b: &mut Bencher) {
     let parser = float_parser();
     b.iter(|| parser.parse("-1.23e45"));
   }
 
   #[test]
-  fn comma_test() {
-    let parser = sep(tag("a"), tag(","), 0);
-    assert_eq!(parser.parse(""), Ok(vec![]));
-    assert_eq!(parser.parse("a"), Ok(vec![()]));
-    assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
-    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
-    let parser = sep(tag("a"), tag(","), 1);
-    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
-    assert_eq!(parser.parse("a"), Ok(vec![()]));
-    assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
-    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
-  }
-
-  #[test]
-  fn range_test() {
-    let parser = mul(tag("a"), 0);
-    assert_eq!(parser.parse(""), Ok(vec![]));
-    assert_eq!(parser.parse("a"), Ok(vec![()]));
-    assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
-    let parser = mul(tag("a"), 1);
-    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
-    assert_eq!(parser.parse("a"), Ok(vec![()]));
-    assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
-  }
-
-  #[test]
-  fn smoke_test() {
+  fn float_parser_test() {
     let parser = float_parser();
     assert_eq!(parser.parse("-1.23"), Ok((-1.23, None)));
     assert_eq!(parser.parse("-1.23e45"), Ok((-1.23, Some(45))));
@@ -308,5 +237,35 @@ mod tests {
     assert_eq!(parser.parse("-1.23e"), Err("At 6: expected: /-?(0|[1-9][0-9]*)/".to_string()));
     assert_eq!(parser.parse("-1.23f45"), Err(r#"At 5: expected: "E" | "e" | EOF"#.to_string()));
     assert_eq!(parser.parse("-1.23e45 "), Err("At 8: expected: EOF".to_string()));
+  }
+
+  #[test]
+  fn repeat_test() {
+    let parser = repeat(tag("a"), 0);
+    assert_eq!(parser.parse(""), Ok(vec![]));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
+    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
+    let parser = repeat(tag("a"), 1);
+    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
+    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
+  }
+
+  #[test]
+  fn separate_test() {
+    let parser = separate(tag("a"), tag(","), 0);
+    assert_eq!(parser.parse(""), Ok(vec![]));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
+    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
+    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
+    let parser = separate(tag("a"), tag(","), 1);
+    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
+    assert_eq!(parser.parse("a"), Ok(vec![()]));
+    assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
+    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
+    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
   }
 }
