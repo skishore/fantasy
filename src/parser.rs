@@ -1,0 +1,503 @@
+use std::alloc::Layout;
+use std::collections::HashMap;
+
+// Definitions for the core lexer type.
+
+trait Lexer<T: Clone> {
+  fn lex(&self, &str) -> Vec<Token<T>>;
+}
+
+struct Match<T: Clone> {
+  score: f32,
+  value: T,
+}
+
+struct Token<T: Clone> {
+  matches: HashMap<String, Match<T>>,
+  text: String,
+}
+
+// Definitions for the core grammar type.
+
+struct Grammar<T: Clone> {
+  lexer: Box<Lexer<T>>,
+  names: Vec<String>,
+  rules: Vec<Rule<T>>,
+  start: Symbol,
+}
+
+struct Rule<T: Clone> {
+  callback: Box<Fn(&[T]) -> T>,
+  lhs: Symbol,
+  rhs: Vec<Term>,
+  score: f32,
+}
+
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+struct Symbol(usize);
+
+enum Term {
+  Symbol(Symbol),
+  Terminal(String),
+}
+
+// ArenaArray stores a fixed-size uninitialized array and supports random
+// access and O(1) construction and destruction, at the cost of memory.
+
+struct ArenaArray<T: Copy> {
+  capacity: usize,
+  layout: Layout,
+  values: *mut T,
+}
+
+impl<T: Copy> ArenaArray<T> {
+  fn new(capacity: usize) -> Self {
+    let size = capacity * std::mem::size_of::<T>();
+    let layout = Layout::from_size_align(size, std::mem::align_of::<T>()).unwrap();
+    let values = unsafe { std::alloc::alloc(layout) as *mut T };
+    Self { capacity, layout, values }
+  }
+
+  fn set(&self, index: usize, value: T) -> *mut T {
+    assert!(index < self.capacity);
+    unsafe {
+      let offset = self.values.offset(index as isize);
+      std::ptr::write(offset, value);
+      offset
+    }
+  }
+}
+
+impl<T: Copy> Drop for ArenaArray<T> {
+  fn drop(&mut self) {
+    unsafe { std::alloc::dealloc(self.values as *mut u8, self.layout) }
+  }
+}
+
+// A State is a rule accompanied with a "cursor" and a "start", where the
+// cursor is the position in the rule up to which we have a match and the
+// start is the token from which this match started.
+
+#[derive(Clone)]
+struct Candidate<'a, T: Clone> {
+  next: Next<'a, T>,
+  prev: *const State<'a, T>,
+}
+
+#[derive(Clone)]
+enum Next<'a, T: Clone> {
+  Leaf(&'a Match<T>),
+  Node(*const State<'a, T>),
+}
+
+#[derive(Clone)]
+struct State<'a, T: Clone> {
+  candidate: Option<Candidate<'a, T>>,
+  cursor: usize,
+  rule: &'a IndexedRule<'a, T>,
+  score: f32,
+  start: usize,
+}
+
+impl<'a, T: Clone> Copy for Candidate<'a, T> {}
+impl<'a, T: Clone> Copy for Next<'a, T> {}
+impl<'a, T: Clone> Copy for State<'a, T> {}
+
+impl<'a, T: Clone> State<'a, T> {
+  fn new(cursor: usize, rule: &'a IndexedRule<'a, T>, start: usize) -> Self {
+    Self { candidate: None, cursor, rule, score: std::f32::NEG_INFINITY, start }
+  }
+
+  fn evaluate(&self) -> T {
+    assert!(self.cursor == self.rule.rhs.len());
+    let mut xs = Vec::with_capacity(self.cursor);
+    let mut current = self;
+    for _ in 0..self.cursor {
+      let candidate = current.candidate.as_ref().unwrap();
+      xs.push(match &candidate.next {
+        Next::Leaf(x) => x.value.clone(),
+        Next::Node(x) => unsafe { (**x).evaluate() },
+      });
+      current = unsafe { &*candidate.prev };
+    }
+    xs.reverse();
+    (self.rule.callback)(&xs)
+  }
+}
+
+// A Chart is a list of Earley parser states with links to each other.
+// Its fields have the following sizes, where n is the number of tokens,
+// r is the number of rules, and s is the number of symbols:
+//
+//  states: n x n x r vector mapping (start, end, cursor) -> the state
+//          spanning the [start, end) token range ending with that cursor.
+//
+//  wanted: n x s vector mapping (end, symbol) -> the list of states
+//          ending at that token that predict that symbol to be next.
+
+struct Chart<'a, T: Clone> {
+  grammar: &'a IndexedGrammar<'a, T>,
+  completed: Vec<*const State<'a, T>>,
+  scannable: Vec<*const State<'a, T>>,
+  states: ArenaArray<State<'a, T>>,
+  wanted: HashMap<usize, Vec<*const State<'a, T>>>,
+  tokens: usize,
+}
+
+struct Column<'a, T: Clone> {
+  candidates: HashMap<usize, Vec<Candidate<'a, T>>>,
+  completed: Vec<*const State<'a, T>>,
+  scannable: Vec<*const State<'a, T>>,
+  states: Vec<*const State<'a, T>>,
+}
+
+impl<'a, T: Clone> Chart<'a, T> {
+  fn new(grammar: &'a IndexedGrammar<T>, tokens: usize) -> Self {
+    let (n, r, s) = (tokens + 1, grammar.max_index, grammar.names.len());
+    let states = ArenaArray::new(n * n * r);
+    let (completed, scannable) = (vec![], vec![]);
+    Self { grammar, completed, scannable, states, wanted: HashMap::new(), tokens: n }
+  }
+
+  fn result(&self) -> Option<T> {
+    let mut best_score = std::f32::NEG_INFINITY;
+    let mut best_state = None;
+    for state in &self.completed {
+      let state = unsafe { &**state };
+      if state.rule.lhs == self.grammar.start && state.score > best_score {
+        best_score = state.score;
+        best_state = Some(state);
+      }
+    }
+    best_state.map(|x| x.evaluate())
+  }
+
+  fn score(
+    &self,
+    candidates: &HashMap<usize, Vec<Candidate<'a, T>>>,
+    state: *const State<'a, T>,
+  ) -> f32 {
+    let state = unsafe { &mut *(state as *mut State<'a, T>) };
+    if state.score > std::f32::NEG_INFINITY {
+      return state.score;
+    } else if state.cursor == 0 {
+      state.score = state.rule.score;
+      return state.score;
+    }
+    let mut best_candidate = None;
+    let mut best_score = std::f32::NEG_INFINITY;
+    let index = state.start * self.grammar.max_index + state.rule.index + state.cursor;
+    for candidate in candidates.get(&index).unwrap() {
+      let Candidate { next, prev } = candidate;
+      let next_score = match next {
+        Next::Leaf(x) => x.score,
+        Next::Node(x) => self.score(candidates, *x),
+      };
+      let prev_score = self.score(candidates, *prev) + next_score;
+      if prev_score > best_score {
+        best_candidate = Some(*candidate);
+        best_score = prev_score;
+      }
+    }
+    assert!(best_candidate.is_some());
+    assert!(best_score > std::f32::NEG_INFINITY);
+    state.candidate = best_candidate;
+    state.score = best_score;
+    state.score
+  }
+
+  fn step(
+    &self,
+    base: usize,
+    next: Next<'a, T>,
+    state: *const State<'a, T>,
+    column: &mut Column<'a, T>,
+  ) {
+    let state = unsafe { &*state };
+    let offset = state.start * self.grammar.max_index + state.rule.index + state.cursor + 1;
+    let values = column.candidates.entry(offset).or_insert(vec![]);
+    if values.is_empty() {
+      let state = State::new(state.cursor + 1, state.rule, state.start);
+      column.states.push(self.states.set(base + offset, state));
+    }
+    values.push(Candidate { next, prev: state });
+  }
+
+  fn update(&mut self, index: usize, token: Option<&'a Token<T>>) {
+    let base = index * self.tokens * self.grammar.max_index;
+    let mut nullable = HashMap::new();
+    let mut column =
+      Column { candidates: HashMap::new(), completed: vec![], scannable: vec![], states: vec![] };
+
+    if index == 0 {
+      for rule in &self.grammar.by_name[self.grammar.start.0] {
+        column.states.push(self.states.set(rule.index, State::new(0, rule, index)));
+      }
+    } else if let Some(token) = token {
+      self.scannable.iter().for_each(|x| {
+        let state = unsafe { &**x };
+        if let Term::Terminal(t) = &state.rule.rhs[state.cursor] {
+          if let Some(m) = token.matches.get(t) {
+            self.step(base, Next::Leaf(m), state, &mut column);
+          }
+        }
+      });
+    }
+
+    let mut i = 0;
+    while i < column.states.len() {
+      let state = unsafe { &*column.states[i] };
+      i += 1;
+      if state.cursor == state.rule.rhs.len() {
+        let j = state.start * self.grammar.max_index + state.rule.lhs.0;
+        if let Some(wanted) = &self.wanted.get(&j) {
+          wanted.iter().for_each(|x| self.step(base, Next::Node(state), *x, &mut column));
+        }
+        if state.start == 0 {
+          column.completed.push(state);
+        }
+        if state.start == index {
+          nullable.entry(state.rule.lhs.0).or_insert(vec![]).push(state);
+        }
+      } else {
+        match state.rule.rhs[state.cursor] {
+          Term::Symbol(lhs) => {
+            if let Some(nullable) = nullable.get(&lhs.0) {
+              nullable.iter().for_each(|x| self.step(base, Next::Node(*x), state, &mut column));
+            }
+            let j = index * self.grammar.max_index + lhs.0;
+            let wanted = self.wanted.entry(j).or_insert(vec![]);
+            if wanted.is_empty() {
+              for rule in &self.grammar.by_name[lhs.0] {
+                let offset = index * self.grammar.max_index + rule.index;
+                column.states.push(self.states.set(base + offset, State::new(0, rule, index)));
+              }
+            }
+            wanted.push(state);
+          }
+          Term::Terminal(_) => column.scannable.push(state),
+        }
+      }
+    }
+
+    column.states.iter().for_each(|x| {
+      self.score(&column.candidates, *x);
+    });
+    std::mem::swap(&mut column.completed, &mut self.completed);
+    std::mem::swap(&mut column.scannable, &mut self.scannable);
+  }
+}
+
+// An IndexedGrammar is a variant on a grammar that has a few additional
+// fields for fast lookups during parsing, like a per-cursor index number.
+
+struct IndexedGrammar<'a, T: Clone> {
+  by_name: Vec<Vec<IndexedRule<'a, T>>>,
+  max_index: usize,
+  names: &'a [String],
+  start: Symbol,
+}
+
+struct IndexedRule<'a, T: Clone> {
+  callback: &'a Fn(&[T]) -> T,
+  index: usize,
+  lhs: Symbol,
+  rhs: &'a [Term],
+  score: f32,
+}
+
+fn index<T: Clone>(grammar: &Grammar<T>) -> IndexedGrammar<T> {
+  let mut index = 0;
+  let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
+  for rule in &grammar.rules {
+    let Rule { callback, lhs, rhs, score } = rule;
+    let indexed = IndexedRule { callback: &**callback, index, lhs: *lhs, rhs: &rhs, score: *score };
+    by_name[rule.lhs.0].push(indexed);
+    index += rule.rhs.len() + 1;
+  }
+  IndexedGrammar { by_name, max_index: index, names: &grammar.names, start: grammar.start }
+}
+
+fn parse<T: Clone>(grammar: &Grammar<T>, input: &str) -> Option<T> {
+  let indexed = index(grammar);
+  let tokens = grammar.lexer.lex(input);
+  let mut chart = Chart::new(&indexed, tokens.len());
+  chart.update(0, None);
+  for (i, token) in tokens.iter().enumerate() {
+    chart.update(i + 1, Some(token));
+  }
+  chart.result()
+}
+
+// A quick smoke test of the logic above.
+
+struct CharacterLexer {}
+
+impl Lexer<i32> for CharacterLexer {
+  fn lex(&self, input: &str) -> Vec<Token<i32>> {
+    input
+      .chars()
+      .map(|x| {
+        let mut matches = HashMap::new();
+        matches.insert(x.to_string(), Match { score: 0.0, value: 0 });
+        Token { matches, text: x.to_string() }
+      })
+      .collect()
+  }
+}
+
+fn make_grammar() -> Grammar<i32> {
+  Grammar {
+    lexer: Box::new(CharacterLexer {}),
+    names: vec!["$Root".to_string(), "$Add".to_string(), "$Mul".to_string(), "$Num".to_string()],
+    rules: vec![
+      Rule {
+        callback: Box::new(|x| x[0]),
+        lhs: Symbol(0),
+        rhs: vec![Term::Symbol(Symbol(1))],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|x| x[0]),
+        lhs: Symbol(1),
+        rhs: vec![Term::Symbol(Symbol(2))],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|x| x[0] + x[2]),
+        lhs: Symbol(1),
+        rhs: vec![
+          Term::Symbol(Symbol(1)),
+          Term::Terminal("+".to_string()),
+          Term::Symbol(Symbol(2)),
+        ],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|x| x[0] - x[2]),
+        lhs: Symbol(1),
+        rhs: vec![
+          Term::Symbol(Symbol(1)),
+          Term::Terminal("-".to_string()),
+          Term::Symbol(Symbol(2)),
+        ],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|x| x[0]),
+        lhs: Symbol(2),
+        rhs: vec![Term::Symbol(Symbol(3))],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|x| x[0] * x[2]),
+        lhs: Symbol(2),
+        rhs: vec![
+          Term::Symbol(Symbol(2)),
+          Term::Terminal("*".to_string()),
+          Term::Symbol(Symbol(3)),
+        ],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|x| x[0] / x[2]),
+        lhs: Symbol(2),
+        rhs: vec![
+          Term::Symbol(Symbol(2)),
+          Term::Terminal("/".to_string()),
+          Term::Symbol(Symbol(3)),
+        ],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|x| x[1]),
+        lhs: Symbol(3),
+        rhs: vec![
+          Term::Terminal("(".to_string()),
+          Term::Symbol(Symbol(1)),
+          Term::Terminal(")".to_string()),
+        ],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 0),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("0".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 1),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("1".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 2),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("2".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 3),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("3".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 4),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("4".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 5),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("5".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 6),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("6".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 7),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("7".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 8),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("8".to_string())],
+        score: 0.0,
+      },
+      Rule {
+        callback: Box::new(|_| 9),
+        lhs: Symbol(3),
+        rhs: vec![Term::Terminal("0".to_string())],
+        score: 0.0,
+      },
+    ],
+    start: Symbol(0),
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use test::Bencher;
+
+  #[test]
+  fn parsing_test() {
+    let grammar = make_grammar();
+    assert_eq!(parse(&grammar, "(1+2)*3-4+5*6"), Some(35));
+  }
+
+  #[bench]
+  fn parsing_benchmark(b: &mut Bencher) {
+    let grammar = make_grammar();
+    b.iter(|| parse(&grammar, "(1+2)*3-4+5*6"));
+  }
+}

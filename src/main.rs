@@ -9,6 +9,7 @@ extern crate test;
 
 mod combine;
 mod lambda;
+mod parser;
 
 fn debug((k, v): &(usize, Option<Rc<lambda::Lambda>>)) -> String {
   format!("Key {}: {}", k, v.as_ref().map(|x| x.stringify()).unwrap_or("-".to_string()))
