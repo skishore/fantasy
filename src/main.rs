@@ -2,6 +2,7 @@
 
 use std::rc::Rc;
 
+extern crate fnv;
 extern crate regex;
 
 #[cfg(test)]

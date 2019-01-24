@@ -1,3 +1,4 @@
+use fnv::FnvHashMap;
 use std::alloc::Layout;
 use std::collections::HashMap;
 
@@ -140,12 +141,12 @@ struct Chart<'a, T: Clone> {
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
   states: ArenaArray<State<'a, T>>,
-  wanted: HashMap<usize, Vec<*const State<'a, T>>>,
+  wanted: FnvHashMap<usize, Vec<*const State<'a, T>>>,
   tokens: usize,
 }
 
 struct Column<'a, T: Clone> {
-  candidates: HashMap<usize, Vec<Candidate<'a, T>>>,
+  candidates: FnvHashMap<usize, Vec<Candidate<'a, T>>>,
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
   states: Vec<*const State<'a, T>>,
@@ -156,7 +157,7 @@ impl<'a, T: Clone> Chart<'a, T> {
     let (n, r, s) = (tokens + 1, grammar.max_index, grammar.names.len());
     let states = ArenaArray::new(n * n * r);
     let (completed, scannable) = (vec![], vec![]);
-    Self { grammar, completed, scannable, states, wanted: HashMap::new(), tokens: n }
+    Self { grammar, completed, scannable, states, wanted: FnvHashMap::default(), tokens: n }
   }
 
   fn result(&self) -> Option<T> {
@@ -174,7 +175,7 @@ impl<'a, T: Clone> Chart<'a, T> {
 
   fn score(
     &self,
-    candidates: &HashMap<usize, Vec<Candidate<'a, T>>>,
+    candidates: &FnvHashMap<usize, Vec<Candidate<'a, T>>>,
     state: *const State<'a, T>,
   ) -> f32 {
     let state = unsafe { &mut *(state as *mut State<'a, T>) };
@@ -225,9 +226,9 @@ impl<'a, T: Clone> Chart<'a, T> {
 
   fn update(&mut self, index: usize, token: Option<&'a Token<T>>) {
     let base = index * self.tokens * self.grammar.max_index;
-    let mut nullable = HashMap::new();
-    let mut column =
-      Column { candidates: HashMap::new(), completed: vec![], scannable: vec![], states: vec![] };
+    let candidates = FnvHashMap::default();
+    let mut nullable = FnvHashMap::default();
+    let mut column = Column { candidates, completed: vec![], scannable: vec![], states: vec![] };
 
     if index == 0 {
       for rule in &self.grammar.by_name[self.grammar.start.0] {

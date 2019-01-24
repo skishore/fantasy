@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["Shaunak Kishore <kshaunak@gmail.com>"]
 
 [dependencies]
+fnv = "1.0.6"
 regex = "1"
