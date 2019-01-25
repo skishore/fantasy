@@ -97,6 +97,10 @@ impl<'a, T: Clone> State<'a, T> {
 // Its fields have the following sizes, where n is the number of tokens,
 // r is the number of rule cursor positions, and s is the number of symbols:
 //
+//  candidates: An Arena that stores derivation candidates linked list nodes.
+//              In theory, we could deallocate some candidates after finishing
+//              a column, but in practice it's just as fast to do so later.
+//
 //  states: An Arena that stores and has ownership of all parser states.
 //          It stores up to 1 state for each (start, end, cursor) triple.
 //          Maximum size: n * n * r.
@@ -109,8 +113,8 @@ impl<'a, T: Clone> State<'a, T> {
 // ending at a single token index. For these structures, "end" is implicit
 // in the column itself:
 //
-//  candidates: A hash table mapping (start, cursor) to a list of candidates
-//              derivations for the (start, end, cursor) triple's state.
+//  candidates: A hash table mapping (start, cursor) to a linked list of
+//              derivation candidates for the (start, end, cursor) state.
 //              Maximum size: n * r.
 //
 //  completed: A list of states with a start of 0 ending here.
@@ -119,8 +123,14 @@ impl<'a, T: Clone> State<'a, T> {
 //
 //  states: A list of states ending here.
 
+struct Candidates<'a, T: Clone> {
+  candidate: Candidate<'a, T>,
+  next: *const Candidates<'a, T>,
+}
+
 struct Chart<'a, T: Clone> {
   grammar: &'a IndexedGrammar<'a, T>,
+  candidates: Arena<Candidates<'a, T>>,
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
   states: Arena<State<'a, T>>,
@@ -128,7 +138,7 @@ struct Chart<'a, T: Clone> {
 }
 
 struct Column<'a, T: Clone> {
-  candidates: FxHashMap<usize, Vec<Candidate<'a, T>>>,
+  candidates: FxHashMap<usize, *const Candidates<'a, T>>,
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
   states: Vec<*const State<'a, T>>,
@@ -136,8 +146,9 @@ struct Column<'a, T: Clone> {
 
 impl<'a, T: Clone> Chart<'a, T> {
   fn new(grammar: &'a IndexedGrammar<T>) -> Self {
+    let (candidates, states) = (Arena::new(), Arena::new());
     let wanted = FxHashMap::default();
-    Self { grammar, completed: vec![], scannable: vec![], states: Arena::new(), wanted }
+    Self { grammar, candidates, completed: vec![], scannable: vec![], states, wanted }
   }
 
   fn result(&self) -> Option<T> {
@@ -155,7 +166,7 @@ impl<'a, T: Clone> Chart<'a, T> {
 
   fn score(
     &self,
-    candidates: &FxHashMap<usize, Vec<Candidate<'a, T>>>,
+    candidates: &FxHashMap<usize, *const Candidates<'a, T>>,
     state: *const State<'a, T>,
   ) -> f32 {
     let state = unsafe { &mut *(state as *mut State<'a, T>) };
@@ -168,13 +179,15 @@ impl<'a, T: Clone> Chart<'a, T> {
     let mut best_candidate = None;
     let mut best_score = std::f32::NEG_INFINITY;
     let index = state.start * self.grammar.max_index + state.rule.index + state.cursor;
-    for candidate in candidates.get(&index).unwrap() {
-      let Candidate { next, prev } = candidate;
-      let next_score = match next {
+    let mut node = candidates.get(&index).cloned().unwrap_or(std::ptr::null());
+    while !node.is_null() {
+      let Candidates { candidate, next: next_node } = unsafe { &*node };
+      node = *next_node;
+      let next_score = match candidate.next {
         Next::Leaf(x) => x.score,
-        Next::Node(x) => self.score(candidates, *x),
+        Next::Node(x) => self.score(candidates, x),
       };
-      let prev_score = self.score(candidates, *prev) + next_score;
+      let prev_score = self.score(candidates, candidate.prev) + next_score;
       if prev_score > best_score {
         best_candidate = Some(*candidate);
         best_score = prev_score;
@@ -190,12 +203,13 @@ impl<'a, T: Clone> Chart<'a, T> {
   fn step(&mut self, next: Next<'a, T>, state: *const State<'a, T>, column: &mut Column<'a, T>) {
     let state = unsafe { &*state };
     let offset = state.start * self.grammar.max_index + state.rule.index + state.cursor + 1;
-    let values = column.candidates.entry(offset).or_insert(vec![]);
-    if values.is_empty() {
+    let values = column.candidates.entry(offset).or_insert(std::ptr::null());
+    if values.is_null() {
       let state = State::new(state.cursor + 1, state.rule, state.start);
       column.states.push(self.states.alloc(state));
     }
-    values.push(Candidate { next, prev: state });
+    let candidate = Candidate { next, prev: state };
+    *values = self.candidates.alloc(Candidates { candidate, next: *values });
   }
 
   fn update(&mut self, index: usize, token: Option<&'a Token<T>>) {
