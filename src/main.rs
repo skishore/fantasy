@@ -2,8 +2,8 @@
 
 use std::rc::Rc;
 
-extern crate fnv;
 extern crate regex;
+extern crate rustc_hash;
 
 #[cfg(test)]
 extern crate test;
@@ -17,6 +17,9 @@ fn debug((k, v): &(usize, Option<Rc<lambda::Lambda>>)) -> String {
 }
 
 fn main() {
+  let grammar: Option<parser::Grammar<u32>> = None;
+  grammar.as_ref().map(|x| parser::parse(x, ""));
+
   let lambda = Some(lambda::Lambda::parse("R[a].b & c").unwrap());
   let template = lambda::Lambda::template("$0.$1 & $2").unwrap();
   for (i, option) in template.split(lambda).iter().enumerate() {

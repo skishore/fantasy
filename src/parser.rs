@@ -1,33 +1,32 @@
-use fnv::FnvHashMap;
-use std::alloc::Layout;
+use rustc_hash::FxHashMap;
 use std::collections::HashMap;
 
 // Definitions for the core lexer type.
 
-trait Lexer<T: Clone> {
+pub trait Lexer<T: Clone> {
   fn lex(&self, &str) -> Vec<Token<T>>;
 }
 
-struct Match<T: Clone> {
+pub struct Match<T: Clone> {
   score: f32,
   value: T,
 }
 
-struct Token<T: Clone> {
+pub struct Token<T: Clone> {
   matches: HashMap<String, Match<T>>,
   text: String,
 }
 
 // Definitions for the core grammar type.
 
-struct Grammar<T: Clone> {
+pub struct Grammar<T: Clone> {
   lexer: Box<Lexer<T>>,
   names: Vec<String>,
   rules: Vec<Rule<T>>,
   start: Symbol,
 }
 
-struct Rule<T: Clone> {
+pub struct Rule<T: Clone> {
   callback: Box<Fn(&[T]) -> T>,
   lhs: Symbol,
   rhs: Vec<Term>,
@@ -35,43 +34,30 @@ struct Rule<T: Clone> {
 }
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
-struct Symbol(usize);
+pub struct Symbol(usize);
 
-enum Term {
+pub enum Term {
   Symbol(Symbol),
   Terminal(String),
 }
 
-// ArenaArray stores a fixed-size uninitialized array and supports random
-// access and O(1) construction and destruction, at the cost of memory.
+// An Arena stores a fixed-size uninitialized array and adds new T values
+// to this array without allocating new memory for them.
 
-struct ArenaArray<T: Copy> {
-  capacity: usize,
-  layout: Layout,
-  values: *mut T,
+struct Arena<T: Copy> {
+  values: Vec<T>,
 }
 
-impl<T: Copy> ArenaArray<T> {
+impl<T: Copy> Arena<T> {
   fn new(capacity: usize) -> Self {
-    let size = capacity * std::mem::size_of::<T>();
-    let layout = Layout::from_size_align(size, std::mem::align_of::<T>()).unwrap();
-    let values = unsafe { std::alloc::alloc(layout) as *mut T };
-    Self { capacity, layout, values }
+    Self { values: Vec::with_capacity(capacity) }
   }
 
-  fn set(&self, index: usize, value: T) -> *mut T {
-    assert!(index < self.capacity);
-    unsafe {
-      let offset = self.values.offset(index as isize);
-      std::ptr::write(offset, value);
-      offset
-    }
-  }
-}
-
-impl<T: Copy> Drop for ArenaArray<T> {
-  fn drop(&mut self) {
-    unsafe { std::alloc::dealloc(self.values as *mut u8, self.layout) }
+  fn add(&mut self, value: T) -> *mut T {
+    let length = self.values.len();
+    assert!(length < self.values.capacity());
+    self.values.push(value);
+    unsafe { self.values.as_ptr().offset(length as isize) as *mut T }
   }
 }
 
@@ -128,25 +114,40 @@ impl<'a, T: Clone> State<'a, T> {
 
 // A Chart is a list of Earley parser states with links to each other.
 // Its fields have the following sizes, where n is the number of tokens,
-// r is the number of rules, and s is the number of symbols:
+// r is the number of rule cursor positions, and s is the number of symbols:
 //
-//  states: n x n x r vector mapping (start, end, cursor) -> the state
-//          spanning the [start, end) token range ending with that cursor.
+//  states: An Arena that stores and has ownership of all parser states.
+//          It stores up to 1 state for each (start, end, cursor) triple.
+//          Maximum size: n * n * r.
 //
-//  wanted: n x s vector mapping (end, symbol) -> the list of states
+//  wanted: A hash table mapping (end, symbol) pairs to a list of states
 //          ending at that token that predict that symbol to be next.
+//          Maximum size: n * s.
+//
+// A Column has additional data structures that are used to process states
+// ending at a single token index. For these structures, "end" is implicit
+// in the column itself:
+//
+//  candidates: A hash table mapping (start, cursor) to a list of candidates
+//              derivations for the (start, end, cursor) triple's state.
+//              Maximum size: n * r.
+//
+//  completed: A list of states with a start of 0 ending here.
+//
+//  scannable: A list of states with a cursor at a terminal ending here.
+//
+//  states: A list of states ending here.
 
 struct Chart<'a, T: Clone> {
   grammar: &'a IndexedGrammar<'a, T>,
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
-  states: ArenaArray<State<'a, T>>,
-  wanted: FnvHashMap<usize, Vec<*const State<'a, T>>>,
-  tokens: usize,
+  states: Arena<State<'a, T>>,
+  wanted: FxHashMap<usize, Vec<*const State<'a, T>>>,
 }
 
 struct Column<'a, T: Clone> {
-  candidates: FnvHashMap<usize, Vec<Candidate<'a, T>>>,
+  candidates: FxHashMap<usize, Vec<Candidate<'a, T>>>,
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
   states: Vec<*const State<'a, T>>,
@@ -154,10 +155,10 @@ struct Column<'a, T: Clone> {
 
 impl<'a, T: Clone> Chart<'a, T> {
   fn new(grammar: &'a IndexedGrammar<T>, tokens: usize) -> Self {
-    let (n, r, s) = (tokens + 1, grammar.max_index, grammar.names.len());
-    let states = ArenaArray::new(n * n * r);
+    let (n, r) = (tokens + 1, grammar.max_index);
+    let states = Arena::new(n * n * r);
     let (completed, scannable) = (vec![], vec![]);
-    Self { grammar, completed, scannable, states, wanted: FnvHashMap::default(), tokens: n }
+    Self { grammar, completed, scannable, states, wanted: FxHashMap::default() }
   }
 
   fn result(&self) -> Option<T> {
@@ -175,7 +176,7 @@ impl<'a, T: Clone> Chart<'a, T> {
 
   fn score(
     &self,
-    candidates: &FnvHashMap<usize, Vec<Candidate<'a, T>>>,
+    candidates: &FxHashMap<usize, Vec<Candidate<'a, T>>>,
     state: *const State<'a, T>,
   ) -> f32 {
     let state = unsafe { &mut *(state as *mut State<'a, T>) };
@@ -207,39 +208,37 @@ impl<'a, T: Clone> Chart<'a, T> {
     state.score
   }
 
-  fn step(
-    &self,
-    base: usize,
-    next: Next<'a, T>,
-    state: *const State<'a, T>,
-    column: &mut Column<'a, T>,
-  ) {
+  fn step(&mut self, next: Next<'a, T>, state: *const State<'a, T>, column: &mut Column<'a, T>) {
     let state = unsafe { &*state };
     let offset = state.start * self.grammar.max_index + state.rule.index + state.cursor + 1;
     let values = column.candidates.entry(offset).or_insert(vec![]);
     if values.is_empty() {
       let state = State::new(state.cursor + 1, state.rule, state.start);
-      column.states.push(self.states.set(base + offset, state));
+      column.states.push(self.states.add(state));
     }
     values.push(Candidate { next, prev: state });
   }
 
   fn update(&mut self, index: usize, token: Option<&'a Token<T>>) {
-    let base = index * self.tokens * self.grammar.max_index;
-    let candidates = FnvHashMap::default();
-    let mut nullable = FnvHashMap::default();
+    let candidates = FxHashMap::default();
+    let mut nullable = FxHashMap::default();
     let mut column = Column { candidates, completed: vec![], scannable: vec![], states: vec![] };
+
+    let mut scannable = vec![];
+    let mut wanted = FxHashMap::default();
+    std::mem::swap(&mut scannable, &mut self.scannable);
+    std::mem::swap(&mut wanted, &mut self.wanted);
 
     if index == 0 {
       for rule in &self.grammar.by_name[self.grammar.start.0] {
-        column.states.push(self.states.set(rule.index, State::new(0, rule, index)));
+        column.states.push(self.states.add(State::new(0, rule, index)));
       }
     } else if let Some(token) = token {
-      self.scannable.iter().for_each(|x| {
+      scannable.iter().for_each(|x| {
         let state = unsafe { &**x };
         if let Term::Terminal(t) = &state.rule.rhs[state.cursor] {
           if let Some(m) = token.matches.get(t) {
-            self.step(base, Next::Leaf(m), state, &mut column);
+            self.step(Next::Leaf(m), state, &mut column);
           }
         }
       });
@@ -251,8 +250,8 @@ impl<'a, T: Clone> Chart<'a, T> {
       i += 1;
       if state.cursor == state.rule.rhs.len() {
         let j = state.start * self.grammar.max_index + state.rule.lhs.0;
-        if let Some(wanted) = &self.wanted.get(&j) {
-          wanted.iter().for_each(|x| self.step(base, Next::Node(state), *x, &mut column));
+        if let Some(wanted) = &wanted.get(&j) {
+          wanted.iter().for_each(|x| self.step(Next::Node(state), *x, &mut column));
         }
         if state.start == 0 {
           column.completed.push(state);
@@ -264,14 +263,13 @@ impl<'a, T: Clone> Chart<'a, T> {
         match state.rule.rhs[state.cursor] {
           Term::Symbol(lhs) => {
             if let Some(nullable) = nullable.get(&lhs.0) {
-              nullable.iter().for_each(|x| self.step(base, Next::Node(*x), state, &mut column));
+              nullable.iter().for_each(|x| self.step(Next::Node(*x), state, &mut column));
             }
             let j = index * self.grammar.max_index + lhs.0;
-            let wanted = self.wanted.entry(j).or_insert(vec![]);
+            let wanted = wanted.entry(j).or_insert(vec![]);
             if wanted.is_empty() {
               for rule in &self.grammar.by_name[lhs.0] {
-                let offset = index * self.grammar.max_index + rule.index;
-                column.states.push(self.states.set(base + offset, State::new(0, rule, index)));
+                column.states.push(self.states.add(State::new(0, rule, index)));
               }
             }
             wanted.push(state);
@@ -286,6 +284,7 @@ impl<'a, T: Clone> Chart<'a, T> {
     });
     std::mem::swap(&mut column.completed, &mut self.completed);
     std::mem::swap(&mut column.scannable, &mut self.scannable);
+    std::mem::swap(&mut wanted, &mut self.wanted);
   }
 }
 
@@ -319,7 +318,7 @@ fn index<T: Clone>(grammar: &Grammar<T>) -> IndexedGrammar<T> {
   IndexedGrammar { by_name, max_index: index, names: &grammar.names, start: grammar.start }
 }
 
-fn parse<T: Clone>(grammar: &Grammar<T>, input: &str) -> Option<T> {
+pub fn parse<T: Clone>(grammar: &Grammar<T>, input: &str) -> Option<T> {
   let indexed = index(grammar);
   let tokens = grammar.lexer.lex(input);
   let mut chart = Chart::new(&indexed, tokens.len());
