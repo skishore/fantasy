@@ -45,6 +45,19 @@ pub enum Term {
 // A State is a rule accompanied with a "cursor" and a "start", where the
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
+//
+// In addition, each state is part of two linked-lists:
+//
+//   candidate: Prior to scoring the state, this field is the head of a list
+//              of candidate derivations for this state. Each candidate has
+//              tracks three fields: "next", the next candidate derivation,
+//              "prev", the previous state for this derivation, and "down",
+//              the derivation of the term before this state's cursor.
+//              Post scoring, candidate will be the winning derivation.
+//
+//   next: This link links to other states with the that predict the same
+//         next symbol as this one. (That is, their end index and next
+//         terms must match this state's.)
 
 #[derive(Clone)]
 struct Candidate<'a, T: Clone> {
@@ -55,7 +68,7 @@ struct Candidate<'a, T: Clone> {
 
 enum Next<'a, T: Clone> {
   Leaf(&'a Match<T>),
-  Node(*const State<'a, T>),
+  Node(&'a State<'a, T>),
 }
 
 #[derive(Clone)]
@@ -87,7 +100,7 @@ impl<'a, T: Clone> State<'a, T> {
   fn down(&self, down: *const u8) -> Next<'a, T> {
     assert!(self.cursor > 0);
     match self.rule.rhs[self.cursor() - 1] {
-      Term::Symbol(_) => Next::Node(down as *const Self),
+      Term::Symbol(_) => Next::Node(unsafe { &*(down as *const Self) }),
       Term::Terminal(_) => Next::Leaf(unsafe { &*(down as *const Match<T>) }),
     }
   }
@@ -100,7 +113,7 @@ impl<'a, T: Clone> State<'a, T> {
       let Candidate { down, prev, .. } = unsafe { *current.candidate };
       xs.push(match current.down(down) {
         Next::Leaf(x) => x.value.clone(),
-        Next::Node(x) => unsafe { (*x).evaluate() },
+        Next::Node(x) => x.evaluate(),
       });
       current = unsafe { &*prev };
     }
@@ -113,35 +126,27 @@ impl<'a, T: Clone> State<'a, T> {
   }
 }
 
-// A Chart is a list of Earley parser states with links to each other.
-// Its fields have the following sizes, where n is the number of tokens,
-// r is the number of rule cursor positions, and s is the number of symbols:
-//
-//  candidates: An Arena that stores derivation candidates linked list nodes.
-//              In theory, we could deallocate some candidates after finishing
-//              a column, but in practice it's just as fast to do so later.
-//
-//  states: An Arena that stores and has ownership of all parser states.
-//          It stores up to 1 state for each (start, end, cursor) triple.
-//          Maximum size: n * n * r.
+// A Chart is a set of Earley parser states with various links to each other.
+// Candidates and states are allocated and owned by an arena. In addition,
+// it includes fields with the following sizes, where N is the number of tokens,
+// R is the number of rule cursor positions, and S is the number of symbols:
 //
 //  wanted: A hash table mapping (end, symbol) pairs to a list of states
 //          ending at that token that predict that symbol to be next.
-//          Maximum size: n * s.
+//          Maximum size: N x S.
 //
 // A Column has additional data structures that are used to process states
 // ending at a single token index. For these structures, "end" is implicit
 // in the column itself:
-//
-//  candidates: A hash table mapping (start, cursor) to a linked list of
-//              derivation candidates for the (start, end, cursor) state.
-//              Maximum size: n * r.
 //
 //  completed: A list of states with a start of 0 ending here.
 //
 //  scannable: A list of states with a cursor at a terminal ending here.
 //
 //  states: A list of states ending here.
+//
+//  lookup: A hash table mapping (start, cursor) to the unique state for
+//          the triple (start, end, cursor). Maximum size: N x R.
 
 struct Chart<'a, T: Clone> {
   grammar: &'a IndexedGrammar<'a, T>,
@@ -153,10 +158,10 @@ struct Chart<'a, T: Clone> {
 }
 
 struct Column<'a, T: Clone> {
-  candidates: FxHashMap<usize, *const State<'a, T>>,
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
-  states: Vec<*const State<'a, T>>,
+  states: Vec<*mut State<'a, T>>,
+  lookup: FxHashMap<usize, *mut State<'a, T>>,
 }
 
 impl<'a, T: Clone> Chart<'a, T> {
@@ -213,24 +218,24 @@ impl<'a, T: Clone> Chart<'a, T> {
   fn step(&mut self, next: Next<'a, T>, state: *const State<'a, T>, column: &mut Column<'a, T>) {
     let state = unsafe { &*state };
     let index = state.start() * self.grammar.max_index + state.rule.index + state.cursor() + 1;
-    let entry = column.candidates.entry(index).or_insert(std::ptr::null());
+    let entry = column.lookup.entry(index).or_insert(std::ptr::null_mut());
     if entry.is_null() {
       *entry = self.states.alloc(State::new(state.cursor() + 1, state.rule, state.start()));
       column.states.push(*entry);
     }
     let down = match next {
       Next::Leaf(x) => x as *const Match<T> as *const u8,
-      Next::Node(x) => x as *const u8,
+      Next::Node(x) => x as *const State<T> as *const u8,
     };
     let next = unsafe { (**entry).candidate };
     let candidate = self.candidates.alloc(Candidate { down, next, prev: state });
-    unsafe { (*(*entry as *mut State<T>)).candidate = candidate };
+    unsafe { (**entry).candidate = candidate };
   }
 
   fn update(&mut self, index: usize, token: Option<&'a Token<T>>) {
-    let candidates = FxHashMap::default();
+    let lookup = FxHashMap::default();
     let mut nullable = FxHashMap::default();
-    let mut column = Column { candidates, completed: vec![], scannable: vec![], states: vec![] };
+    let mut column = Column { completed: vec![], scannable: vec![], states: vec![], lookup };
 
     if index == 0 {
       for rule in &self.grammar.by_name[self.grammar.start.0] {
@@ -252,6 +257,7 @@ impl<'a, T: Clone> Chart<'a, T> {
     let mut i = 0;
     while i < column.states.len() {
       let state = unsafe { &*column.states[i] };
+      let state_mutable = unsafe { &mut *column.states[i] };
       i += 1;
       if state.cursor() == state.rule.rhs.len() {
         let j = state.start() * self.grammar.max_index + state.rule.lhs.0;
@@ -282,7 +288,7 @@ impl<'a, T: Clone> Chart<'a, T> {
                 column.states.push(self.states.alloc(State::new(0, rule, index)));
               }
             }
-            unsafe { (*(state as *const State<T> as *mut State<T>)).next = *entry };
+            state_mutable.next = *entry;
             *entry = state;
           }
           Term::Terminal(_) => column.scannable.push(state),
