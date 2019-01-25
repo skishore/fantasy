@@ -1,5 +1,6 @@
 use rustc_hash::FxHashMap;
 use std::collections::HashMap;
+use typed_arena::Arena;
 
 // Definitions for the core lexer type.
 
@@ -39,26 +40,6 @@ pub struct Symbol(usize);
 pub enum Term {
   Symbol(Symbol),
   Terminal(String),
-}
-
-// An Arena stores a fixed-size uninitialized array and adds new T values
-// to this array without allocating new memory for them.
-
-struct Arena<T: Copy> {
-  values: Vec<T>,
-}
-
-impl<T: Copy> Arena<T> {
-  fn new(capacity: usize) -> Self {
-    Self { values: Vec::with_capacity(capacity) }
-  }
-
-  fn add(&mut self, value: T) -> *mut T {
-    let length = self.values.len();
-    assert!(length < self.values.capacity());
-    self.values.push(value);
-    unsafe { self.values.as_ptr().offset(length as isize) as *mut T }
-  }
 }
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
@@ -154,11 +135,9 @@ struct Column<'a, T: Clone> {
 }
 
 impl<'a, T: Clone> Chart<'a, T> {
-  fn new(grammar: &'a IndexedGrammar<T>, tokens: usize) -> Self {
-    let (n, r) = (tokens + 1, grammar.max_index);
-    let states = Arena::new(n * n * r);
-    let (completed, scannable) = (vec![], vec![]);
-    Self { grammar, completed, scannable, states, wanted: FxHashMap::default() }
+  fn new(grammar: &'a IndexedGrammar<T>) -> Self {
+    let wanted = FxHashMap::default();
+    Self { grammar, completed: vec![], scannable: vec![], states: Arena::new(), wanted }
   }
 
   fn result(&self) -> Option<T> {
@@ -214,7 +193,7 @@ impl<'a, T: Clone> Chart<'a, T> {
     let values = column.candidates.entry(offset).or_insert(vec![]);
     if values.is_empty() {
       let state = State::new(state.cursor + 1, state.rule, state.start);
-      column.states.push(self.states.add(state));
+      column.states.push(self.states.alloc(state));
     }
     values.push(Candidate { next, prev: state });
   }
@@ -231,7 +210,7 @@ impl<'a, T: Clone> Chart<'a, T> {
 
     if index == 0 {
       for rule in &self.grammar.by_name[self.grammar.start.0] {
-        column.states.push(self.states.add(State::new(0, rule, index)));
+        column.states.push(self.states.alloc(State::new(0, rule, index)));
       }
     } else if let Some(token) = token {
       scannable.iter().for_each(|x| {
@@ -269,7 +248,7 @@ impl<'a, T: Clone> Chart<'a, T> {
             let wanted = wanted.entry(j).or_insert(vec![]);
             if wanted.is_empty() {
               for rule in &self.grammar.by_name[lhs.0] {
-                column.states.push(self.states.add(State::new(0, rule, index)));
+                column.states.push(self.states.alloc(State::new(0, rule, index)));
               }
             }
             wanted.push(state);
@@ -321,7 +300,7 @@ fn index<T: Clone>(grammar: &Grammar<T>) -> IndexedGrammar<T> {
 pub fn parse<T: Clone>(grammar: &Grammar<T>, input: &str) -> Option<T> {
   let indexed = index(grammar);
   let tokens = grammar.lexer.lex(input);
-  let mut chart = Chart::new(&indexed, tokens.len());
+  let mut chart = Chart::new(&indexed);
   chart.update(0, None);
   for (i, token) in tokens.iter().enumerate() {
     chart.update(i + 1, Some(token));

@@ -4,6 +4,7 @@ use std::rc::Rc;
 
 extern crate regex;
 extern crate rustc_hash;
+extern crate typed_arena;
 
 #[cfg(test)]
 extern crate test;
