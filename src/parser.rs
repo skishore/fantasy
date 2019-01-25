@@ -62,6 +62,7 @@ enum Next<'a, T: Clone> {
 struct State<'a, T: Clone> {
   candidate: *const Candidate<'a, T>,
   cursor: u16,
+  next: *const State<'a, T>,
   rule: &'a IndexedRule<'a, T>,
   score: f32,
   start: u16,
@@ -75,7 +76,8 @@ impl<'a, T: Clone> State<'a, T> {
     let max = u16::max_value() as usize;
     assert!(cursor <= max && start <= max);
     let (cursor, start) = (cursor as u16, start as u16);
-    Self { candidate: std::ptr::null(), cursor, rule, score: std::f32::NEG_INFINITY, start }
+    let (candidate, next) = (std::ptr::null(), std::ptr::null());
+    Self { candidate, cursor, next, rule, score: std::f32::NEG_INFINITY, start }
   }
 
   fn cursor(&self) -> usize {
@@ -147,7 +149,7 @@ struct Chart<'a, T: Clone> {
   completed: Vec<*const State<'a, T>>,
   scannable: Vec<*const State<'a, T>>,
   states: Arena<State<'a, T>>,
-  wanted: FxHashMap<usize, Vec<*const State<'a, T>>>,
+  wanted: FxHashMap<usize, *const State<'a, T>>,
 }
 
 struct Column<'a, T: Clone> {
@@ -230,16 +232,13 @@ impl<'a, T: Clone> Chart<'a, T> {
     let mut nullable = FxHashMap::default();
     let mut column = Column { candidates, completed: vec![], scannable: vec![], states: vec![] };
 
-    let mut scannable = vec![];
-    let mut wanted = FxHashMap::default();
-    std::mem::swap(&mut scannable, &mut self.scannable);
-    std::mem::swap(&mut wanted, &mut self.wanted);
-
     if index == 0 {
       for rule in &self.grammar.by_name[self.grammar.start.0] {
         column.states.push(self.states.alloc(State::new(0, rule, index)));
       }
     } else if let Some(token) = token {
+      let mut scannable = vec![];
+      std::mem::swap(&mut scannable, &mut self.scannable);
       scannable.iter().for_each(|x| {
         let state = unsafe { &**x };
         if let Term::Terminal(t) = &state.rule.rhs[state.cursor()] {
@@ -256,8 +255,10 @@ impl<'a, T: Clone> Chart<'a, T> {
       i += 1;
       if state.cursor() == state.rule.rhs.len() {
         let j = state.start() * self.grammar.max_index + state.rule.lhs.0;
-        if let Some(wanted) = &wanted.get(&j) {
-          wanted.iter().for_each(|x| self.step(Next::Node(state), *x, &mut column));
+        let mut current = self.wanted.get(&j).cloned().unwrap_or(std::ptr::null());
+        while !current.is_null() {
+          self.step(Next::Node(state), current, &mut column);
+          current = unsafe { (*current).next };
         }
         if state.start() == 0 {
           column.completed.push(state);
@@ -275,13 +276,14 @@ impl<'a, T: Clone> Chart<'a, T> {
               self.step(Next::Node(*nullable), state, &mut column);
             }
             let j = index * self.grammar.max_index + lhs.0;
-            let wanted = wanted.entry(j).or_insert(vec![]);
-            if wanted.is_empty() {
+            let entry = self.wanted.entry(j).or_insert(std::ptr::null());
+            if entry.is_null() {
               for rule in &self.grammar.by_name[lhs.0] {
                 column.states.push(self.states.alloc(State::new(0, rule, index)));
               }
             }
-            wanted.push(state);
+            unsafe { (*(state as *const State<T> as *mut State<T>)).next = *entry };
+            *entry = state;
           }
           Term::Terminal(_) => column.scannable.push(state),
         }
@@ -293,7 +295,6 @@ impl<'a, T: Clone> Chart<'a, T> {
     });
     std::mem::swap(&mut column.completed, &mut self.completed);
     std::mem::swap(&mut column.scannable, &mut self.scannable);
-    std::mem::swap(&mut wanted, &mut self.wanted);
   }
 }
 
@@ -508,7 +509,7 @@ mod tests {
         std::mem::size_of::<Next<u32>>(),
         std::mem::size_of::<State<u32>>(),
       ),
-      (0, 0, 0)
+      (24, 16, 32)
     );
   }
 
