@@ -45,6 +45,13 @@ pub enum Term {
 // A State is a rule accompanied with a "cursor" and a "start", where the
 // cursor is the position in the rule up to which we have a match and the
 // start is the token from which this match started.
+//
+// TODO: These structures use more memory than necessary. Next costs 16
+// bytes instead of 8 because of alignment issues. It can be replaced with
+// a void pointer instead. Candidate can be merged with Candidates (as in,
+// turned into a linked-list) and added directly to state as a pointer
+// rather than an Option. Finally, we can make cursor and start u16 and
+// thus get both the Candidate list and State down to 24 bytes each.
 
 #[derive(Clone)]
 struct Candidate<'a, T: Clone> {
@@ -250,13 +257,16 @@ impl<'a, T: Clone> Chart<'a, T> {
           column.completed.push(state);
         }
         if state.start == index {
-          nullable.entry(state.rule.lhs.0).or_insert(vec![]).push(state);
+          let entry = nullable.entry(state.rule.lhs.0).or_insert(state);
+          if entry.rule.score < state.rule.score {
+            *entry = state;
+          }
         }
       } else {
         match state.rule.rhs[state.cursor] {
           Term::Symbol(lhs) => {
             if let Some(nullable) = nullable.get(&lhs.0) {
-              nullable.iter().for_each(|x| self.step(Next::Node(*x), state, &mut column));
+              self.step(Next::Node(*nullable), state, &mut column);
             }
             let j = index * self.grammar.max_index + lhs.0;
             let wanted = wanted.entry(j).or_insert(vec![]);
@@ -486,6 +496,14 @@ mod tests {
   fn parsing_test() {
     let grammar = make_grammar();
     assert_eq!(parse(&grammar, "(1+2)*3-4+5*6"), Some(35));
+    assert_eq!(
+      (
+        std::mem::size_of::<Candidate<u32>>(),
+        std::mem::size_of::<Next<u32>>(),
+        std::mem::size_of::<State<u32>>(),
+      ),
+      (0, 0, 0)
+    );
   }
 
   #[bench]
