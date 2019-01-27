@@ -1,6 +1,5 @@
 use rustc_hash::FxHashMap;
 use std::collections::HashMap;
-use typed_arena::Arena;
 
 // Definitions for the core lexer type.
 
@@ -40,6 +39,40 @@ pub struct Symbol(usize);
 pub enum Term {
   Symbol(Symbol),
   Terminal(String),
+}
+
+// An Arena allows us to store objects of type T in a pre-allocated block
+// of memory, which faster than allocating individual members separately.
+// If T is Copy, then we can also clean up by de-allocating the block,
+// without running individual destructors. Pointers to objects in an Arena
+// last until the Arena is de-allocated.
+
+struct Arena<T> {
+  current: Vec<T>,
+  rest: Vec<Vec<T>>,
+}
+
+impl<T> Arena<T> {
+  pub fn new() -> Self {
+    Self::with_capacity(4096 / std::mem::size_of::<T>())
+  }
+
+  pub fn with_capacity(n: usize) -> Self {
+    Self { current: Vec::with_capacity(n), rest: vec![] }
+  }
+
+  pub fn alloc(&mut self, value: T) -> &mut T {
+    let capacity = self.current.capacity();
+    if self.current.len() == capacity {
+      let mut next = Vec::with_capacity(std::cmp::max(2 * capacity, 1));
+      std::mem::swap(&mut next, &mut self.current);
+      self.rest.push(next);
+    }
+    let len = self.current.len();
+    assert!(len < self.current.capacity());
+    self.current.push(value);
+    &mut self.current[len]
+  }
 }
 
 // A State is a rule accompanied with a "cursor" and a "start", where the
@@ -522,6 +555,7 @@ mod tests {
   #[bench]
   fn parsing_benchmark(b: &mut Bencher) {
     let grammar = make_grammar();
+    assert_eq!(parse(&grammar, "(1+2)*3-4+5*6"), Some(35));
     b.iter(|| parse(&grammar, "(1+2)*3-4+5*6"));
   }
 }

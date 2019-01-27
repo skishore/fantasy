@@ -6,4 +6,3 @@ authors = ["Shaunak Kishore <kshaunak@gmail.com>"]
 [dependencies]
 regex = "1"
 rustc-hash = "1.0.1"
-typed-arena = "1.4.1"
