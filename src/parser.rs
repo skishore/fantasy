@@ -266,9 +266,14 @@ impl<'a, T: Clone> Chart<'a, T> {
   }
 
   fn update(&mut self, index: usize, token: Option<&'a Token<T>>) {
-    let lookup = FxHashMap::default();
+    let capacity = 64;
     let mut nullable = FxHashMap::default();
-    let mut column = Column { completed: vec![], scannable: vec![], states: vec![], lookup };
+    let mut column = Column {
+      completed: Vec::with_capacity(capacity),
+      scannable: Vec::with_capacity(capacity),
+      states: Vec::with_capacity(capacity),
+      lookup: FxHashMap::default(),
+    };
 
     if index == 0 {
       for rule in &self.grammar.by_name[self.grammar.start.0] {
@@ -358,7 +363,7 @@ struct IndexedRule<'a, T: Clone> {
 fn index<T: Clone>(grammar: &Grammar<T>) -> IndexedGrammar<T> {
   let mut index = 0;
   let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
-  for rule in &grammar.rules {
+  for rule in grammar.rules.iter().filter(|x| x.score > std::f32::NEG_INFINITY) {
     let Rule { callback, lhs, rhs, score } = rule;
     let indexed = IndexedRule { callback: &**callback, index, lhs: *lhs, rhs: &rhs, score: *score };
     by_name[rule.lhs.0].push(indexed);
@@ -530,6 +535,17 @@ fn make_grammar() -> Grammar<i32> {
       },
     ],
     start: Symbol(0),
+  }
+}
+
+pub fn main() {
+  let grammar = make_grammar();
+  let mut sum = 0;
+  for _ in 0..100000 {
+    sum += parse(&grammar, "(1+2)*3-4+5*6").unwrap();
+  }
+  if sum != 3500000 {
+    panic!("HERE");
   }
 }
 
