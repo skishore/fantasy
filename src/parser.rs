@@ -182,10 +182,9 @@ impl<'a, T: Clone> State<'a, T> {
 //          the triple (start, end, cursor). Maximum size: N x R.
 
 struct Chart<'a, T: Clone> {
-  grammar: &'a IndexedGrammar<'a, T>,
   candidates: Arena<Candidate<'a, T>>,
-  completed: Vec<*const State<'a, T>>,
-  scannable: Vec<*const State<'a, T>>,
+  column: Column<'a, T>,
+  grammar: &'a IndexedGrammar<'a, T>,
   states: Arena<State<'a, T>>,
   wanted: FxHashMap<usize, *const State<'a, T>>,
 }
@@ -195,19 +194,102 @@ struct Column<'a, T: Clone> {
   scannable: Vec<*const State<'a, T>>,
   states: Vec<*mut State<'a, T>>,
   lookup: FxHashMap<usize, *mut State<'a, T>>,
+  nullable: FxHashMap<usize, *const State<'a, T>>,
+  token_index: usize,
 }
 
 impl<'a, T: Clone> Chart<'a, T> {
   fn new(grammar: &'a IndexedGrammar<T>) -> Self {
+    let capacity = 64;
+    let column = Column {
+      completed: Vec::with_capacity(capacity),
+      scannable: Vec::with_capacity(capacity),
+      states: Vec::with_capacity(capacity),
+      lookup: FxHashMap::default(),
+      nullable: FxHashMap::default(),
+      token_index: 0,
+    };
     let (candidates, states) = (Arena::new(), Arena::new());
-    let wanted = FxHashMap::default();
-    Self { grammar, candidates, completed: vec![], scannable: vec![], states, wanted }
+    let mut result = Self { candidates, column, grammar, states, wanted: FxHashMap::default() };
+    for rule in &result.grammar.by_name[grammar.start.0] {
+      result.column.states.push(result.states.alloc(State::new(0, rule, 0)));
+    }
+    result.fill_column();
+    result
   }
 
-  fn result(&self) -> Option<T> {
+  fn advance_state(&mut self, next: Next<'a, T>, state: *const State<'a, T>) {
+    let state = unsafe { &*state };
+    let index = state.start() * self.grammar.max_index + state.rule.index + state.cursor() + 1;
+    let entry = self.column.lookup.entry(index).or_insert(std::ptr::null_mut());
+    if entry.is_null() {
+      *entry = self.states.alloc(State::new(state.cursor() + 1, state.rule, state.start()));
+      self.column.states.push(*entry);
+    }
+    let down = match next {
+      Next::Leaf(x) => x as *const Match<T> as *const u8,
+      Next::Node(x) => x as *const State<T> as *const u8,
+    };
+    let next = unsafe { (**entry).candidate };
+    let candidate = self.candidates.alloc(Candidate { down, next, prev: state });
+    unsafe { (**entry).candidate = candidate };
+  }
+
+  fn fill_column(&mut self) {
+    let mut i = 0;
+    let index = self.column.token_index;
+
+    while i < self.column.states.len() {
+      let state = unsafe { &*self.column.states[i] };
+      let state_mutable = unsafe { &mut *self.column.states[i] };
+      i += 1;
+      if state.cursor() == state.rule.rhs.len() {
+        let j = state.start() * self.grammar.max_index + state.rule.lhs.0;
+        let mut current = self.wanted.get(&j).cloned().unwrap_or(std::ptr::null());
+        while !current.is_null() {
+          self.advance_state(Next::Node(state), current);
+          current = unsafe { (*current).next };
+        }
+        if state.start() == 0 {
+          self.column.completed.push(state);
+        }
+        if state.start() == index {
+          let entry = self.column.nullable.entry(state.rule.lhs.0).or_insert(state);
+          if unsafe { **entry }.rule.score < state.rule.score {
+            *entry = state;
+          }
+        }
+      } else {
+        match state.rule.rhs[state.cursor()] {
+          Term::Symbol(lhs) => {
+            let nullable = self.column.nullable.get(&lhs.0).cloned().unwrap_or(std::ptr::null());
+            if !nullable.is_null() {
+              self.advance_state(Next::Node(unsafe { &*nullable }), state);
+            }
+            let j = index * self.grammar.max_index + lhs.0;
+            let entry = self.wanted.entry(j).or_insert(std::ptr::null());
+            if entry.is_null() {
+              for rule in &self.grammar.by_name[lhs.0] {
+                self.column.states.push(self.states.alloc(State::new(0, rule, index)));
+              }
+            }
+            state_mutable.next = *entry;
+            *entry = state;
+          }
+          Term::Terminal(_) => self.column.scannable.push(state),
+        }
+      }
+    }
+
+    self.column.states.iter().for_each(|x| {
+      self.score_state(*x);
+    });
+  }
+
+  fn get_result(&self) -> Option<T> {
     let mut best_score = std::f32::NEG_INFINITY;
     let mut best_state = None;
-    for state in &self.completed {
+    for state in &self.column.completed {
       let state = unsafe { &**state };
       if state.rule.lhs == self.grammar.start && state.score > best_score {
         best_score = state.score;
@@ -217,7 +299,28 @@ impl<'a, T: Clone> Chart<'a, T> {
     best_state.map(|x| x.evaluate())
   }
 
-  fn score(&self, state: *const State<'a, T>) -> f32 {
+  fn process_token(&mut self, token: &'a Token<T>) {
+    self.column.completed.clear();
+    self.column.states.clear();
+    self.column.lookup.clear();
+    self.column.nullable.clear();
+    self.column.token_index += 1;
+
+    let mut scannable = Vec::with_capacity(self.column.scannable.capacity());
+    std::mem::swap(&mut scannable, &mut self.column.scannable);
+    scannable.iter().for_each(|x| {
+      let state = unsafe { &**x };
+      if let Term::Terminal(t) = &state.rule.rhs[state.cursor()] {
+        if let Some(m) = token.matches.get(t) {
+          self.advance_state(Next::Leaf(m), state);
+        }
+      }
+    });
+
+    self.fill_column();
+  }
+
+  fn score_state(&self, state: *const State<'a, T>) -> f32 {
     let state = unsafe { &mut *(state as *mut State<'a, T>) };
     if state.score > std::f32::NEG_INFINITY {
       return state.score;
@@ -232,9 +335,9 @@ impl<'a, T: Clone> Chart<'a, T> {
       let Candidate { down, next, prev } = unsafe { *candidate };
       let next_score = match state.down(down) {
         Next::Leaf(x) => x.score,
-        Next::Node(x) => self.score(x),
+        Next::Node(x) => self.score_state(x),
       };
-      let score = self.score(prev) + next_score;
+      let score = self.score_state(prev) + next_score;
       if score > best_score {
         best_candidate = candidate;
         best_score = score;
@@ -246,99 +349,6 @@ impl<'a, T: Clone> Chart<'a, T> {
     state.candidate = best_candidate;
     state.score = best_score;
     state.score
-  }
-
-  fn step(&mut self, next: Next<'a, T>, state: *const State<'a, T>, column: &mut Column<'a, T>) {
-    let state = unsafe { &*state };
-    let index = state.start() * self.grammar.max_index + state.rule.index + state.cursor() + 1;
-    let entry = column.lookup.entry(index).or_insert(std::ptr::null_mut());
-    if entry.is_null() {
-      *entry = self.states.alloc(State::new(state.cursor() + 1, state.rule, state.start()));
-      column.states.push(*entry);
-    }
-    let down = match next {
-      Next::Leaf(x) => x as *const Match<T> as *const u8,
-      Next::Node(x) => x as *const State<T> as *const u8,
-    };
-    let next = unsafe { (**entry).candidate };
-    let candidate = self.candidates.alloc(Candidate { down, next, prev: state });
-    unsafe { (**entry).candidate = candidate };
-  }
-
-  fn update(&mut self, index: usize, token: Option<&'a Token<T>>) {
-    let capacity = 64;
-    let mut nullable = FxHashMap::default();
-    let mut column = Column {
-      completed: Vec::with_capacity(capacity),
-      scannable: Vec::with_capacity(capacity),
-      states: Vec::with_capacity(capacity),
-      lookup: FxHashMap::default(),
-    };
-
-    if index == 0 {
-      for rule in &self.grammar.by_name[self.grammar.start.0] {
-        column.states.push(self.states.alloc(State::new(0, rule, index)));
-      }
-    } else if let Some(token) = token {
-      let mut scannable = vec![];
-      std::mem::swap(&mut scannable, &mut self.scannable);
-      scannable.iter().for_each(|x| {
-        let state = unsafe { &**x };
-        if let Term::Terminal(t) = &state.rule.rhs[state.cursor()] {
-          if let Some(m) = token.matches.get(t) {
-            self.step(Next::Leaf(m), state, &mut column);
-          }
-        }
-      });
-    }
-
-    let mut i = 0;
-    while i < column.states.len() {
-      let state = unsafe { &*column.states[i] };
-      let state_mutable = unsafe { &mut *column.states[i] };
-      i += 1;
-      if state.cursor() == state.rule.rhs.len() {
-        let j = state.start() * self.grammar.max_index + state.rule.lhs.0;
-        let mut current = self.wanted.get(&j).cloned().unwrap_or(std::ptr::null());
-        while !current.is_null() {
-          self.step(Next::Node(state), current, &mut column);
-          current = unsafe { (*current).next };
-        }
-        if state.start() == 0 {
-          column.completed.push(state);
-        }
-        if state.start() == index {
-          let entry = nullable.entry(state.rule.lhs.0).or_insert(state);
-          if entry.rule.score < state.rule.score {
-            *entry = state;
-          }
-        }
-      } else {
-        match state.rule.rhs[state.cursor()] {
-          Term::Symbol(lhs) => {
-            if let Some(nullable) = nullable.get(&lhs.0) {
-              self.step(Next::Node(*nullable), state, &mut column);
-            }
-            let j = index * self.grammar.max_index + lhs.0;
-            let entry = self.wanted.entry(j).or_insert(std::ptr::null());
-            if entry.is_null() {
-              for rule in &self.grammar.by_name[lhs.0] {
-                column.states.push(self.states.alloc(State::new(0, rule, index)));
-              }
-            }
-            state_mutable.next = *entry;
-            *entry = state;
-          }
-          Term::Terminal(_) => column.scannable.push(state),
-        }
-      }
-    }
-
-    column.states.iter().for_each(|x| {
-      self.score(*x);
-    });
-    std::mem::swap(&mut column.completed, &mut self.completed);
-    std::mem::swap(&mut column.scannable, &mut self.scannable);
   }
 }
 
@@ -376,11 +386,10 @@ pub fn parse<T: Clone>(grammar: &Grammar<T>, input: &str) -> Option<T> {
   let indexed = index(grammar);
   let tokens = grammar.lexer.lex(input);
   let mut chart = Chart::new(&indexed);
-  chart.update(0, None);
-  for (i, token) in tokens.iter().enumerate() {
-    chart.update(i + 1, Some(token));
+  for token in tokens.iter() {
+    chart.process_token(token);
   }
-  chart.result()
+  chart.get_result()
 }
 
 // A quick smoke test of the logic above.
