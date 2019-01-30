@@ -402,18 +402,18 @@ mod tests {
   #[test]
   fn splitting_binary_operators_works() {
     let template = t("$0 & country.$1");
-    assert_eq!(template.split(l("I & country.US")), vec![
-      vec![(0, l("I")), (1, l("US"))],
-      vec![(0, l("I & country.US")), (1, None)],
-    ]);
-    assert_eq!(template.split(l("country.US & I")), [
-      vec![(0, l("I")), (1, l("US"))],
-      vec![(0, l("country.US & I")), (1, None)],
-    ]);
-    assert_eq!(template.split(l("country.US")), [
-      vec![(0, None), (1, l("US"))],
-      vec![(0, l("country.US")), (1, None)],
-    ]);
+    assert_eq!(
+      template.split(l("I & country.US")),
+      vec![vec![(0, l("I")), (1, l("US"))], vec![(0, l("I & country.US")), (1, None)],]
+    );
+    assert_eq!(
+      template.split(l("country.US & I")),
+      [vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
+    );
+    assert_eq!(
+      template.split(l("country.US")),
+      [vec![(0, None), (1, l("US"))], vec![(0, l("country.US")), (1, None)],]
+    );
     assert_eq!(template.split(l("I")), vec![vec![(0, l("I")), (1, None)]]);
     assert_eq!(template.split(None), vec![vec![(0, None), (1, None)]]);
   }
@@ -421,10 +421,10 @@ mod tests {
   #[test]
   fn splitting_unary_operators_works() {
     let template = t("R[$0].I & ~$1");
-    assert_eq!(template.split(l("R[name].I & ~Ann")), vec![
-      vec![(0, None), (1, l("~(R[name].I & ~Ann)"))],
-      vec![(0, l("name")), (1, l("Ann"))],
-    ]);
+    assert_eq!(
+      template.split(l("R[name].I & ~Ann")),
+      vec![vec![(0, None), (1, l("~(R[name].I & ~Ann)"))], vec![(0, l("name")), (1, l("Ann"))],]
+    );
   }
 
   #[test]
@@ -437,10 +437,10 @@ mod tests {
   #[test]
   fn binary_operators_commute() {
     let template = t("$0 & country.$1");
-    assert_eq!(template.split(l("country.US & I")), [
-      vec![(0, l("I")), (1, l("US"))],
-      vec![(0, l("country.US & I")), (1, None)],
-    ]);
+    assert_eq!(
+      template.split(l("country.US & I")),
+      [vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
+    );
   }
 
   #[test]

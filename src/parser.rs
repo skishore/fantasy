@@ -195,6 +195,7 @@ struct Column<'a, T: Clone> {
   states: Vec<*mut State<'a, T>>,
   lookup: FxHashMap<usize, *mut State<'a, T>>,
   nullable: FxHashMap<usize, *const State<'a, T>>,
+  token: Option<&'a Token<T>>,
   token_index: usize,
 }
 
@@ -207,6 +208,7 @@ impl<'a, T: Clone> Chart<'a, T> {
       states: Vec::with_capacity(capacity),
       lookup: FxHashMap::default(),
       nullable: FxHashMap::default(),
+      token: None,
       token_index: 0,
     };
     let (candidates, states) = (Arena::new(), Arena::new());
@@ -299,11 +301,34 @@ impl<'a, T: Clone> Chart<'a, T> {
     best_state.map(|x| x.evaluate())
   }
 
+  fn print_column(&self) -> String {
+    let header = self.column.token.map(|x| {
+      let mut xs: Vec<_> = x.matches.iter().collect();
+      xs.sort_by(|(a, _), (b, _)| a.cmp(b));
+      let xs: Vec<_> = xs.iter().map(|(k, v)| format!("  {} (score: {})", k, v.score)).collect();
+      format!(": {:?}\n{}", x.text, xs.join("\n"))
+    });
+    let states = self.column.states.iter().map(|x| {
+      let x = unsafe { &**x };
+      let lhs = self.grammar.names[x.rule.lhs.0].clone();
+      let rhs = x.rule.rhs.iter().map(|x| match &x {
+        &Term::Symbol(x) => self.grammar.names[x.0].clone(),
+        &Term::Terminal(x) => x.clone(),
+      });
+      let mut rhs = rhs.collect::<Vec<_>>();
+      rhs.insert(x.cursor(), "●".to_string());
+      format!("{} -> {}, from: {} (score: {})", lhs, rhs.join(" "), x.start, x.score)
+    });
+    let states = states.collect::<Vec<_>>().join("\n");
+    format!("\nColumn {}{}\n{}", self.column.token_index, header.unwrap_or("".to_string()), states)
+  }
+
   fn process_token(&mut self, token: &'a Token<T>) {
     self.column.completed.clear();
     self.column.states.clear();
     self.column.lookup.clear();
     self.column.nullable.clear();
+    self.column.token = Some(token);
     self.column.token_index += 1;
 
     let mut scannable = Vec::with_capacity(self.column.scannable.capacity());
@@ -382,12 +407,18 @@ fn index<T: Clone>(grammar: &Grammar<T>) -> IndexedGrammar<T> {
   IndexedGrammar { by_name, max_index: index, names: &grammar.names, start: grammar.start }
 }
 
-pub fn parse<T: Clone>(grammar: &Grammar<T>, input: &str) -> Option<T> {
+pub fn parse<T: Clone>(grammar: &Grammar<T>, input: &str, debug: bool) -> Option<T> {
   let indexed = index(grammar);
   let tokens = grammar.lexer.lex(input);
   let mut chart = Chart::new(&indexed);
+  if debug {
+    println!("{}", chart.print_column());
+  }
   for token in tokens.iter() {
     chart.process_token(token);
+    if debug {
+      println!("{}", chart.print_column());
+    }
   }
   chart.get_result()
 }
@@ -551,7 +582,7 @@ pub fn main() {
   let grammar = make_grammar();
   let mut sum = 0;
   for _ in 0..100000 {
-    sum += parse(&grammar, "(1+2)*3-4+5*6").unwrap();
+    sum += parse(&grammar, "(1+2)*3-4+5*6", false).unwrap();
   }
   if sum != 3500000 {
     panic!("HERE");
@@ -566,7 +597,7 @@ mod tests {
   #[test]
   fn parsing_test() {
     let grammar = make_grammar();
-    assert_eq!(parse(&grammar, "(1+2)*3-4+5*6"), Some(35));
+    assert_eq!(parse(&grammar, "(1+2)*3-4+5*6", false), Some(35));
     assert_eq!(
       (
         std::mem::size_of::<Candidate<u32>>(),
@@ -580,7 +611,7 @@ mod tests {
   #[bench]
   fn parsing_benchmark(b: &mut Bencher) {
     let grammar = make_grammar();
-    assert_eq!(parse(&grammar, "(1+2)*3-4+5*6"), Some(35));
-    b.iter(|| parse(&grammar, "(1+2)*3-4+5*6"));
+    assert_eq!(parse(&grammar, "(1+2)*3-4+5*6", false), Some(35));
+    b.iter(|| parse(&grammar, "(1+2)*3-4+5*6", false));
   }
 }
