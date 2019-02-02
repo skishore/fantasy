@@ -193,10 +193,15 @@ fn format<'a>(remainder: Option<usize>, state: &mut State<'a>) -> String {
   if let Some(remainder) = remainder {
     update(Rc::new("EOF".to_string()), remainder, state);
   }
+  let total = state.input.len();
+  let index = std::cmp::max(std::cmp::min(total - state.remainder, total), 0);
+  let start = state.input[..index].rfind('\n').map(|x| x + 1).unwrap_or(0);
+  let end = state.input[start..].find('\n').map(|x| x + start).unwrap_or(total);
+  let (line, column) = (state.input[..end].split('\n').count(), index - start + 1);
   let expected: BTreeSet<_> = state.expected.iter().map(|x| x.to_string()).collect();
-  let expected: Vec<_> = expected.into_iter().collect();
-  let index = state.input.len() - state.remainder;
-  format!("At {}: expected: {}", index, expected.join(" | "))
+  let expected = expected.into_iter().collect::<Vec<_>>().join(" | ");
+  let (hi, ws) = (&state.input[start..end], " ".repeat(column - 1));
+  format!("At line {}, column {}: expected: {}\n\n  {}\n  {}^\n", line, column, expected, hi, ws)
 }
 
 fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {
@@ -224,15 +229,23 @@ mod tests {
     string(x, |_| ())
   }
 
+  fn test_error<T: std::fmt::Debug>(result: Result<T, String>, prefix: &str) {
+    let error = result.unwrap_err();
+    if !error.starts_with(prefix) {
+      let error = error.split('\n').nth(0).unwrap_or("");
+      panic!("Error does not match prefix:\nexpected: {:?}\n  actual: {:?}", prefix, error);
+    }
+  }
+
   #[test]
   fn float_parser_test() {
     let parser = float_parser();
     assert_eq!(parser.parse("-1.23"), Ok((-1.23, None)));
     assert_eq!(parser.parse("-1.23e45"), Ok((-1.23, Some(45))));
     assert_eq!(parser.parse("-1.23E45"), Ok((-1.23, Some(45))));
-    assert_eq!(parser.parse("-1.23e"), Err("At 6: expected: /-?(0|[1-9][0-9]*)/".to_string()));
-    assert_eq!(parser.parse("-1.23f45"), Err(r#"At 5: expected: "E" | "e" | EOF"#.to_string()));
-    assert_eq!(parser.parse("-1.23e45 "), Err("At 8: expected: EOF".to_string()));
+    test_error(parser.parse("-1.23e"), "At line 1, column 7: expected: /-?(0|[1-9][0-9]*)/");
+    test_error(parser.parse("-1.23f45"), r#"At line 1, column 6: expected: "E" | "e" | EOF"#);
+    test_error(parser.parse("-1.23e45 "),"At line 1, column 9: expected: EOF");
   }
 
   #[test]
@@ -241,12 +254,12 @@ mod tests {
     assert_eq!(parser.parse(""), Ok(vec![]));
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
+    test_error(parser.parse("aa?"), r#"At line 1, column 3: expected: "a" | EOF"#);
     let parser = repeat(tag("a"), 1);
-    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
+    test_error(parser.parse(""), r#"At line 1, column 1: expected: "a""#);
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("aa"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("aa?"), Err(r#"At 2: expected: "a" | EOF"#.to_string()));
+    test_error(parser.parse("aa?"), r#"At line 1, column 3: expected: "a" | EOF"#);
   }
 
   #[test]
@@ -255,14 +268,14 @@ mod tests {
     assert_eq!(parser.parse(""), Ok(vec![]));
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
-    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
+    test_error(parser.parse("a,a?"), r#"At line 1, column 4: expected: "," | EOF"#);
+    test_error(parser.parse("a,a,?"), r#"At line 1, column 5: expected: "a""#);
     let parser = separate(tag("a"), tag(","), 1);
-    assert_eq!(parser.parse(""), Err(r#"At 0: expected: "a""#.to_string()));
+    test_error(parser.parse(""), r#"At line 1, column 1: expected: "a""#);
     assert_eq!(parser.parse("a"), Ok(vec![()]));
     assert_eq!(parser.parse("a,a"), Ok(vec![(), ()]));
-    assert_eq!(parser.parse("a,a?"), Err(r#"At 3: expected: "," | EOF"#.to_string()));
-    assert_eq!(parser.parse("a,a,?"), Err(r#"At 4: expected: "a""#.to_string()));
+    test_error(parser.parse("a,a?"), r#"At line 1, column 4: expected: "," | EOF"#);
+    test_error(parser.parse("a,a,?"), r#"At line 1, column 5: expected: "a""#);
   }
 
   #[bench]
