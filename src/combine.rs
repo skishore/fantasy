@@ -1,7 +1,7 @@
 use regex::Regex;
 use std::cell::RefCell;
-use std::convert::Into;
 use std::collections::BTreeSet;
+use std::convert::Into;
 use std::rc::Rc;
 
 struct State<'a> {

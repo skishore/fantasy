@@ -10,6 +10,7 @@ extern crate rustc_hash;
 extern crate test;
 
 mod combine;
+mod fantasy;
 mod lambda;
 mod parser;
 
