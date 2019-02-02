@@ -1,5 +1,4 @@
 use rustc_hash::FxHashMap;
-use std::collections::HashMap;
 
 // Definitions for the core lexer type.
 
@@ -13,7 +12,7 @@ pub struct Match<T: Clone> {
 }
 
 pub struct Token<T: Clone> {
-  matches: HashMap<String, Match<T>>,
+  matches: FxHashMap<String, Match<T>>,
   text: String,
 }
 
@@ -535,7 +534,7 @@ mod tests {
   impl<T: Clone + Default> Lexer<T> for CharacterLexer<T> {
     fn lex(&self, input: &str) -> Vec<Token<T>> {
       let map = input.chars().map(|x| {
-        let mut matches = HashMap::new();
+        let mut matches = FxHashMap::default();
         matches.insert(x.to_string(), Match { score: 0.0, value: T::default() });
         matches.insert("%ch".to_string(), Match { score: 0.0, value: T::default() });
         Token { matches, text: x.to_string() }
