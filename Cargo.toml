@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Shaunak Kishore <kshaunak@gmail.com>"]
 
 [dependencies]
+jemallocator = "0.1.9"
 regex = "1"
 rustc-hash = "1.0.1"
 

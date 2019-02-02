@@ -1,13 +1,18 @@
 #![allow(dead_code)]
 #![feature(test)]
 
+use jemallocator::Jemalloc;
 use std::rc::Rc;
 
+extern crate jemallocator;
 extern crate regex;
 extern crate rustc_hash;
 
 #[cfg(test)]
 extern crate test;
+
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 mod combine;
 mod fantasy;
