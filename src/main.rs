@@ -14,8 +14,10 @@ extern crate test;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
+mod arena;
 mod combine;
 mod fantasy;
+mod grammar;
 mod lambda;
 mod parser;
 

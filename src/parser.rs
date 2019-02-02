@@ -1,92 +1,23 @@
+use arena::Arena;
+use grammar::{Grammar, Match, Rule, Semantics, Term, Token};
 use rustc_hash::FxHashMap;
 
-// Definitions for the core lexer type.
-
-pub trait Lexer<T: Clone> {
-  fn lex(&self, &str) -> Vec<Token<T>>;
-}
-
-pub struct Match<T: Clone> {
-  score: f32,
-  value: T,
-}
-
-pub struct Token<T: Clone> {
-  matches: FxHashMap<String, Match<T>>,
-  text: String,
-}
-
-// Definitions for the core grammar type.
-
-pub struct Grammar<T: Clone> {
-  lexer: Box<Lexer<T>>,
-  names: Vec<String>,
-  rules: Vec<Rule<T>>,
-  start: usize,
-}
-
-pub struct Rule<T: Clone> {
-  callback: Box<Fn(&[T]) -> T>,
-  lhs: usize,
-  rhs: Vec<Term>,
-  score: f32,
-}
-
-pub enum Term {
-  Symbol(usize),
-  Terminal(String),
-}
-
-// An Arena allows us to store objects of type T in a pre-allocated block
-// of memory, which faster than allocating individual members separately.
-// If T is Copy, then we can also clean up by de-allocating the block,
-// without running individual destructors. Pointers to objects in an Arena
-// last until the Arena is de-allocated.
-
-struct Arena<T> {
-  current: Vec<T>,
-  rest: Vec<Vec<T>>,
-}
-
-impl<T> Arena<T> {
-  pub fn new() -> Self {
-    Self::with_capacity(4096 / std::mem::size_of::<T>())
-  }
-
-  pub fn with_capacity(n: usize) -> Self {
-    Self { current: Vec::with_capacity(n), rest: vec![] }
-  }
-
-  pub fn alloc(&mut self, value: T) -> &mut T {
-    let capacity = self.current.capacity();
-    if self.current.len() == capacity {
-      let mut next = Vec::with_capacity(std::cmp::max(2 * capacity, 1));
-      std::mem::swap(&mut next, &mut self.current);
-      self.rest.push(next);
-    }
-    let len = self.current.len();
-    assert!(len < self.current.capacity());
-    self.current.push(value);
-    &mut self.current[len]
-  }
-}
-
-// A State is a rule accompanied with a "cursor" and a "start", where the
-// cursor is the position in the rule up to which we have a match and the
-// start is the token from which this match started.
+// A State is a rule along with a "cursor" and a "start", where the cursor is
+// the position in the rule up to which we have a match and the start is the
+// token from which this match started. States implicitly have an "end", too,
+// which is reflected by their location in other data structures.
 //
 // In addition, each state is part of two linked-lists:
 //
-//   candidate: Prior to scoring the state, this field is the head of a list
-//              of candidate derivations for this state. Each candidate has
-//              tracks three fields: "next", the next candidate derivation,
-//              "prev", the previous state for this derivation, and "down",
-//              the derivation of the term before this state's cursor.
-//              Post scoring, candidate will be the winning derivation.
+//   candidate: Prior to scoring the state, this field is the head of a list of
+//              candidate derivations for this state. Each candidate has three
+//              fields: "next", the next candidate, "prev", the previous state
+//              for this derivation, and "down", the derivation of the term
+//              before this state's cursor. Post scoring, the head of this list
+//              will be the winning derivation.
 //
-//   next: This link links to other states with the that predict the same
-//         next symbol as this one. (That is, their end index and next
-//         terms must match this state's.)
+//   next: This field lists other states that predict the same next symbol as
+//         this one. (Their end index and next term must match this state's.)
 
 #[derive(Clone)]
 struct Candidate<'a, T: Clone> {
@@ -155,18 +86,15 @@ impl<'a, T: Clone> State<'a, T> {
   }
 }
 
-// A Chart is a set of Earley parser states with various links to each other.
-// Candidates and states are allocated and owned by an arena. In addition,
-// it includes fields with the following sizes, where N is the number of tokens,
-// R is the number of rule cursor positions, and S is the number of symbols:
+// A Chart is a set of Earley parser states and candidate derivation lists,
+// stored in an arena during the parse. It also includes a "wanted" hashmap:
+// (Here, C = number of cursors, N = number of tokens, S = number of symbols.)
 //
-//  wanted: A hash table mapping (end, symbol) pairs to a list of states
-//          ending at that token that predict that symbol to be next.
-//          Maximum size: N x S.
+//  wanted: A table mapping (end, symbol) pairs to a list of states ending at
+//          that token that predict that symbol next. Maximum size: N x S.
 //
-// A Column has additional data structures that are used to process states
-// ending at a single token index. For these structures, "end" is implicit
-// in the column itself:
+// A Chart also tracks a Column, which stores additional data structures that
+// index states that all have the same implicit "end" index:
 //
 //  completed: A list of states with a start of 0 ending here.
 //
@@ -174,8 +102,11 @@ impl<'a, T: Clone> State<'a, T> {
 //
 //  states: A list of states ending here.
 //
-//  lookup: A hash table mapping (start, cursor) to the unique state for
-//          the triple (start, end, cursor). Maximum size: N x R.
+//  lookup: A table mapping (start, cursor) to the unique state for that
+//          triple's (start, end, cursor) coordinates. Maximum size: N x R.
+//
+//  nullable: A table mapping symbols to null derivations for those symbols
+//            at the end index. (A null derivation uses no input tokens.)
 
 struct Chart<'a, T: Clone> {
   candidates: Arena<Candidate<'a, T>>,
@@ -199,17 +130,17 @@ struct Column<'a, T: Clone> {
 
 impl<'a, T: Clone> Chart<'a, T> {
   fn new(grammar: &'a IndexedGrammar<T>, options: &'a Options) -> Self {
-    let capacity = 64;
+    let (arena, lists) = (256, 64);
     let column = Column {
-      completed: Vec::with_capacity(capacity),
-      scannable: Vec::with_capacity(capacity),
-      states: Vec::with_capacity(capacity),
+      completed: Vec::with_capacity(lists),
+      scannable: Vec::with_capacity(lists),
+      states: Vec::with_capacity(lists),
       lookup: FxHashMap::default(),
       nullable: FxHashMap::default(),
       token: None,
       token_index: 0,
     };
-    let (candidates, states) = (Arena::new(), Arena::new());
+    let (candidates, states) = (Arena::with_capacity(arena), Arena::with_capacity(arena));
     let skipped = if options.skip_count > 0 { Some(Skipped::new(options)) } else { None };
     let wanted = FxHashMap::default();
     let mut result = Self { candidates, column, grammar, options, skipped, states, wanted };
@@ -397,8 +328,8 @@ impl<'a, T: Clone> Chart<'a, T> {
   }
 }
 
-// A Skipped structure keeps a small rolling window of past column's states
-// that can be used to implement robust parsing skipping over some tokens.
+// A Skipped structure keeps a small rolling window of past column's states.
+// We use it to support parsing that ignores some tokens at a given penalty.
 
 type States<'a, T> = Vec<*const State<'a, T>>;
 
@@ -451,38 +382,8 @@ impl<'a, T: Clone> Skipped<'a, T> {
   }
 }
 
-// A simple options builder for our parser. Most of the options have to do
-// with the token-skipping support implemented above.
-
-pub struct Options {
-  debug: bool,
-  skip_count: usize,
-  skip_penalty: f32,
-}
-
-impl Options {
-  fn new() -> Self {
-    Self { debug: false, skip_count: 0, skip_penalty: 0.0 }
-  }
-
-  fn debug(mut self) -> Self {
-    self.debug = true;
-    self
-  }
-
-  fn skip_count(mut self, skip_count: usize) -> Self {
-    self.skip_count = skip_count;
-    self
-  }
-
-  fn skip_penalty(mut self, skip_penalty: f32) -> Self {
-    self.skip_penalty = skip_penalty;
-    self
-  }
-}
-
-// An IndexedGrammar is a variant on a grammar that has a few additional
-// fields for fast lookups during parsing, like a per-cursor index number.
+// An IndexedGrammar is a parsing-only grammar that includes an extra "index"
+// field on each rule, which is the cursor position at the start of that rule.
 
 struct IndexedGrammar<'a, T: Clone> {
   by_name: Vec<Vec<IndexedRule<'a, T>>>,
@@ -499,11 +400,11 @@ struct IndexedRule<'a, T: Clone> {
   score: f32,
 }
 
-fn index<T: Clone>(grammar: &Grammar<T>) -> IndexedGrammar<T> {
+fn index<S: Clone, T: Clone>(grammar: &Grammar<S, T>) -> IndexedGrammar<T> {
   let mut index = 0;
   let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
-  for rule in grammar.rules.iter().filter(|x| x.score > std::f32::NEG_INFINITY) {
-    let Rule { callback, lhs, rhs, score } = rule;
+  for rule in grammar.rules.iter().filter(|x| x.merge.score > std::f32::NEG_INFINITY) {
+    let Rule { lhs, rhs, merge: Semantics { callback, score }, .. } = rule;
     let indexed = IndexedRule { callback: &**callback, index, lhs: *lhs, rhs: &rhs, score: *score };
     by_name[rule.lhs].push(indexed);
     index += rule.rhs.len() + 1;
@@ -511,7 +412,41 @@ fn index<T: Clone>(grammar: &Grammar<T>) -> IndexedGrammar<T> {
   IndexedGrammar { by_name, max_index: index, names: &grammar.names, start: grammar.start }
 }
 
-pub fn parse<T: Clone>(grammar: &Grammar<T>, input: &str, options: &Options) -> Option<T> {
+// Our public interface: a simple call to parse an input and get an Option<T>,
+// along with a few parsing options. We may want to make index public later.
+
+pub struct Options {
+  debug: bool,
+  skip_count: usize,
+  skip_penalty: f32,
+}
+
+impl Options {
+  pub fn new() -> Self {
+    Self { debug: false, skip_count: 0, skip_penalty: 0.0 }
+  }
+
+  pub fn debug(mut self) -> Self {
+    self.debug = true;
+    self
+  }
+
+  pub fn skip_count(mut self, skip_count: usize) -> Self {
+    self.skip_count = skip_count;
+    self
+  }
+
+  pub fn skip_penalty(mut self, skip_penalty: f32) -> Self {
+    self.skip_penalty = skip_penalty;
+    self
+  }
+}
+
+pub fn parse<S: Clone, T: Clone>(
+  grammar: &Grammar<S, T>,
+  input: &str,
+  options: &Options,
+) -> Option<T> {
   let indexed = index(grammar);
   let tokens = grammar.lexer.lex(input);
   let mut chart = Chart::new(&indexed, options);
@@ -524,6 +459,7 @@ pub fn parse<T: Clone>(grammar: &Grammar<T>, input: &str, options: &Options) -> 
 #[cfg(test)]
 mod tests {
   use super::*;
+  use grammar::Lexer;
   use std::marker::PhantomData;
   use test::Bencher;
 
@@ -531,7 +467,7 @@ mod tests {
     mark: PhantomData<T>,
   }
 
-  impl<T: Clone + Default> Lexer<T> for CharacterLexer<T> {
+  impl<T: Clone + Default> Lexer<(), T> for CharacterLexer<T> {
     fn lex(&self, input: &str) -> Vec<Token<T>> {
       let map = input.chars().map(|x| {
         let mut matches = FxHashMap::default();
@@ -541,9 +477,13 @@ mod tests {
       });
       map.collect()
     }
+
+    fn unlex(&self, _: ()) -> Vec<Match<T>> {
+      unimplemented!()
+    }
   }
 
-  fn make_rule<F: Fn(&[T]) -> T + 'static, T: Clone>(lhs: usize, rhs: &str, f: F) -> Rule<T> {
+  fn make_rule<F: Fn(&[T]) -> T + 'static, T: Clone>(lhs: usize, rhs: &str, f: F) -> Rule<(), T> {
     make_rule_with_score(lhs, rhs, f, 0.0)
   }
 
@@ -552,9 +492,12 @@ mod tests {
     rhs: &str,
     f: F,
     score: f32,
-  ) -> Rule<T> {
+  ) -> Rule<(), T> {
+    let merge: Semantics<Fn(&[T]) -> T> = Semantics { callback: Box::new(f), score };
+    let split: Semantics<Fn(()) -> Vec<Vec<()>>> =
+      Semantics { callback: Box::new(|_| unimplemented!()), score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
-    Rule { callback: Box::new(f), lhs, rhs, score }
+    Rule { lhs, rhs, merge, split }
   }
 
   fn make_term(term: &str) -> Term {
