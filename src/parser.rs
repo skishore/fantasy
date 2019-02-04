@@ -124,7 +124,7 @@ struct Column<'a, T: Clone> {
   states: Vec<*mut State<'a, T>>,
   lookup: FxHashMap<usize, *mut State<'a, T>>,
   nullable: FxHashMap<usize, *const State<'a, T>>,
-  token: Option<&'a Token<T>>,
+  token: Option<&'a Token<'a, T>>,
   token_index: usize,
 }
 
@@ -287,7 +287,7 @@ impl<'a, T: Clone> Chart<'a, T> {
     scannable.iter().for_each(|x| {
       let state = unsafe { &**x };
       if let Term::Terminal(t) = &state.rule.rhs[state.cursor()] {
-        if let Some(m) = token.matches.get(t) {
+        if let Some(m) = token.matches.get(t.as_str()) {
           self.advance_state(Next::Leaf(m), state);
         }
       }
@@ -468,12 +468,13 @@ mod tests {
   }
 
   impl<T: Clone + Default> Lexer<(), T> for CharacterLexer<T> {
-    fn lex(&self, input: &str) -> Vec<Token<T>> {
-      let map = input.chars().map(|x| {
+    fn lex<'a: 'c, 'b: 'c, 'c>(&'a self, input: &'b str) -> Vec<Token<'c, T>> {
+      let map = input.char_indices().map(|(i, x)| {
+        let text = &input[i..i + x.len_utf8()];
         let mut matches = FxHashMap::default();
-        matches.insert(x.to_string(), Match { score: 0.0, value: T::default() });
-        matches.insert("%ch".to_string(), Match { score: 0.0, value: T::default() });
-        Token { matches, text: x.to_string() }
+        matches.insert(text, Match { score: 0.0, value: T::default() });
+        matches.insert("%ch", Match { score: 0.0, value: T::default() });
+        Token { matches, text }
       });
       map.collect()
     }

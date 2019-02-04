@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 // Definitions for the core lexer type.
 
 pub trait Lexer<S: Clone, T: Clone> {
-  fn lex(&self, &str) -> Vec<Token<T>>;
+  fn lex<'a: 'c, 'b: 'c, 'c>(&'a self, &'b str) -> Vec<Token<'c, T>>;
   fn unlex(&self, value: S) -> Vec<Match<T>>;
 }
 
@@ -12,9 +12,9 @@ pub struct Match<T: Clone> {
   pub value: T,
 }
 
-pub struct Token<T: Clone> {
-  pub matches: FxHashMap<String, Match<T>>,
-  pub text: String,
+pub struct Token<'a, T: Clone> {
+  pub matches: FxHashMap<&'a str, Match<T>>,
+  pub text: &'a str,
 }
 
 // Definitions for the core grammar type.
