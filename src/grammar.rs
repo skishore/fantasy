@@ -1,6 +1,29 @@
 use rustc_hash::FxHashMap;
 
-// Definitions for the core lexer type.
+// Parsing, generation, and correction all return derivations. These methods
+// may fail, and may take additional arguments, but the overall structure is:
+//
+//   - correct :: (Grammar, Derivation) -> Derivation
+//   - generate :: (Grammar, Semantics) -> Derivation
+//   - parse: (Grammar, String) -> Derivation
+//
+// Every grammar has a merge-semantics-type T and a split-semantics-type S.
+// Derivations expose a top-level value of type T that represents the overall
+// semantics of an utterance. Generation takes a value of type S as input.
+
+pub enum Child<'a, S: Clone, T: Clone> {
+  Leaf(Match<'a, T>),
+  Node(Derivation<'a, S, T>),
+}
+
+pub struct Derivation<'a, S: Clone, T: Clone> {
+  pub children: Vec<Child<'a, S, T>>,
+  pub rule: &'a Rule<S, T>,
+  pub value: T,
+}
+
+// The core lexer type. Call lex to turn an utterance into a sequence of tokens
+// with leaf semantics. Call unlex to generate a token for some leaf semantics.
 
 pub trait Lexer<S: Clone, T: Clone> {
   fn fix<'a, 'b: 'a>(&'b self, &'a Match<'a, T>, &'a Tense) -> Vec<Match<'a, T>>;
@@ -20,7 +43,10 @@ pub struct Token<'a, T: Clone> {
   pub text: &'a str,
 }
 
-// Definitions for the core grammar type.
+// The core grammar type. A grammar has a lexer along with a list of rules.
+// Each term on a rule's right-hand-side is either a symbol or a token match.
+// Rules also have "merge" and "split" callbacks for handling semantics during
+// parsing and generation, respectively.
 
 pub struct Grammar<S: Clone, T: Clone> {
   pub lexer: Box<Lexer<S, T>>,
@@ -47,7 +73,24 @@ pub enum Term {
   Terminal(String),
 }
 
-// These annotations are only used for correction.
+// The following annotations are used only for correction. These types are
+// the least-stable portions of the grammar API.
+//
+// Each raw lexed token must list a set of tenses in which it makes sense.
+// We accept a list because a word make be appropriate in multiple tenses:
+// for example, in Hindi, "hai" is the copula for the 2nd person singular
+// intimate tense and also for the 3rd person plural.
+//
+// Each rule must provide a base tense (implied by the rule alone) and a list
+// of terms to check tenses for, in order. The overall tense for the rule node
+// is the union of the base tense and the term tenses, in that order; if any
+// two terms disagree on a grammatical category, the later one is wrong.
+//
+// Most rules will not have a base tense, which means we will just compute the
+// node's tense recursively by visiting the terms in order of precedence.
+//
+// Finally, terms that don't appear in the precedence list still have their
+// tense checked internally, just in a separate context from the main check.
 
 pub type Tense = FxHashMap<String, String>;
 
@@ -61,17 +104,4 @@ pub struct RuleData {
 pub struct TermData {
   pub tenses: Vec<Tense>,
   pub text: FxHashMap<String, String>,
-}
-
-// The return type of any grammar operation.
-
-pub enum Child<'a, S: Clone, T: Clone> {
-  Leaf(Match<'a, T>),
-  Node(Derivation<'a, S, T>),
-}
-
-pub struct Derivation<'a, S: Clone, T: Clone> {
-  pub children: Vec<Child<'a, S, T>>,
-  pub rule: &'a Rule<S, T>,
-  pub value: T,
 }
