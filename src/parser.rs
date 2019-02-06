@@ -20,32 +20,32 @@ use rustc_hash::FxHashMap;
 //         this one. (Their end index and next term must match this state's.)
 
 #[derive(Clone)]
-struct Candidate<'a, T: Clone> {
+struct Candidate<'a, 'b, T: Clone> {
   down: *const u8,
-  next: *const Candidate<'a, T>,
-  prev: *const State<'a, T>,
+  next: *const Candidate<'a, 'b, T>,
+  prev: *const State<'a, 'b, T>,
 }
 
-enum Next<'a, T: Clone> {
-  Leaf(&'a Match<'a, T>),
-  Node(&'a State<'a, T>),
+enum Next<'a, 'b, T: Clone> {
+  Leaf(&'b Match<'a, T>),
+  Node(&'b State<'a, 'b, T>),
 }
 
 #[derive(Clone)]
-struct State<'a, T: Clone> {
-  candidate: *const Candidate<'a, T>,
+struct State<'a, 'b, T: Clone> {
+  candidate: *const Candidate<'a, 'b, T>,
   cursor: u16,
-  next: *const State<'a, T>,
-  rule: &'a IndexedRule<'a, T>,
+  next: *const State<'a, 'b, T>,
+  rule: &'b IndexedRule<'a, T>,
   score: f32,
   start: u16,
 }
 
-impl<'a, T: Clone> Copy for Candidate<'a, T> {}
-impl<'a, T: Clone> Copy for State<'a, T> {}
+impl<'a, 'b, T: Clone> Copy for Candidate<'a, 'b, T> {}
+impl<'a, 'b, T: Clone> Copy for State<'a, 'b, T> {}
 
-impl<'a, T: Clone> State<'a, T> {
-  fn new(cursor: usize, rule: &'a IndexedRule<'a, T>, start: usize) -> Self {
+impl<'a, 'b, T: Clone> State<'a, 'b, T> {
+  fn new(cursor: usize, rule: &'b IndexedRule<'a, T>, start: usize) -> Self {
     let max = u16::max_value() as usize;
     assert!(cursor <= max && start <= max);
     let (cursor, start) = (cursor as u16, start as u16);
@@ -57,7 +57,7 @@ impl<'a, T: Clone> State<'a, T> {
     self.cursor as usize
   }
 
-  fn down(&self, down: *const u8) -> Next<'a, T> {
+  fn down(&self, down: *const u8) -> Next<'a, 'b, T> {
     assert!(self.cursor > 0);
     match self.rule.rhs[self.cursor() - 1] {
       Term::Symbol(_) => Next::Node(unsafe { &*(down as *const Self) }),
@@ -78,7 +78,6 @@ impl<'a, T: Clone> State<'a, T> {
       current = unsafe { &*prev };
     }
     children.reverse();
-    let rule = unsafe { std::mem::transmute(self.rule.rule) };
     let value = {
       let values = children.iter().map(|x| match x {
         Child::Leaf(x) => x.value.clone(),
@@ -87,6 +86,7 @@ impl<'a, T: Clone> State<'a, T> {
       let values: Vec<_> = values.collect();
       (self.rule.callback)(&values)
     };
+    let rule = unsafe { std::mem::transmute(self.rule.rule) };
     Derivation { children, rule, value }
   }
 
@@ -117,28 +117,28 @@ impl<'a, T: Clone> State<'a, T> {
 //  nullable: A table mapping symbols to null derivations for those symbols
 //            at the end index. (A null derivation uses no input tokens.)
 
-struct Chart<'a, T: Clone> {
-  candidates: Arena<Candidate<'a, T>>,
-  column: Column<'a, T>,
-  grammar: &'a IndexedGrammar<'a, T>,
-  options: &'a Options,
-  skipped: Option<Skipped<'a, T>>,
-  states: Arena<State<'a, T>>,
-  wanted: FxHashMap<usize, *const State<'a, T>>,
+struct Chart<'a, 'b, T: Clone> {
+  candidates: Arena<Candidate<'a, 'b, T>>,
+  column: Column<'a, 'b, T>,
+  grammar: &'b IndexedGrammar<'a, T>,
+  options: &'b Options,
+  skipped: Option<Skipped<'a, 'b, T>>,
+  states: Arena<State<'a, 'b, T>>,
+  wanted: FxHashMap<usize, *const State<'a, 'b, T>>,
 }
 
-struct Column<'a, T: Clone> {
-  completed: Vec<*const State<'a, T>>,
-  scannable: Vec<*const State<'a, T>>,
-  states: Vec<*mut State<'a, T>>,
-  lookup: FxHashMap<usize, *mut State<'a, T>>,
-  nullable: FxHashMap<usize, *const State<'a, T>>,
-  token: Option<&'a Token<'a, T>>,
+struct Column<'a, 'b, T: Clone> {
+  completed: Vec<*const State<'a, 'b, T>>,
+  scannable: Vec<*const State<'a, 'b, T>>,
+  states: Vec<*mut State<'a, 'b, T>>,
+  lookup: FxHashMap<usize, *mut State<'a, 'b, T>>,
+  nullable: FxHashMap<usize, *const State<'a, 'b, T>>,
+  token: Option<&'b Token<'a, T>>,
   token_index: usize,
 }
 
-impl<'a, T: Clone> Chart<'a, T> {
-  fn new(grammar: &'a IndexedGrammar<T>, options: &'a Options) -> Self {
+impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
+  fn new(grammar: &'b IndexedGrammar<'a, T>, options: &'a Options) -> Self {
     let (arena, lists) = (256, 64);
     let column = Column {
       completed: Vec::with_capacity(lists),
@@ -160,7 +160,7 @@ impl<'a, T: Clone> Chart<'a, T> {
     result
   }
 
-  fn advance_state(&mut self, next: Next<'a, T>, state: *const State<'a, T>) {
+  fn advance_state(&mut self, next: Next<'a, 'b, T>, state: *const State<'a, 'b, T>) {
     let state = unsafe { &*state };
     let index = state.start() * self.grammar.max_index + state.rule.index + state.cursor() + 1;
     let entry = self.column.lookup.entry(index).or_insert(std::ptr::null_mut());
@@ -275,7 +275,7 @@ impl<'a, T: Clone> Chart<'a, T> {
     format!("\nColumn {}{}\n{}", self.column.token_index, header.unwrap_or("".to_string()), states)
   }
 
-  fn process_token(&mut self, token: &'a Token<T>) {
+  fn process_token(&mut self, token: &'b Token<'a, T>) {
     let scannable = if let Some(skipped) = self.skipped.as_mut() {
       skipped.push_column(&mut self.column);
       skipped.get_scannable(&mut self.states)
@@ -305,8 +305,8 @@ impl<'a, T: Clone> Chart<'a, T> {
     self.fill_column();
   }
 
-  fn score_state(&self, state: *const State<'a, T>) -> f32 {
-    let state = unsafe { &mut *(state as *mut State<'a, T>) };
+  fn score_state(&self, state: *const State<'a, 'b, T>) -> f32 {
+    let state = unsafe { &mut *(state as *mut State<'a, 'b, T>) };
     if state.score > std::f32::NEG_INFINITY {
       return state.score;
     } else if state.cursor == 0 {
@@ -340,17 +340,17 @@ impl<'a, T: Clone> Chart<'a, T> {
 // A Skipped structure keeps a small rolling window of past column's states.
 // We use it to support parsing that ignores some tokens at a given penalty.
 
-type States<'a, T> = Vec<*const State<'a, T>>;
+type States<'a, 'b, T> = Vec<*const State<'a, 'b, T>>;
 
-struct Skipped<'a, T: Clone> {
-  completed: Vec<States<'a, T>>,
-  scannable: Vec<States<'a, T>>,
+struct Skipped<'a, 'b, T: Clone> {
+  completed: Vec<States<'a, 'b, T>>,
+  scannable: Vec<States<'a, 'b, T>>,
   ring_last: usize,
   ring_size: usize,
   skip_penalty: f32,
 }
 
-impl<'a, T: Clone> Skipped<'a, T> {
+impl<'a, 'b, T: Clone> Skipped<'a, 'b, T> {
   fn new(options: &'a Options) -> Self {
     let Options { skip_count: n, skip_penalty, .. } = *options;
     let completed = (0..=n).map(|_| vec![]).collect();
@@ -358,7 +358,11 @@ impl<'a, T: Clone> Skipped<'a, T> {
     Self { completed, scannable, ring_last: n, ring_size: n + 1, skip_penalty }
   }
 
-  fn penalize(&self, arena: &mut Arena<State<'a, T>>, columns: &[States<'a, T>]) -> States<'a, T> {
+  fn penalize(
+    &self,
+    arena: &mut Arena<State<'a, 'b, T>>,
+    columns: &[States<'a, 'b, T>],
+  ) -> States<'a, 'b, T> {
     let capacity = columns.iter().fold(0, |a, x| a + x.len());
     let mut result = Vec::with_capacity(capacity);
     (0..self.ring_size).for_each(|i| {
@@ -376,17 +380,17 @@ impl<'a, T: Clone> Skipped<'a, T> {
     result
   }
 
-  fn push_column(&mut self, column: &mut Column<'a, T>) {
+  fn push_column(&mut self, column: &mut Column<'a, 'b, T>) {
     self.ring_last = (self.ring_last + 1) % self.ring_size;
     std::mem::swap(&mut self.completed[self.ring_last], &mut column.completed);
     std::mem::swap(&mut self.scannable[self.ring_last], &mut column.scannable);
   }
 
-  fn get_completed(&mut self, arena: &mut Arena<State<'a, T>>) -> States<'a, T> {
+  fn get_completed(&mut self, arena: &mut Arena<State<'a, 'b, T>>) -> States<'a, 'b, T> {
     self.penalize(arena, self.completed.as_ref())
   }
 
-  fn get_scannable(&mut self, arena: &mut Arena<State<'a, T>>) -> States<'a, T> {
+  fn get_scannable(&mut self, arena: &mut Arena<State<'a, 'b, T>>) -> States<'a, 'b, T> {
     self.penalize(arena, self.scannable.as_ref())
   }
 }
@@ -454,19 +458,18 @@ impl Options {
   }
 }
 
-pub fn parse<S: Clone, T: Clone>(
-  grammar: &Grammar<S, T>,
-  input: &str,
-  options: &Options,
-) -> Option<T> {
+pub fn parse<'a, 'b: 'a, S: Clone, T: Clone>(
+  grammar: &'b Grammar<S, T>,
+  input: &'b str,
+  options: &'b Options,
+) -> Option<Derivation<'a, S, T>> {
   let indexed = index(grammar);
   let tokens = grammar.lexer.lex(input);
   let mut chart = Chart::new(&indexed, options);
   for token in tokens.iter() {
     chart.process_token(token);
   }
-  let derivation = chart.get_result::<S>();
-  derivation.map(|x| x.value)
+  chart.get_result()
 }
 
 #[cfg(test)]
@@ -490,9 +493,10 @@ mod tests {
     fn lex<'a, 'b: 'a>(&'b self, input: &'b str) -> Vec<Token<'a, T>> {
       let map = input.char_indices().map(|(i, x)| {
         let text = &input[i..i + x.len_utf8()];
+        let base = Match { data: &self.data, score: 0.0, value: T::default() };
         let mut matches = FxHashMap::default();
-        matches.insert(text, Match { data: &self.data, score: 0.0, value: T::default() });
-        matches.insert("%ch", Match { data: &self.data, score: 0.0, value: T::default() });
+        matches.insert(text, base.clone());
+        matches.insert("%ch", base.clone());
         Token { matches, text }
       });
       map.collect()
@@ -530,6 +534,14 @@ mod tests {
     }
   }
 
+  pub fn value<'a, 'b: 'a, S: Clone, T: Clone>(
+    grammar: &'b Grammar<S, T>,
+    input: &'b str,
+    options: &'b Options,
+  ) -> Option<T> {
+    parse(grammar, input, options).map(|x| x.value.clone())
+  }
+
   #[test]
   fn scoring_works() {
     let grammar = Grammar {
@@ -553,12 +565,12 @@ mod tests {
       start: 0,
     };
     let options = Options::new();
-    assert_eq!(parse(&grammar, "aaa", &options), Some("aaa".to_string()));
-    assert_eq!(parse(&grammar, "aab", &options), Some("aa".to_string()));
-    assert_eq!(parse(&grammar, "abb", &options), Some("bb".to_string()));
-    assert_eq!(parse(&grammar, "bab", &options), Some("bb".to_string()));
-    assert_eq!(parse(&grammar, "b?b", &options), Some("bb".to_string()));
-    assert_eq!(parse(&grammar, "b??", &options), Some("".to_string()));
+    assert_eq!(value(&grammar, "aaa", &options), Some("aaa".to_string()));
+    assert_eq!(value(&grammar, "aab", &options), Some("aa".to_string()));
+    assert_eq!(value(&grammar, "abb", &options), Some("bb".to_string()));
+    assert_eq!(value(&grammar, "bab", &options), Some("bb".to_string()));
+    assert_eq!(value(&grammar, "b?b", &options), Some("bb".to_string()));
+    assert_eq!(value(&grammar, "b??", &options), Some("".to_string()));
   }
 
   #[test]
@@ -579,17 +591,17 @@ mod tests {
       start: 0,
     };
     let skip = |x| Options::new().skip_count(x).skip_penalty(-1.0);
-    assert_eq!(parse(&grammar, "1+2+3   ", &skip(0)), Some(6));
-    assert_eq!(parse(&grammar, "1+2?+3  ", &skip(0)), None);
-    assert_eq!(parse(&grammar, "1+2+3  ?", &skip(0)), None);
-    assert_eq!(parse(&grammar, "1+2?+3 ?", &skip(1)), Some(6));
-    assert_eq!(parse(&grammar, "1+2?+3  ", &skip(1)), Some(6));
-    assert_eq!(parse(&grammar, "1+2+3  ?", &skip(1)), Some(6));
-    assert_eq!(parse(&grammar, "1+2?+3 ?", &skip(1)), Some(6));
-    assert_eq!(parse(&grammar, "1+2??+3 ", &skip(1)), None);
-    assert_eq!(parse(&grammar, "1+2+3 ??", &skip(1)), None);
-    assert_eq!(parse(&grammar, "1+2??+3 ", &skip(2)), Some(6));
-    assert_eq!(parse(&grammar, "1+2+3 ??", &skip(2)), Some(6));
+    assert_eq!(value(&grammar, "1+2+3   ", &skip(0)), Some(6));
+    assert_eq!(value(&grammar, "1+2?+3  ", &skip(0)), None);
+    assert_eq!(value(&grammar, "1+2+3  ?", &skip(0)), None);
+    assert_eq!(value(&grammar, "1+2?+3 ?", &skip(1)), Some(6));
+    assert_eq!(value(&grammar, "1+2?+3  ", &skip(1)), Some(6));
+    assert_eq!(value(&grammar, "1+2+3  ?", &skip(1)), Some(6));
+    assert_eq!(value(&grammar, "1+2?+3 ?", &skip(1)), Some(6));
+    assert_eq!(value(&grammar, "1+2??+3 ", &skip(1)), None);
+    assert_eq!(value(&grammar, "1+2+3 ??", &skip(1)), None);
+    assert_eq!(value(&grammar, "1+2??+3 ", &skip(2)), Some(6));
+    assert_eq!(value(&grammar, "1+2+3 ??", &skip(2)), Some(6));
   }
 
   #[bench]
@@ -620,9 +632,9 @@ mod tests {
       start: 0,
     };
     let options = Options::new();
-    assert_eq!(parse(&grammar, "(1+2)*3-4+5*6", &options), Some(35));
-    assert_eq!(parse(&grammar, "1+2*(3-4)+5*6", &options), Some(29));
-    assert_eq!(parse(&grammar, "1+2*3-4)+5*(6", &options), None);
-    b.iter(|| parse(&grammar, "(1+2)*3-4+5*6", &options));
+    assert_eq!(value(&grammar, "(1+2)*3-4+5*6", &options), Some(35));
+    assert_eq!(value(&grammar, "1+2*(3-4)+5*6", &options), Some(29));
+    assert_eq!(value(&grammar, "1+2*3-4)+5*(6", &options), None);
+    b.iter(|| value(&grammar, "(1+2)*3-4+5*6", &options));
   }
 }
