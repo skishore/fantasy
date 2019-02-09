@@ -1,6 +1,7 @@
 use arena::Arena;
 use grammar::{Child, Derivation, Grammar, Match, Rule, Semantics, Term, Token};
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 
 // A State is a rule along with a "cursor" and a "start", where the cursor is
 // the position in the rule up to which we have a match and the start is the
@@ -73,21 +74,13 @@ impl<'a, 'b, T: Clone> State<'a, 'b, T> {
       let Candidate { down, prev, .. } = unsafe { *current.candidate };
       children.push(match current.down(down) {
         Next::Leaf(x) => Child::Leaf((*x).clone()),
-        Next::Node(x) => Child::Node(x.evaluate()),
+        Next::Node(x) => Child::Node(Rc::new(x.evaluate())),
       });
       current = unsafe { &*prev };
     }
     children.reverse();
-    let value = {
-      let values = children.iter().map(|x| match x {
-        Child::Leaf(x) => x.value.clone(),
-        Child::Node(x) => x.value.clone(),
-      });
-      let values: Vec<_> = values.collect();
-      (self.rule.callback)(&values)
-    };
     let rule = unsafe { std::mem::transmute(self.rule.rule) };
-    Derivation { children, rule, value }
+    Derivation::new(children, rule)
   }
 
   fn start(&self) -> usize {
@@ -406,7 +399,6 @@ struct IndexedGrammar<'a, T: Clone> {
 }
 
 struct IndexedRule<'a, T: Clone> {
-  callback: &'a Fn(&[T]) -> T,
   index: usize,
   lhs: usize,
   rhs: &'a [Term],
@@ -418,10 +410,9 @@ fn index<S: Clone, T: Clone>(grammar: &Grammar<S, T>) -> IndexedGrammar<T> {
   let mut index = 0;
   let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
   for rule in grammar.rules.iter().filter(|x| x.merge.score > std::f32::NEG_INFINITY) {
-    let Rule { lhs, rhs, merge: Semantics { callback, score }, .. } = rule;
-    let (callback, lhs, rhs, score) = (&**callback, *lhs, &rhs, *score);
+    let Rule { lhs, rhs, merge: Semantics { score, .. }, .. } = rule;
     let rule = unsafe { std::mem::transmute(rule) };
-    let indexed = IndexedRule { callback, index, lhs, rhs, rule, score };
+    let indexed = IndexedRule { index, lhs: *lhs, rhs, rule, score: *score };
     by_name[rule.lhs].push(indexed);
     index += rule.rhs.len() + 1;
   }
@@ -502,7 +493,7 @@ mod tests {
       map.collect()
     }
 
-    fn unlex(&self, _: ()) -> Vec<Match<T>> {
+    fn unlex<'a, 'b: 'a>(&'b self, _: &str, _: &()) -> Vec<Match<'a, T>> {
       unimplemented!()
     }
   }
@@ -518,7 +509,7 @@ mod tests {
     score: f32,
   ) -> Rule<(), T> {
     let merge: Semantics<Fn(&[T]) -> T> = Semantics { callback: Box::new(f), score };
-    let split: Semantics<Fn(()) -> Vec<Vec<()>>> =
+    let split: Semantics<Fn(&()) -> Vec<Vec<()>>> =
       Semantics { callback: Box::new(|_| unimplemented!()), score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
     Rule { data: RuleData::default(), lhs, rhs, merge, split }
@@ -545,6 +536,7 @@ mod tests {
   #[test]
   fn scoring_works() {
     let grammar = Grammar {
+      key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $As $Bs $Neither $A $B".split(' ').map(|x| x.to_string()).collect(),
       rules: vec![
@@ -576,6 +568,7 @@ mod tests {
   #[test]
   fn skipping_works() {
     let grammar = Grammar {
+      key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $Add $Num $Whitespace".split(' ').map(|x| x.to_string()).collect(),
       rules: vec![
@@ -607,6 +600,7 @@ mod tests {
   #[bench]
   fn parsing_benchmark(b: &mut Bencher) {
     let grammar = Grammar {
+      key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $Add $Mul $Num".split(' ').map(|x| x.to_string()).collect(),
       rules: vec![

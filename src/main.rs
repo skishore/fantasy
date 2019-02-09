@@ -5,6 +5,7 @@ use jemallocator::Jemalloc;
 use std::rc::Rc;
 
 extern crate jemallocator;
+extern crate rand;
 extern crate regex;
 extern crate rustc_hash;
 
@@ -17,6 +18,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 mod arena;
 mod combine;
 mod fantasy;
+mod generator;
 mod grammar;
 mod lambda;
 mod parser;

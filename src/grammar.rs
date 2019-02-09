@@ -1,4 +1,5 @@
 use rustc_hash::FxHashMap;
+use std::rc::Rc;
 
 // Parsing, generation, and correction all return derivations. These methods
 // may fail, and may take additional arguments, but the overall structure is:
@@ -13,7 +14,7 @@ use rustc_hash::FxHashMap;
 
 pub enum Child<'a, S: Clone, T: Clone> {
   Leaf(Match<'a, T>),
-  Node(Derivation<'a, S, T>),
+  Node(Rc<Derivation<'a, S, T>>),
 }
 
 pub struct Derivation<'a, S: Clone, T: Clone> {
@@ -28,10 +29,9 @@ pub struct Derivation<'a, S: Clone, T: Clone> {
 pub trait Lexer<S: Clone, T: Clone> {
   fn fix<'a, 'b: 'a>(&'b self, &'a Match<'a, T>, &'a Tense) -> Vec<Match<'a, T>>;
   fn lex<'a, 'b: 'a>(&'b self, &'b str) -> Vec<Token<'a, T>>;
-  fn unlex(&self, S) -> Vec<Match<T>>;
+  fn unlex<'a, 'b: 'a>(&'b self, &str, &S) -> Vec<Match<'a, T>>;
 }
 
-#[derive(Clone)]
 pub struct Match<'a, T: Clone> {
   pub data: &'a TermData,
   pub score: f32,
@@ -49,6 +49,7 @@ pub struct Token<'a, T: Clone> {
 // parsing and generation, respectively.
 
 pub struct Grammar<S: Clone, T: Clone> {
+  pub key: Box<Fn(&S) -> String>,
   pub lexer: Box<Lexer<S, T>>,
   pub names: Vec<String>,
   pub rules: Vec<Rule<S, T>>,
@@ -60,7 +61,7 @@ pub struct Rule<S: Clone, T: Clone> {
   pub lhs: usize,
   pub rhs: Vec<Term>,
   pub merge: Semantics<Fn(&[T]) -> T>,
-  pub split: Semantics<Fn(S) -> Vec<Vec<S>>>,
+  pub split: Semantics<Fn(&S) -> Vec<Vec<S>>>,
 }
 
 pub struct Semantics<F: ?Sized> {
@@ -104,4 +105,36 @@ pub struct RuleData {
 pub struct TermData {
   pub tenses: Vec<Tense>,
   pub text: FxHashMap<String, String>,
+}
+
+// Some utilities implemented on the types above. We avoid deriving them
+// because we must take care to avoid deep copies of grammar structures.
+
+impl<'a, S: Clone, T: Clone> Derivation<'a, S, T> {
+  pub fn new(children: Vec<Child<'a, S, T>>, rule: &'a Rule<S, T>) -> Self {
+    let value = {
+      let values = children.iter().map(|x| match x {
+        Child::Leaf(x) => x.value.clone(),
+        Child::Node(x) => x.value.clone(),
+      });
+      let values: Vec<_> = values.collect();
+      (rule.merge.callback)(&values)
+    };
+    Derivation { children, rule, value }
+  }
+}
+
+impl<'a, S: Clone, T: Clone> Clone for Child<'a, S, T> {
+  fn clone(&self) -> Self {
+    match self {
+      Child::Leaf(x) => Child::Leaf(x.clone()),
+      Child::Node(x) => Child::Node(Rc::clone(x)),
+    }
+  }
+}
+
+impl<'a, T: Clone> Clone for Match<'a, T> {
+  fn clone(&self) -> Self {
+    Self { data: self.data, score: self.score, value: self.value.clone() }
+  }
 }
