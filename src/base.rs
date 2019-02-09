@@ -27,9 +27,9 @@ pub struct Derivation<'a, S: Clone, T: Clone> {
 // with leaf semantics. Call unlex to generate a token for some leaf semantics.
 
 pub trait Lexer<S: Clone, T: Clone> {
-  fn fix<'a, 'b: 'a>(&'b self, &'a Match<'a, T>, &'a Tense) -> Vec<Match<'a, T>>;
-  fn lex<'a, 'b: 'a>(&'b self, &'b str) -> Vec<Token<'a, T>>;
-  fn unlex<'a, 'b: 'a>(&'b self, &str, &S) -> Vec<Match<'a, T>>;
+  fn fix<'a: 'b, 'b>(&'a self, &'b Match<'b, T>, &'b Tense) -> Vec<Match<'b, T>>;
+  fn lex<'a: 'b, 'b>(&'a self, &'b str) -> Vec<Token<'b, T>>;
+  fn unlex<'a: 'b, 'b>(&'a self, &'a str, &S) -> Vec<Match<'b, T>>;
 }
 
 pub struct Match<'a, T: Clone> {
@@ -110,20 +110,6 @@ pub struct TermData {
 // Some utilities implemented on the types above. We avoid deriving them
 // because we must take care to avoid deep copies of grammar structures.
 
-impl<'a, S: Clone, T: Clone> Derivation<'a, S, T> {
-  pub fn new(children: Vec<Child<'a, S, T>>, rule: &'a Rule<S, T>) -> Self {
-    let value = {
-      let values = children.iter().map(|x| match x {
-        Child::Leaf(x) => x.value.clone(),
-        Child::Node(x) => x.value.clone(),
-      });
-      let values: Vec<_> = values.collect();
-      (rule.merge.callback)(&values)
-    };
-    Derivation { children, rule, value }
-  }
-}
-
 impl<'a, S: Clone, T: Clone> Clone for Child<'a, S, T> {
   fn clone(&self) -> Self {
     match self {
@@ -136,5 +122,19 @@ impl<'a, S: Clone, T: Clone> Clone for Child<'a, S, T> {
 impl<'a, T: Clone> Clone for Match<'a, T> {
   fn clone(&self) -> Self {
     Self { data: self.data, score: self.score, value: self.value.clone() }
+  }
+}
+
+impl<'a, S: Clone, T: Clone> Derivation<'a, S, T> {
+  pub fn new(children: Vec<Child<'a, S, T>>, rule: &'a Rule<S, T>) -> Self {
+    let value = {
+      let values = children.iter().map(|x| match x {
+        Child::Leaf(x) => x.value.clone(),
+        Child::Node(x) => x.value.clone(),
+      });
+      let values: Vec<_> = values.collect();
+      (rule.merge.callback)(&values)
+    };
+    Derivation { children, rule, value }
   }
 }

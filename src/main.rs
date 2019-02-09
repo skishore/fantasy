@@ -16,10 +16,10 @@ extern crate test;
 static GLOBAL: Jemalloc = Jemalloc;
 
 mod arena;
+mod base;
 mod combine;
 mod fantasy;
 mod generator;
-mod grammar;
 mod lambda;
 mod parser;
 
