@@ -4,7 +4,7 @@ pub type Args<T> = Vec<(usize, T)>;
 
 pub trait Template<T> {
   fn merge(&self, xs: &Args<T>) -> T;
-  fn split(&self, x: T) -> Vec<Args<T>>;
+  fn split(&self, x: &T) -> Vec<Args<T>>;
 }
 
 // A lambda DCS type used for utterance semantics.
@@ -190,12 +190,12 @@ impl Template<OptionLambda> for BinaryTemplate {
       None
     }
   }
-  fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
-    let base = expand(self.0, x);
+  fn split(&self, x: &OptionLambda) -> Vec<Args<OptionLambda>> {
+    let base = expand(self.0, x.clone());
     let commutes = self.0.data().commutes;
     if !commutes && base.is_empty() {
-      let mut x1 = self.1.split(None);
-      let mut x2 = self.2.split(None);
+      let mut x1 = self.1.split(&None);
+      let mut x2 = self.2.split(&None);
       return x1.drain(..).chain(x2.drain(..)).collect();
     }
     let bits: Vec<_> = if commutes {
@@ -213,8 +213,8 @@ impl Template<OptionLambda> for BinaryTemplate {
           xs.1.push(x.clone());
         }
       }
-      let x1 = self.1.split(collapse(self.0, xs.0));
-      let x2 = self.2.split(collapse(self.0, xs.1));
+      let x1 = self.1.split(&collapse(self.0, xs.0));
+      let x2 = self.2.split(&collapse(self.0, xs.1));
       append(&x1, &x2, &mut result);
     }
     result
@@ -232,14 +232,14 @@ impl Template<OptionLambda> for CustomTemplate {
       Some(Rc::new(Lambda::Custom(self.0.clone(), xs)))
     }
   }
-  fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
+  fn split(&self, x: &OptionLambda) -> Vec<Args<OptionLambda>> {
     match x {
       Some(x) => {
-        if let Lambda::Custom(ref y, ref ys) = *x {
+        if let Lambda::Custom(ref y, ref ys) = **x {
           if *y == self.0 && ys.len() == self.1.len() {
             return self.1.iter().enumerate().fold(vec![vec![]], |acc, (i, x)| {
               let mut result = vec![];
-              append(&acc, &x.split(Some(ys[i].clone())), &mut result);
+              append(&acc, &x.split(&Some(ys[i].clone())), &mut result);
               result
             });
           }
@@ -248,7 +248,7 @@ impl Template<OptionLambda> for CustomTemplate {
       }
       None => {
         let mut result = Vec::with_capacity(self.1.len());
-        self.1.iter().for_each(|x| result.append(&mut x.split(None)));
+        self.1.iter().for_each(|x| result.append(&mut x.split(&None)));
         result
       }
     }
@@ -261,8 +261,8 @@ impl Template<OptionLambda> for TerminalTemplate {
   fn merge(&self, _: &Args<OptionLambda>) -> OptionLambda {
     self.1.clone()
   }
-  fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
-    let matched = x.map(|y| match *y {
+  fn split(&self, x: &OptionLambda) -> Vec<Args<OptionLambda>> {
+    let matched = x.as_ref().map(|y| match **y {
       Lambda::Terminal(ref z) => *z == self.0,
       _ => false,
     });
@@ -280,8 +280,8 @@ impl Template<OptionLambda> for UnaryTemplate {
   fn merge(&self, xs: &Args<OptionLambda>) -> OptionLambda {
     involute(self.0, self.1.merge(xs))
   }
-  fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
-    self.1.split(involute(self.0, x))
+  fn split(&self, x: &OptionLambda) -> Vec<Args<OptionLambda>> {
+    self.1.split(&involute(self.0, x.clone()))
   }
 }
 
@@ -291,8 +291,8 @@ impl Template<OptionLambda> for VariableTemplate {
   fn merge(&self, xs: &Args<OptionLambda>) -> OptionLambda {
     xs.iter().filter_map(|(i, x)| if *i == self.0 { x.clone() } else { None }).next()
   }
-  fn split(&self, x: OptionLambda) -> Vec<Args<OptionLambda>> {
-    vec![vec![(self.0, x)]]
+  fn split(&self, x: &OptionLambda) -> Vec<Args<OptionLambda>> {
+    vec![vec![(self.0, x.clone())]]
   }
 }
 
@@ -395,34 +395,34 @@ mod tests {
   #[test]
   fn splitting_joins_works() {
     let template = t("color.$0");
-    assert_eq!(template.split(l("color.red")), vec![vec![(0, l("red"))]]);
-    assert_eq!(template.split(None), vec![vec![(0, None)]]);
+    assert_eq!(template.split(&l("color.red")), vec![vec![(0, l("red"))]]);
+    assert_eq!(template.split(&None), vec![vec![(0, None)]]);
   }
 
   #[test]
   fn splitting_binary_operators_works() {
     let template = t("$0 & country.$1");
     assert_eq!(
-      template.split(l("I & country.US")),
+      template.split(&l("I & country.US")),
       vec![vec![(0, l("I")), (1, l("US"))], vec![(0, l("I & country.US")), (1, None)],]
     );
     assert_eq!(
-      template.split(l("country.US & I")),
+      template.split(&l("country.US & I")),
       [vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
     );
     assert_eq!(
-      template.split(l("country.US")),
+      template.split(&l("country.US")),
       [vec![(0, None), (1, l("US"))], vec![(0, l("country.US")), (1, None)],]
     );
-    assert_eq!(template.split(l("I")), vec![vec![(0, l("I")), (1, None)]]);
-    assert_eq!(template.split(None), vec![vec![(0, None), (1, None)]]);
+    assert_eq!(template.split(&l("I")), vec![vec![(0, l("I")), (1, None)]]);
+    assert_eq!(template.split(&None), vec![vec![(0, None), (1, None)]]);
   }
 
   #[test]
   fn splitting_unary_operators_works() {
     let template = t("R[$0].I & ~$1");
     assert_eq!(
-      template.split(l("R[name].I & ~Ann")),
+      template.split(&l("R[name].I & ~Ann")),
       vec![vec![(0, None), (1, l("~(R[name].I & ~Ann)"))], vec![(0, l("name")), (1, l("Ann"))],]
     );
   }
@@ -430,15 +430,15 @@ mod tests {
   #[test]
   fn splitting_custom_functions_works() {
     let template = t("Tell($0, name.$1)");
-    assert_eq!(template.split(l("Tell(I, name.X)")), vec![vec![(0, l("I")), (1, l("X"))]]);
-    assert_eq!(template.split(None), vec![vec![(0, None)], vec![(1, None)]]);
+    assert_eq!(template.split(&l("Tell(I, name.X)")), vec![vec![(0, l("I")), (1, l("X"))]]);
+    assert_eq!(template.split(&None), vec![vec![(0, None)], vec![(1, None)]]);
   }
 
   #[test]
   fn binary_operators_commute() {
     let template = t("$0 & country.$1");
     assert_eq!(
-      template.split(l("country.US & I")),
+      template.split(&l("country.US & I")),
       [vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
     );
   }
@@ -487,15 +487,15 @@ mod tests {
   fn template_split_easy_benchmark(b: &mut Bencher) {
     let lambda = Some(Lambda::parse("foo & bar & baz").unwrap());
     let template = Lambda::template("$0 & $1").unwrap();
-    assert_eq!(template.split(lambda.clone()).len(), 8);
-    b.iter(|| template.split(lambda.clone()));
+    assert_eq!(template.split(&lambda).len(), 8);
+    b.iter(|| template.split(&lambda));
   }
 
   #[bench]
   fn template_split_hard_benchmark(b: &mut Bencher) {
     let lambda = Some(Lambda::parse("a & b & c.d").unwrap());
     let template = Lambda::template("$0 & $1 & c.$2").unwrap();
-    assert_eq!(template.split(lambda.clone()).len(), 12);
-    b.iter(|| template.split(lambda.clone()));
+    assert_eq!(template.split(&lambda).len(), 12);
+    b.iter(|| template.split(&lambda));
   }
 }
