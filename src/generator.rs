@@ -125,7 +125,7 @@ impl<'a, S, T> Generator<'a, S, T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use base::{Lexer, Match, RuleData, Semantics, Tense, TermData, Token};
+  use base::{Lexer, Match, Semantics, Tense, Token};
   use std::marker::PhantomData;
   use test::Bencher;
 
@@ -147,7 +147,8 @@ mod tests {
 
     fn unlex(&self, name: &str, value: &T) -> Vec<Rc<Match<String>>> {
       if name.len() == 1 && *value == T::default() {
-        vec![Rc::new(Match { data: TermData::default(), value: name.to_string() })]
+        let (tenses, texts, value) = (vec![], FxHashMap::default(), name.to_string());
+        vec![Rc::new(Match { tenses, texts, value })]
       } else {
         vec![]
       }
@@ -170,7 +171,7 @@ mod tests {
       Semantics { callback: Box::new(|x| x.join("")), score: 0.0 };
     let split: Semantics<Fn(&S) -> Vec<Vec<S>>> = Semantics { callback: f, score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
-    Rule { data: RuleData::default(), lhs, rhs, merge, split }
+    Rule { lhs, rhs, merge, split, precedence: vec![], tense: FxHashMap::default() }
   }
 
   fn make_term(term: &str) -> Term {

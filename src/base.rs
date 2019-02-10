@@ -6,7 +6,7 @@ use std::rc::Rc;
 //
 //   - correct :: (Grammar, Derivation) -> Derivation
 //   - generate :: (Grammar, Semantics) -> Derivation
-//   - parse: (Grammar, String) -> Derivation
+//   - parse :: (Grammar, String) -> Derivation
 //
 // Every grammar has a merge-semantics-type T and a split-semantics-type S.
 // Derivations expose a top-level value of type T that represents the overall
@@ -25,8 +25,20 @@ pub struct Derivation<'a, S, T> {
 
 // The core lexer type. Call lex to turn an utterance into a sequence of tokens
 // with leaf semantics. Call unlex to generate a token for some leaf semantics.
+//
+// When we lex a token, we store it in a matches dictionary keyed by headword
+// (e.g. "to be" for "am" in English). The match value stores information about
+// the actual lexed word, like its tense. A tense has grammatical categories
+// as keys, like "count", "gender", and "person". For example, "am" could have
+// {count: "singular", person: "1st"} as one of its tense.
+//
+// We allow a token to be associated with multiple tenses because of words like
+// "hai" in Hindi, the copula for both the 2nd person singular intimate tense
+// and the 3d person plural tense.
 
 pub type Entry<T> = (f32, Rc<Match<T>>);
+
+pub type Tense = FxHashMap<String, String>;
 
 pub trait Lexer<S, T> {
   fn fix(&self, &Match<T>, &Tense) -> Vec<Rc<Match<T>>>;
@@ -35,7 +47,8 @@ pub trait Lexer<S, T> {
 }
 
 pub struct Match<T> {
-  pub data: TermData,
+  pub tenses: Vec<Tense>,
+  pub texts: FxHashMap<&'static str, String>,
   pub value: T,
 }
 
@@ -48,6 +61,21 @@ pub struct Token<'a, T> {
 // Each term on a rule's right-hand-side is either a symbol or a token match.
 // Rules also have "merge" and "split" callbacks for handling semantics during
 // parsing and generation, respectively.
+//
+// Each rule also has correction data in its "precedence" and "tense" fields.
+// The tense is a base tense for that rule, implied solely by using the rule.
+// Most rules will not have a base tense.
+//
+// "precedence" is an ordered list of RHS term indices to visit when collecting
+// tense information. For example, one rule for English noun phrases might be:
+// "$NP -> $Determiner? $Count? $Adjs? $Noun". To correct $NP, we should visit
+// ($Count, $Noun, $Determiner, $Adjs), so "precedence" is [1, 3, 0, 2]. When a
+// category from a later term disagrees with one from an earlier term, we will
+// correct the tense for the later term.
+//
+// Terms that are missing from precedence are still corrected, but their tense
+// information is not propagated to other terms. For example, a sentence's
+// subject and verb must agree, but its object is only checked internally.
 
 pub struct Grammar<S, T> {
   pub key: Box<Fn(&S) -> String>,
@@ -58,11 +86,12 @@ pub struct Grammar<S, T> {
 }
 
 pub struct Rule<S, T> {
-  pub data: RuleData,
   pub lhs: usize,
   pub rhs: Vec<Term>,
   pub merge: Semantics<Fn(&[T]) -> T>,
   pub split: Semantics<Fn(&S) -> Vec<Vec<S>>>,
+  pub precedence: Vec<usize>,
+  pub tense: Tense,
 }
 
 pub struct Semantics<F: ?Sized> {
@@ -73,39 +102,6 @@ pub struct Semantics<F: ?Sized> {
 pub enum Term {
   Symbol(usize),
   Terminal(String),
-}
-
-// The following annotations are used only for correction. These types are
-// the least-stable portions of the grammar API.
-//
-// Each raw lexed token must list a set of tenses in which it makes sense.
-// We accept a list because a word make be appropriate in multiple tenses:
-// for example, in Hindi, "hai" is the copula for the 2nd person singular
-// intimate tense and also for the 3rd person plural.
-//
-// Each rule must provide a base tense (implied by the rule alone) and a list
-// of terms to check tenses for, in order. The overall tense for the rule node
-// is the union of the base tense and the term tenses, in that order; if any
-// two terms disagree on a grammatical category, the later one is wrong.
-//
-// Most rules will not have a base tense, which means we will just compute the
-// node's tense recursively by visiting the terms in order of precedence.
-//
-// Finally, terms that don't appear in the precedence list still have their
-// tense checked internally, just in a separate context from the main check.
-
-pub type Tense = FxHashMap<String, String>;
-
-#[derive(Default)]
-pub struct RuleData {
-  pub precedence: Vec<usize>,
-  pub tense: Tense,
-}
-
-#[derive(Default)]
-pub struct TermData {
-  pub tenses: Vec<Tense>,
-  pub text: FxHashMap<String, String>,
 }
 
 // Some utilities implemented on the types above. We avoid deriving them

@@ -461,7 +461,7 @@ impl<'a, S, T> Parser<'a, S, T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use base::{Lexer, Match, RuleData, Semantics, Tense, TermData};
+  use base::{Lexer, Match, Semantics, Tense};
   use std::marker::PhantomData;
   use test::Bencher;
 
@@ -472,8 +472,8 @@ mod tests {
 
   impl<T: Default> Default for CharacterLexer<T> {
     fn default() -> Self {
-      let base = Rc::new(Match { data: TermData::default(), value: T::default() });
-      Self { base, mark: PhantomData }
+      let (tenses, texts, value) = (vec![], FxHashMap::default(), T::default());
+      Self { base: Rc::new(Match { tenses, texts, value }), mark: PhantomData }
     }
   }
 
@@ -514,7 +514,7 @@ mod tests {
     let split: Semantics<Fn(&()) -> Vec<Vec<()>>> =
       Semantics { callback: Box::new(|_| unimplemented!()), score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
-    Rule { data: RuleData::default(), lhs, rhs, merge, split }
+    Rule { lhs, rhs, merge, split, precedence: vec![], tense: FxHashMap::default() }
   }
 
   fn make_term(term: &str) -> Term {
