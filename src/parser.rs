@@ -20,18 +20,18 @@ use std::rc::Rc;
 //   next: This field lists other states that predict the same next symbol as
 //         this one. (Their end index and next term must match this state's.)
 
-struct Candidate<'a, 'b, T: Clone> {
+struct Candidate<'a, 'b, T> {
   down: *const u8,
   next: *const Candidate<'a, 'b, T>,
   prev: *const State<'a, 'b, T>,
 }
 
-enum Down<'a, 'b, T: Clone> {
+enum Down<'a, 'b, T> {
   Leaf(&'a Entry<T>),
   Node(&'a State<'a, 'b, T>),
 }
 
-struct State<'a, 'b, T: Clone> {
+struct State<'a, 'b, T> {
   candidate: *const Candidate<'a, 'b, T>,
   cursor: u16,
   next: *const State<'a, 'b, T>,
@@ -40,7 +40,7 @@ struct State<'a, 'b, T: Clone> {
   start: u16,
 }
 
-impl<'a, 'b, T: Clone> State<'a, 'b, T> {
+impl<'a, 'b, T> State<'a, 'b, T> {
   fn new(cursor: usize, rule: &'a IndexedRule<'b, T>, start: usize) -> Self {
     let max = u16::max_value() as usize;
     assert!(cursor <= max && start <= max);
@@ -61,7 +61,7 @@ impl<'a, 'b, T: Clone> State<'a, 'b, T> {
     }
   }
 
-  fn evaluate<S: Clone>(&self) -> Derivation<'b, S, T> {
+  fn evaluate<S>(&self) -> Derivation<'b, S, T> {
     assert!(self.cursor() == self.rule.base.rhs.len());
     let mut children = Vec::with_capacity(self.cursor());
     let mut current = self;
@@ -105,7 +105,7 @@ impl<'a, 'b, T: Clone> State<'a, 'b, T> {
 //  nullable: A table mapping symbols to null derivations for those symbols
 //            at the end index. (A null derivation uses no input tokens.)
 
-struct Chart<'a, 'b, T: Clone> {
+struct Chart<'a, 'b, T> {
   candidates: Arena<Candidate<'a, 'b, T>>,
   column: Column<'a, 'b, T>,
   debug: bool,
@@ -115,7 +115,7 @@ struct Chart<'a, 'b, T: Clone> {
   wanted: FxHashMap<usize, *const State<'a, 'b, T>>,
 }
 
-struct Column<'a, 'b, T: Clone> {
+struct Column<'a, 'b, T> {
   completed: Vec<*const State<'a, 'b, T>>,
   scannable: Vec<*const State<'a, 'b, T>>,
   states: Vec<*mut State<'a, 'b, T>>,
@@ -125,8 +125,8 @@ struct Column<'a, 'b, T: Clone> {
   token_index: usize,
 }
 
-impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
-  fn new<S: Clone>(grammar: &'a IndexedGrammar<'b, T>, options: &Parser<'a, S, T>) -> Self {
+impl<'a, 'b, T> Chart<'a, 'b, T> {
+  fn new<S>(grammar: &'a IndexedGrammar<'b, T>, options: &Parser<'a, S, T>) -> Self {
     let (arena, lists) = (256, 64);
     let column = Column {
       completed: Vec::with_capacity(lists),
@@ -220,7 +220,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
     }
   }
 
-  fn get_result<S: Clone>(mut self) -> Option<Derivation<'b, S, T>> {
+  fn get_result<S>(mut self) -> Option<Derivation<'b, S, T>> {
     let mut _temp = None;
     let completed = if let Some(skipped) = self.skipped.as_mut() {
       skipped.push_column(&mut self.column);
@@ -331,7 +331,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
 
 type States<'a, 'b, T> = Vec<*const State<'a, 'b, T>>;
 
-struct Skipped<'a, 'b, T: Clone> {
+struct Skipped<'a, 'b, T> {
   completed: Vec<States<'a, 'b, T>>,
   scannable: Vec<States<'a, 'b, T>>,
   ring_last: usize,
@@ -339,8 +339,8 @@ struct Skipped<'a, 'b, T: Clone> {
   skip_penalty: f32,
 }
 
-impl<'a, 'b, T: Clone> Skipped<'a, 'b, T> {
-  fn new<S: Clone>(options: &Parser<'a, S, T>) -> Self {
+impl<'a, 'b, T> Skipped<'a, 'b, T> {
+  fn new<S>(options: &Parser<'a, S, T>) -> Self {
     let Parser { skip_count: n, skip_penalty, .. } = *options;
     let completed = (0..=n).map(|_| vec![]).collect();
     let scannable = (0..=n).map(|_| vec![]).collect();
@@ -387,19 +387,19 @@ impl<'a, 'b, T: Clone> Skipped<'a, 'b, T> {
 // An IndexedGrammar is a parsing-only grammar that includes an extra "index"
 // field on each rule, which is the cursor position at the start of that rule.
 
-struct IndexedGrammar<'a, T: Clone> {
+struct IndexedGrammar<'a, T> {
   by_name: Vec<Vec<IndexedRule<'a, T>>>,
   max_index: usize,
   names: &'a [String],
   start: usize,
 }
 
-struct IndexedRule<'a, T: Clone> {
+struct IndexedRule<'a, T> {
   base: &'a Rule<(), T>,
   index: usize,
 }
 
-fn index<S: Clone, T: Clone>(grammar: &Grammar<S, T>) -> IndexedGrammar<T> {
+fn index<S, T>(grammar: &Grammar<S, T>) -> IndexedGrammar<T> {
   let mut index = 0;
   let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
   for rule in grammar.rules.iter().filter(|x| x.merge.score > std::f32::NEG_INFINITY) {
@@ -412,7 +412,7 @@ fn index<S: Clone, T: Clone>(grammar: &Grammar<S, T>) -> IndexedGrammar<T> {
 // Our public interface: use a builder interface to set a Parser's options,
 // then call parse(). We may want to make index() public later for performance.
 
-pub struct Parser<'a, S: Clone, T: Clone> {
+pub struct Parser<'a, S, T> {
   debug: bool,
   grammar: &'a Grammar<S, T>,
   indexed: IndexedGrammar<'a, T>,
@@ -420,7 +420,7 @@ pub struct Parser<'a, S: Clone, T: Clone> {
   skip_penalty: f32,
 }
 
-impl<'a, S: Clone, T: Clone> Parser<'a, S, T> {
+impl<'a, S, T> Parser<'a, S, T> {
   pub fn new(grammar: &'a Grammar<S, T>) -> Self {
     let indexed = index(grammar);
     Self { debug: false, grammar, indexed, skip_count: 0, skip_penalty: 0.0 }
@@ -465,19 +465,19 @@ mod tests {
   use std::marker::PhantomData;
   use test::Bencher;
 
-  struct CharacterLexer<T: Clone + Default> {
+  struct CharacterLexer<T: Default> {
     base: Rc<Match<T>>,
     mark: PhantomData<T>,
   }
 
-  impl<T: Clone + Default> Default for CharacterLexer<T> {
+  impl<T: Default> Default for CharacterLexer<T> {
     fn default() -> Self {
       let base = Rc::new(Match { data: TermData::default(), value: T::default() });
       Self { base, mark: PhantomData }
     }
   }
 
-  impl<T: Clone + Default> Lexer<(), T> for CharacterLexer<T> {
+  impl<T: Default> Lexer<(), T> for CharacterLexer<T> {
     fn fix(&self, _: &Match<T>, _: &Tense) -> Vec<Rc<Match<T>>> {
       unimplemented!()
     }
@@ -498,11 +498,11 @@ mod tests {
     }
   }
 
-  fn make_rule<F: Fn(&[T]) -> T + 'static, T: Clone>(lhs: usize, rhs: &str, f: F) -> Rule<(), T> {
-    make_rule_with_score(lhs, rhs, f, 0.0)
+  fn make_rule<F: Fn(&[T]) -> T + 'static, T>(lhs: usize, rhs: &str, f: F) -> Rule<(), T> {
+    make_rule_score(lhs, rhs, f, 0.0)
   }
 
-  fn make_rule_with_score<F: Fn(&[T]) -> T + 'static, T: Clone>(
+  fn make_rule_score<F: Fn(&[T]) -> T + 'static, T>(
     lhs: usize,
     rhs: &str,
     f: F,
@@ -532,19 +532,19 @@ mod tests {
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $As $Bs $Neither $A $B".split(' ').map(|x| x.to_string()).collect(),
       rules: vec![
-        make_rule_with_score(0, "$1", |x| x.join(""), 0.0),
-        make_rule_with_score(0, "$2", |x| x.join(""), 0.0),
-        make_rule_with_score(0, "$3", |x| x.join(""), 0.0),
-        make_rule_with_score(1, "$1 $4", |x| x.join(""), 0.0),
-        make_rule_with_score(1, "", |x| x.join(""), 0.0),
-        make_rule_with_score(4, "a", |_| "a".to_string(), 1.0),
-        make_rule_with_score(4, "%ch", |x| x.join(""), -1.0),
-        make_rule_with_score(2, "$2 $5", |x| x.join(""), 0.0),
-        make_rule_with_score(2, "", |x| x.join(""), 0.0),
-        make_rule_with_score(5, "b", |_| "b".to_string(), 1.0),
-        make_rule_with_score(5, "%ch", |x| x.join(""), -1.0),
-        make_rule_with_score(3, "$3 %ch", |x| x.join(""), 0.0),
-        make_rule_with_score(3, "", |x| x.join(""), 0.0),
+        make_rule_score(0, "$1", |x| x.join(""), 0.0),
+        make_rule_score(0, "$2", |x| x.join(""), 0.0),
+        make_rule_score(0, "$3", |x| x.join(""), 0.0),
+        make_rule_score(1, "$1 $4", |x| x.join(""), 0.0),
+        make_rule_score(1, "", |x| x.join(""), 0.0),
+        make_rule_score(4, "a", |_| "a".to_string(), 1.0),
+        make_rule_score(4, "%ch", |x| x.join(""), -1.0),
+        make_rule_score(2, "$2 $5", |x| x.join(""), 0.0),
+        make_rule_score(2, "", |x| x.join(""), 0.0),
+        make_rule_score(5, "b", |_| "b".to_string(), 1.0),
+        make_rule_score(5, "%ch", |x| x.join(""), -1.0),
+        make_rule_score(3, "$3 %ch", |x| x.join(""), 0.0),
+        make_rule_score(3, "", |x| x.join(""), 0.0),
       ],
       start: 0,
     };

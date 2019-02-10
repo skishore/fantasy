@@ -245,7 +245,7 @@ mod tests {
     assert_eq!(parser.parse("-1.23E45"), Ok((-1.23, Some(45))));
     test_error(parser.parse("-1.23e"), "At line 1, column 7: expected: /-?(0|[1-9][0-9]*)/");
     test_error(parser.parse("-1.23f45"), r#"At line 1, column 6: expected: "E" | "e" | EOF"#);
-    test_error(parser.parse("-1.23e45 "),"At line 1, column 9: expected: EOF");
+    test_error(parser.parse("-1.23e45 "), "At line 1, column 9: expected: EOF");
   }
 
   #[test]

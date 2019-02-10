@@ -9,13 +9,13 @@ use std::rc::Rc;
 
 type Tree<'a, S, T> = Option<Child<'a, S, T>>;
 
-struct Memo<'a, 'b, R: Rng, S: Clone, T: Clone> {
+struct Memo<'a, 'b, R: Rng, S, T> {
   generator: &'a Generator<'a, S, T>,
   memo: FxHashMap<String, Tree<'a, S, T>>,
   rng: &'b mut R,
 }
 
-impl<'a, 'b, R: Rng, S: Clone, T: Clone> Memo<'a, 'b, R, S, T> {
+impl<'a, 'b, R: Rng, S, T> Memo<'a, 'b, R, S, T> {
   fn generate_from_list(&mut self, rules: &[&'a Rule<S, T>], value: &S) -> Tree<'a, S, T> {
     let scores: Vec<_> = {
       let f = |x: &&'a Rule<S, T>| {
@@ -82,19 +82,19 @@ impl<'a, 'b, R: Rng, S: Clone, T: Clone> Memo<'a, 'b, R, S, T> {
 // Our public interface has a simple "generate" entry point, but also supports
 // generation from a list of rules, which is useful for correction.
 
-struct Generator<'a, S: Clone, T: Clone> {
+struct Generator<'a, S, T> {
   by_name: Vec<Vec<&'a Rule<S, T>>>,
   grammar: &'a Grammar<S, T>,
 }
 
-impl<'a, S: Clone, T: Clone> Generator<'a, S, T> {
+impl<'a, S, T> Generator<'a, S, T> {
   fn new(grammar: &'a Grammar<S, T>) -> Self {
     let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
     grammar.rules.iter().for_each(|x| by_name[x.lhs].push(x));
     Self { by_name, grammar }
   }
 
-  fn generate<R: Rng>(&'a self, rng: &mut R, value: &S) -> Option<Rc<Derivation<'a, S, T>>> {
+  fn generate<R: Rng>(&'a self, rng: &mut R, value: &S) -> Option<Derivation<'a, S, T>> {
     self.generate_from_rules(rng, &self.by_name[self.grammar.start], value)
   }
 
@@ -103,10 +103,13 @@ impl<'a, S: Clone, T: Clone> Generator<'a, S, T> {
     rng: &mut R,
     rules: &[&'a Rule<S, T>],
     value: &S,
-  ) -> Option<Rc<Derivation<'a, S, T>>> {
-    let mut memo = Memo { generator: self, memo: FxHashMap::default(), rng };
-    match memo.generate_from_list(rules, value) {
-      Some(Child::Node(x)) => Some(x.clone()),
+  ) -> Option<Derivation<'a, S, T>> {
+    let result = {
+      let mut memo = Memo { generator: self, memo: FxHashMap::default(), rng };
+      memo.generate_from_list(rules, value)
+    };
+    match result {
+      Some(Child::Node(x)) => Rc::try_unwrap(x).ok(),
       _ => None,
     }
   }
@@ -129,11 +132,11 @@ mod tests {
   type Split<S> = Box<Fn(&S) -> Vec<Vec<S>>>;
 
   #[derive(Default)]
-  struct CharacterLexer<T: Clone + Default> {
+  struct CharacterLexer<T: Default> {
     mark: PhantomData<T>,
   }
 
-  impl<T: Clone + Default + PartialEq> Lexer<T, String> for CharacterLexer<T> {
+  impl<T: Default + PartialEq> Lexer<T, String> for CharacterLexer<T> {
     fn fix(&self, _: &Match<String>, _: &Tense) -> Vec<Rc<Match<String>>> {
       unimplemented!()
     }

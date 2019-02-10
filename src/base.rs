@@ -12,12 +12,12 @@ use std::rc::Rc;
 // Derivations expose a top-level value of type T that represents the overall
 // semantics of an utterance. Generation takes a value of type S as input.
 
-pub enum Child<'a, S: Clone, T: Clone> {
+pub enum Child<'a, S, T> {
   Leaf(Rc<Match<T>>),
   Node(Rc<Derivation<'a, S, T>>),
 }
 
-pub struct Derivation<'a, S: Clone, T: Clone> {
+pub struct Derivation<'a, S, T> {
   pub children: Vec<Child<'a, S, T>>,
   pub rule: &'a Rule<S, T>,
   pub value: T,
@@ -28,18 +28,18 @@ pub struct Derivation<'a, S: Clone, T: Clone> {
 
 pub type Entry<T> = (f32, Rc<Match<T>>);
 
-pub trait Lexer<S: Clone, T: Clone> {
+pub trait Lexer<S, T> {
   fn fix(&self, &Match<T>, &Tense) -> Vec<Rc<Match<T>>>;
   fn lex<'a: 'b, 'b>(&'a self, &'b str) -> Vec<Token<'b, T>>;
   fn unlex(&self, &str, &S) -> Vec<Rc<Match<T>>>;
 }
 
-pub struct Match<T: Clone> {
+pub struct Match<T> {
   pub data: TermData,
   pub value: T,
 }
 
-pub struct Token<'a, T: Clone> {
+pub struct Token<'a, T> {
   pub matches: FxHashMap<&'a str, Entry<T>>,
   pub text: &'a str,
 }
@@ -49,7 +49,7 @@ pub struct Token<'a, T: Clone> {
 // Rules also have "merge" and "split" callbacks for handling semantics during
 // parsing and generation, respectively.
 
-pub struct Grammar<S: Clone, T: Clone> {
+pub struct Grammar<S, T> {
   pub key: Box<Fn(&S) -> String>,
   pub lexer: Box<Lexer<S, T>>,
   pub names: Vec<String>,
@@ -57,7 +57,7 @@ pub struct Grammar<S: Clone, T: Clone> {
   pub start: usize,
 }
 
-pub struct Rule<S: Clone, T: Clone> {
+pub struct Rule<S, T> {
   pub data: RuleData,
   pub lhs: usize,
   pub rhs: Vec<Term>,
@@ -111,7 +111,7 @@ pub struct TermData {
 // Some utilities implemented on the types above. We avoid deriving them
 // because we must take care to avoid deep copies of grammar structures.
 
-impl<'a, S: Clone, T: Clone> Clone for Child<'a, S, T> {
+impl<'a, S, T> Clone for Child<'a, S, T> {
   fn clone(&self) -> Self {
     match self {
       Child::Leaf(x) => Child::Leaf(Rc::clone(x)),
@@ -120,15 +120,22 @@ impl<'a, S: Clone, T: Clone> Clone for Child<'a, S, T> {
   }
 }
 
-impl<'a, S: Clone, T: Clone> Derivation<'a, S, T> {
+impl<'a, S, T> Derivation<'a, S, T> {
   pub fn new(children: Vec<Child<'a, S, T>>, rule: &'a Rule<S, T>) -> Self {
     let value = {
-      let values = children.iter().map(|x| match x {
-        Child::Leaf(x) => x.value.clone(),
-        Child::Node(x) => x.value.clone(),
-      });
-      let values: Vec<_> = values.collect();
-      (rule.merge.callback)(&values)
+      let n = rule.rhs.len();
+      assert!(children.len() == n);
+      let mut values: Vec<T> = Vec::with_capacity(n);
+      let target = values.as_mut_ptr();
+      for i in 0..n {
+        let source = match &children[i] {
+          Child::Leaf(x) => &x.value,
+          Child::Node(x) => &x.value,
+        };
+        unsafe { std::ptr::copy(source, target.offset(i as isize), 1) };
+      }
+      let slice = unsafe { std::slice::from_raw_parts(target, n) };
+      (rule.merge.callback)(slice)
     };
     Derivation { children, rule, value }
   }
