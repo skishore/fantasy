@@ -130,12 +130,11 @@ mod tests {
 
   #[derive(Default)]
   struct CharacterLexer<T: Clone + Default> {
-    data: TermData,
     mark: PhantomData<T>,
   }
 
   impl<T: Clone + Default + PartialEq> Lexer<T, String> for CharacterLexer<T> {
-    fn fix<'a: 'b, 'b>(&'a self, _: &'b Match<'b, String>, _: &'b Tense) -> Vec<Match<'b, String>> {
+    fn fix(&self, _: &Match<String>, _: &Tense) -> Vec<Rc<Match<String>>> {
       unimplemented!()
     }
 
@@ -143,10 +142,9 @@ mod tests {
       unimplemented!()
     }
 
-    fn unlex<'a: 'b, 'b>(&'a self, name: &'a str, value: &T) -> Vec<Match<'b, String>> {
-      let base = Match { data: &self.data, score: 0.0, value: name.to_string() };
+    fn unlex(&self, name: &str, value: &T) -> Vec<Rc<Match<String>>> {
       if name.len() == 1 && *value == T::default() {
-        vec![base]
+        vec![Rc::new(Match { data: TermData::default(), value: name.to_string() })]
       } else {
         vec![]
       }

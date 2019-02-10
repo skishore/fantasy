@@ -1,5 +1,5 @@
 use arena::Arena;
-use base::{Child, Derivation, Grammar, Match, Rule, Term, Token};
+use base::{Child, Derivation, Entry, Grammar, Rule, Term, Token};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
@@ -20,19 +20,17 @@ use std::rc::Rc;
 //   next: This field lists other states that predict the same next symbol as
 //         this one. (Their end index and next term must match this state's.)
 
-#[derive(Clone)]
 struct Candidate<'a, 'b, T: Clone> {
   down: *const u8,
   next: *const Candidate<'a, 'b, T>,
   prev: *const State<'a, 'b, T>,
 }
 
-enum Next<'a, 'b, T: Clone> {
-  Leaf(&'a Match<'b, T>),
+enum Down<'a, 'b, T: Clone> {
+  Leaf(&'a Entry<T>),
   Node(&'a State<'a, 'b, T>),
 }
 
-#[derive(Clone)]
 struct State<'a, 'b, T: Clone> {
   candidate: *const Candidate<'a, 'b, T>,
   cursor: u16,
@@ -41,9 +39,6 @@ struct State<'a, 'b, T: Clone> {
   score: f32,
   start: u16,
 }
-
-impl<'a, 'b, T: Clone> Copy for Candidate<'a, 'b, T> {}
-impl<'a, 'b, T: Clone> Copy for State<'a, 'b, T> {}
 
 impl<'a, 'b, T: Clone> State<'a, 'b, T> {
   fn new(cursor: usize, rule: &'a IndexedRule<'b, T>, start: usize) -> Self {
@@ -58,11 +53,11 @@ impl<'a, 'b, T: Clone> State<'a, 'b, T> {
     self.cursor as usize
   }
 
-  fn down(&self, down: *const u8) -> Next<'a, 'b, T> {
+  fn down(&self, down: *const u8) -> Down<'a, 'b, T> {
     assert!(self.cursor > 0);
     match self.rule.base.rhs[self.cursor() - 1] {
-      Term::Symbol(_) => Next::Node(unsafe { &*(down as *const Self) }),
-      Term::Terminal(_) => Next::Leaf(unsafe { &*(down as *const Match<T>) }),
+      Term::Symbol(_) => Down::Node(unsafe { &*(down as *const Self) }),
+      Term::Terminal(_) => Down::Leaf(unsafe { &*(down as *const Entry<T>) }),
     }
   }
 
@@ -71,12 +66,12 @@ impl<'a, 'b, T: Clone> State<'a, 'b, T> {
     let mut children = Vec::with_capacity(self.cursor());
     let mut current = self;
     for _ in 0..self.cursor {
-      let Candidate { down, prev, .. } = unsafe { *current.candidate };
-      children.push(match current.down(down) {
-        Next::Leaf(x) => Child::Leaf((*x).clone()),
-        Next::Node(x) => Child::Node(Rc::new(x.evaluate())),
+      let Candidate { down, prev, .. } = unsafe { &*current.candidate };
+      children.push(match current.down(*down) {
+        Down::Leaf(x) => Child::Leaf(Rc::clone(&x.1)),
+        Down::Node(x) => Child::Node(Rc::new(x.evaluate())),
       });
-      current = unsafe { &*prev };
+      current = unsafe { &**prev };
     }
     children.reverse();
     let rule = unsafe { std::mem::transmute(self.rule.base) };
@@ -153,7 +148,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
     result
   }
 
-  fn advance_state(&mut self, next: Next<'a, 'b, T>, state: *const State<'a, 'b, T>) {
+  fn advance_state(&mut self, down: Down<'a, 'b, T>, state: *const State<'a, 'b, T>) {
     let state = unsafe { &*state };
     let index = state.start() * self.grammar.max_index + state.rule.index + state.cursor() + 1;
     let entry = self.column.lookup.entry(index).or_insert(std::ptr::null_mut());
@@ -161,9 +156,9 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
       *entry = self.states.alloc(State::new(state.cursor() + 1, state.rule, state.start()));
       self.column.states.push(*entry);
     }
-    let down = match next {
-      Next::Leaf(x) => x as *const Match<T> as *const u8,
-      Next::Node(x) => x as *const State<T> as *const u8,
+    let down = match down {
+      Down::Leaf(x) => x as *const Entry<T> as *const u8,
+      Down::Node(x) => x as *const State<T> as *const u8,
     };
     let next = unsafe { (**entry).candidate };
     let candidate = self.candidates.alloc(Candidate { down, next, prev: state });
@@ -183,7 +178,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
         let j = state.start() * self.grammar.max_index + rule.lhs;
         let mut current = self.wanted.get(&j).cloned().unwrap_or(std::ptr::null());
         while !current.is_null() {
-          self.advance_state(Next::Node(state), current);
+          self.advance_state(Down::Node(state), current);
           current = unsafe { (*current).next };
         }
         if state.start() == 0 {
@@ -191,7 +186,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
         }
         if state.start() == start {
           let entry = self.column.nullable.entry(rule.lhs).or_insert(state);
-          if unsafe { **entry }.rule.base.merge.score < rule.merge.score {
+          if unsafe { &**entry }.rule.base.merge.score < rule.merge.score {
             *entry = state;
           }
         }
@@ -200,7 +195,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
           Term::Symbol(lhs) => {
             let nullable = self.column.nullable.get(&lhs).cloned().unwrap_or(std::ptr::null());
             if !nullable.is_null() {
-              self.advance_state(Next::Node(unsafe { &*nullable }), state);
+              self.advance_state(Down::Node(unsafe { &*nullable }), state);
             }
             let j = start * self.grammar.max_index + lhs;
             let entry = self.wanted.entry(j).or_insert(std::ptr::null());
@@ -251,7 +246,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
     let header = self.column.token.map(|x| {
       let mut xs: Vec<_> = x.matches.iter().collect();
       xs.sort_by(|(a, _), (b, _)| a.cmp(b));
-      let xs: Vec<_> = xs.iter().map(|(k, v)| format!("  {} (score: {})", k, v.score)).collect();
+      let xs: Vec<_> = xs.iter().map(|(k, v)| format!("  {} (score: {})", k, v.0)).collect();
       format!(": {:?}\n{}", x.text, xs.join("\n"))
     });
     let states = self.column.states.iter().map(|x| {
@@ -291,7 +286,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
       let state = unsafe { &**x };
       if let Term::Terminal(t) = &state.rule.base.rhs[state.cursor()] {
         if let Some(m) = token.matches.get(t.as_str()) {
-          self.advance_state(Next::Leaf(m), state);
+          self.advance_state(Down::Leaf(m), state);
         }
       }
     });
@@ -311,17 +306,17 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
     let mut best_score = std::f32::NEG_INFINITY;
     let mut candidate = state.candidate;
     while !candidate.is_null() {
-      let Candidate { down, next, prev } = unsafe { *candidate };
-      let next_score = match state.down(down) {
-        Next::Leaf(x) => x.score,
-        Next::Node(x) => self.score_state(x),
+      let Candidate { down, next, prev } = unsafe { &*candidate };
+      let next_score = match state.down(*down) {
+        Down::Leaf(x) => x.0,
+        Down::Node(x) => self.score_state(x),
       };
-      let score = self.score_state(prev) + next_score;
+      let score = self.score_state(*prev) + next_score;
       if score > best_score {
         best_candidate = candidate;
         best_score = score;
       }
-      candidate = next;
+      candidate = *next;
     }
     assert!(!best_candidate.is_null());
     assert!(best_score > std::f32::NEG_INFINITY);
@@ -365,7 +360,7 @@ impl<'a, 'b, T: Clone> Skipped<'a, 'b, T> {
         result.extend_from_slice(&columns[j]);
       } else {
         columns[j].iter().for_each(|y| {
-          let mut state = unsafe { (**y).clone() };
+          let mut state = unsafe { std::ptr::read(*y) };
           state.score += i as f32 * self.skip_penalty;
           result.push(arena.alloc(state));
         });
@@ -466,34 +461,39 @@ impl<'a, S: Clone, T: Clone> Parser<'a, S, T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use base::{Lexer, RuleData, Semantics, Tense, TermData};
+  use base::{Lexer, Match, RuleData, Semantics, Tense, TermData};
   use std::marker::PhantomData;
   use test::Bencher;
 
-  #[derive(Default)]
   struct CharacterLexer<T: Clone + Default> {
-    data: TermData,
+    base: Rc<Match<T>>,
     mark: PhantomData<T>,
   }
 
+  impl<T: Clone + Default> Default for CharacterLexer<T> {
+    fn default() -> Self {
+      let base = Rc::new(Match { data: TermData::default(), value: T::default() });
+      Self { base, mark: PhantomData }
+    }
+  }
+
   impl<T: Clone + Default> Lexer<(), T> for CharacterLexer<T> {
-    fn fix<'a: 'b, 'b>(&'a self, _: &'b Match<'b, T>, _: &'b Tense) -> Vec<Match<'b, T>> {
+    fn fix(&self, _: &Match<T>, _: &Tense) -> Vec<Rc<Match<T>>> {
       unimplemented!()
     }
 
     fn lex<'a: 'b, 'b>(&'a self, input: &'b str) -> Vec<Token<'b, T>> {
       let map = input.char_indices().map(|(i, x)| {
         let text = &input[i..i + x.len_utf8()];
-        let base = Match { data: &self.data, score: 0.0, value: T::default() };
         let mut matches = FxHashMap::default();
-        matches.insert(text, base.clone());
-        matches.insert("%ch", base.clone());
+        matches.insert(text, (0.0, Rc::clone(&self.base)));
+        matches.insert("%ch", (0.0, Rc::clone(&self.base)));
         Token { matches, text }
       });
       map.collect()
     }
 
-    fn unlex<'a: 'b, 'b>(&'a self, _: &'a str, _: &()) -> Vec<Match<'b, T>> {
+    fn unlex(&self, _: &str, _: &()) -> Vec<Rc<Match<T>>> {
       unimplemented!()
     }
   }

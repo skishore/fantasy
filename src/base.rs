@@ -13,7 +13,7 @@ use std::rc::Rc;
 // semantics of an utterance. Generation takes a value of type S as input.
 
 pub enum Child<'a, S: Clone, T: Clone> {
-  Leaf(Match<'a, T>),
+  Leaf(Rc<Match<T>>),
   Node(Rc<Derivation<'a, S, T>>),
 }
 
@@ -26,20 +26,21 @@ pub struct Derivation<'a, S: Clone, T: Clone> {
 // The core lexer type. Call lex to turn an utterance into a sequence of tokens
 // with leaf semantics. Call unlex to generate a token for some leaf semantics.
 
+pub type Entry<T> = (f32, Rc<Match<T>>);
+
 pub trait Lexer<S: Clone, T: Clone> {
-  fn fix<'a: 'b, 'b>(&'a self, &'b Match<'b, T>, &'b Tense) -> Vec<Match<'b, T>>;
+  fn fix(&self, &Match<T>, &Tense) -> Vec<Rc<Match<T>>>;
   fn lex<'a: 'b, 'b>(&'a self, &'b str) -> Vec<Token<'b, T>>;
-  fn unlex<'a: 'b, 'b>(&'a self, &'a str, &S) -> Vec<Match<'b, T>>;
+  fn unlex(&self, &str, &S) -> Vec<Rc<Match<T>>>;
 }
 
-pub struct Match<'a, T: Clone> {
-  pub data: &'a TermData,
-  pub score: f32,
+pub struct Match<T: Clone> {
+  pub data: TermData,
   pub value: T,
 }
 
 pub struct Token<'a, T: Clone> {
-  pub matches: FxHashMap<&'a str, Match<'a, T>>,
+  pub matches: FxHashMap<&'a str, Entry<T>>,
   pub text: &'a str,
 }
 
@@ -113,15 +114,9 @@ pub struct TermData {
 impl<'a, S: Clone, T: Clone> Clone for Child<'a, S, T> {
   fn clone(&self) -> Self {
     match self {
-      Child::Leaf(x) => Child::Leaf(x.clone()),
+      Child::Leaf(x) => Child::Leaf(Rc::clone(x)),
       Child::Node(x) => Child::Node(Rc::clone(x)),
     }
-  }
-}
-
-impl<'a, T: Clone> Clone for Match<'a, T> {
-  fn clone(&self) -> Self {
-    Self { data: self.data, score: self.score, value: self.value.clone() }
   }
 }
 
