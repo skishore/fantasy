@@ -498,17 +498,19 @@ mod tests {
     }
   }
 
-  fn make_rule<F: Fn(&[T]) -> T + 'static, T>(lhs: usize, rhs: &str, f: F) -> Rule<(), T> {
-    make_rule_score(lhs, rhs, f, 0.0)
+  trait Builder {
+    fn score(self, score: f32) -> Self;
   }
 
-  fn make_rule_score<F: Fn(&[T]) -> T + 'static, T>(
-    lhs: usize,
-    rhs: &str,
-    f: F,
-    score: f32,
-  ) -> Rule<(), T> {
-    let merge: Semantics<Fn(&[T]) -> T> = Semantics { callback: Box::new(f), score };
+  impl<S, T> Builder for Rule<S, T> {
+    fn score(mut self, score: f32) -> Self {
+      self.merge.score = score;
+      self
+    }
+  }
+
+  fn make_rule<F: Fn(&[T]) -> T + 'static, T>(lhs: usize, rhs: &str, f: F) -> Rule<(), T> {
+    let merge: Semantics<Fn(&[T]) -> T> = Semantics { callback: Box::new(f), score: 0.0 };
     let split: Semantics<Fn(&()) -> Vec<Vec<()>>> =
       Semantics { callback: Box::new(|_| unimplemented!()), score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
@@ -532,19 +534,19 @@ mod tests {
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $As $Bs $Neither $A $B".split(' ').map(|x| x.to_string()).collect(),
       rules: vec![
-        make_rule_score(0, "$1", |x| x.join(""), 0.0),
-        make_rule_score(0, "$2", |x| x.join(""), 0.0),
-        make_rule_score(0, "$3", |x| x.join(""), 0.0),
-        make_rule_score(1, "$1 $4", |x| x.join(""), 0.0),
-        make_rule_score(1, "", |x| x.join(""), 0.0),
-        make_rule_score(4, "a", |_| "a".to_string(), 1.0),
-        make_rule_score(4, "%ch", |x| x.join(""), -1.0),
-        make_rule_score(2, "$2 $5", |x| x.join(""), 0.0),
-        make_rule_score(2, "", |x| x.join(""), 0.0),
-        make_rule_score(5, "b", |_| "b".to_string(), 1.0),
-        make_rule_score(5, "%ch", |x| x.join(""), -1.0),
-        make_rule_score(3, "$3 %ch", |x| x.join(""), 0.0),
-        make_rule_score(3, "", |x| x.join(""), 0.0),
+        make_rule(0, "$1    ", |x| x.join("")),
+        make_rule(0, "$2    ", |x| x.join("")),
+        make_rule(0, "$3    ", |x| x.join("")),
+        make_rule(1, "$1 $4 ", |x| x.join("")),
+        make_rule(1, "      ", |x| x.join("")),
+        make_rule(4, "a     ", |_| "a".into()).score(1.0),
+        make_rule(4, "%ch   ", |x| x.join("")).score(-1.0),
+        make_rule(2, "$2 $5 ", |x| x.join("")),
+        make_rule(2, "      ", |x| x.join("")),
+        make_rule(5, "b     ", |_| "b".into()).score(1.0),
+        make_rule(5, "%ch   ", |x| x.join("")).score(-1.0),
+        make_rule(3, "$3 %ch", |x| x.join("")),
+        make_rule(3, "      ", |x| x.join("")),
       ],
       start: 0,
     };
@@ -564,14 +566,14 @@ mod tests {
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $Add $Num $Whitespace".split(' ').map(|x| x.to_string()).collect(),
       rules: vec![
-        make_rule(0, "$1 $3", |x| x[0]),
-        make_rule(1, "$2", |x| x[0]),
+        make_rule(0, "$1 $3  ", |x| x[0]),
+        make_rule(1, "$2     ", |x| x[0]),
         make_rule(1, "$1 + $2", |x| x[0] + x[2]),
-        make_rule(2, "1", |_| 1),
-        make_rule(2, "2", |_| 2),
-        make_rule(2, "3", |_| 3),
-        make_rule(3, "$3 %ws", |_| 0),
-        make_rule(3, "", |_| 0),
+        make_rule(2, "1      ", |_| 1),
+        make_rule(2, "2      ", |_| 2),
+        make_rule(2, "3      ", |_| 3),
+        make_rule(3, "$3 %ws ", |_| 0),
+        make_rule(3, "       ", |_| 0),
       ],
       start: 0,
     };
@@ -596,24 +598,24 @@ mod tests {
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $Add $Mul $Num".split(' ').map(|x| x.to_string()).collect(),
       rules: vec![
-        make_rule(0, "$1", |x| x[0]),
-        make_rule(1, "$2", |x| x[0]),
+        make_rule(0, "$1     ", |x| x[0]),
+        make_rule(1, "$2     ", |x| x[0]),
         make_rule(1, "$1 + $2", |x| x[0] + x[2]),
         make_rule(1, "$1 - $2", |x| x[0] - x[2]),
-        make_rule(2, "$3", |x| x[0]),
+        make_rule(2, "$3     ", |x| x[0]),
         make_rule(2, "$2 * $3", |x| x[0] * x[2]),
         make_rule(2, "$2 / $3", |x| x[0] / x[2]),
-        make_rule(3, "( $1 )", |x| x[1]),
-        make_rule(3, "0", |_| 0),
-        make_rule(3, "1", |_| 1),
-        make_rule(3, "2", |_| 2),
-        make_rule(3, "3", |_| 3),
-        make_rule(3, "4", |_| 4),
-        make_rule(3, "5", |_| 5),
-        make_rule(3, "6", |_| 6),
-        make_rule(3, "7", |_| 7),
-        make_rule(3, "8", |_| 8),
-        make_rule(3, "9", |_| 9),
+        make_rule(3, "( $1 ) ", |x| x[1]),
+        make_rule(3, "0      ", |_| 0),
+        make_rule(3, "1      ", |_| 1),
+        make_rule(3, "2      ", |_| 2),
+        make_rule(3, "3      ", |_| 3),
+        make_rule(3, "4      ", |_| 4),
+        make_rule(3, "5      ", |_| 5),
+        make_rule(3, "6      ", |_| 6),
+        make_rule(3, "7      ", |_| 7),
+        make_rule(3, "8      ", |_| 8),
+        make_rule(3, "9      ", |_| 9),
       ],
       start: 0,
     };
