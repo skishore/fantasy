@@ -1,5 +1,5 @@
 use arena::Arena;
-use base::{Child, Derivation, Grammar, Match, Rule, Semantics, Term, Token};
+use base::{Child, Derivation, Grammar, Match, Rule, Term, Token};
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
@@ -60,14 +60,14 @@ impl<'a, 'b, T: Clone> State<'a, 'b, T> {
 
   fn down(&self, down: *const u8) -> Next<'a, 'b, T> {
     assert!(self.cursor > 0);
-    match self.rule.rhs[self.cursor() - 1] {
+    match self.rule.base.rhs[self.cursor() - 1] {
       Term::Symbol(_) => Next::Node(unsafe { &*(down as *const Self) }),
       Term::Terminal(_) => Next::Leaf(unsafe { &*(down as *const Match<T>) }),
     }
   }
 
   fn evaluate<S: Clone>(&self) -> Derivation<'b, S, T> {
-    assert!(self.cursor() == self.rule.rhs.len());
+    assert!(self.cursor() == self.rule.base.rhs.len());
     let mut children = Vec::with_capacity(self.cursor());
     let mut current = self;
     for _ in 0..self.cursor {
@@ -79,7 +79,7 @@ impl<'a, 'b, T: Clone> State<'a, 'b, T> {
       current = unsafe { &*prev };
     }
     children.reverse();
-    let rule = unsafe { std::mem::transmute(self.rule.rule) };
+    let rule = unsafe { std::mem::transmute(self.rule.base) };
     Derivation::new(children, rule)
   }
 
@@ -172,14 +172,15 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
 
   fn fill_column(&mut self) {
     let mut i = 0;
-    let index = self.column.token_index;
+    let start = self.column.token_index;
 
     while i < self.column.states.len() {
       let state = unsafe { &*self.column.states[i] };
       let state_mutable = unsafe { &mut *self.column.states[i] };
+      let rule = state.rule.base;
       i += 1;
-      if state.cursor() == state.rule.rhs.len() {
-        let j = state.start() * self.grammar.max_index + state.rule.lhs;
+      if state.cursor() == rule.rhs.len() {
+        let j = state.start() * self.grammar.max_index + rule.lhs;
         let mut current = self.wanted.get(&j).cloned().unwrap_or(std::ptr::null());
         while !current.is_null() {
           self.advance_state(Next::Node(state), current);
@@ -188,24 +189,24 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
         if state.start() == 0 {
           self.column.completed.push(state);
         }
-        if state.start() == index {
-          let entry = self.column.nullable.entry(state.rule.lhs).or_insert(state);
-          if unsafe { **entry }.rule.score < state.rule.score {
+        if state.start() == start {
+          let entry = self.column.nullable.entry(rule.lhs).or_insert(state);
+          if unsafe { **entry }.rule.base.merge.score < rule.merge.score {
             *entry = state;
           }
         }
       } else {
-        match state.rule.rhs[state.cursor()] {
+        match rule.rhs[state.cursor()] {
           Term::Symbol(lhs) => {
             let nullable = self.column.nullable.get(&lhs).cloned().unwrap_or(std::ptr::null());
             if !nullable.is_null() {
               self.advance_state(Next::Node(unsafe { &*nullable }), state);
             }
-            let j = index * self.grammar.max_index + lhs;
+            let j = start * self.grammar.max_index + lhs;
             let entry = self.wanted.entry(j).or_insert(std::ptr::null());
             if entry.is_null() {
               for rule in &self.grammar.by_name[lhs] {
-                self.column.states.push(self.states.alloc(State::new(0, rule, index)));
+                self.column.states.push(self.states.alloc(State::new(0, rule, start)));
               }
             }
             state_mutable.next = *entry;
@@ -238,7 +239,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
     let mut best_state = None;
     for state in completed {
       let state = unsafe { &**state };
-      if state.rule.lhs == self.grammar.start && state.score > best_score {
+      if state.rule.base.lhs == self.grammar.start && state.score > best_score {
         best_score = state.score;
         best_state = Some(state);
       }
@@ -255,10 +256,10 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
     });
     let states = self.column.states.iter().map(|x| {
       let x = unsafe { &**x };
-      let lhs = self.grammar.names[x.rule.lhs].clone();
-      let rhs = x.rule.rhs.iter().map(|x| match &x {
-        &Term::Symbol(x) => self.grammar.names[*x].clone(),
-        &Term::Terminal(x) => x.clone(),
+      let lhs = self.grammar.names[x.rule.base.lhs].clone();
+      let rhs = x.rule.base.rhs.iter().map(|y| match y {
+        Term::Symbol(z) => self.grammar.names[*z].clone(),
+        Term::Terminal(z) => z.clone(),
       });
       let mut rhs = rhs.collect::<Vec<_>>();
       rhs.insert(x.cursor(), "●".to_string());
@@ -288,7 +289,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
 
     scannable.iter().for_each(|x| {
       let state = unsafe { &**x };
-      if let Term::Terminal(t) = &state.rule.rhs[state.cursor()] {
+      if let Term::Terminal(t) = &state.rule.base.rhs[state.cursor()] {
         if let Some(m) = token.matches.get(t.as_str()) {
           self.advance_state(Next::Leaf(m), state);
         }
@@ -303,7 +304,7 @@ impl<'a, 'b, T: Clone> Chart<'a, 'b, T> {
     if state.score > std::f32::NEG_INFINITY {
       return state.score;
     } else if state.cursor == 0 {
-      state.score = state.rule.score;
+      state.score = state.rule.base.merge.score;
       return state.score;
     }
     let mut best_candidate = std::ptr::null();
@@ -399,21 +400,15 @@ struct IndexedGrammar<'a, T: Clone> {
 }
 
 struct IndexedRule<'a, T: Clone> {
+  base: &'a Rule<(), T>,
   index: usize,
-  lhs: usize,
-  rhs: &'a [Term],
-  rule: &'a Rule<(), T>,
-  score: f32,
 }
 
 fn index<S: Clone, T: Clone>(grammar: &Grammar<S, T>) -> IndexedGrammar<T> {
   let mut index = 0;
   let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
   for rule in grammar.rules.iter().filter(|x| x.merge.score > std::f32::NEG_INFINITY) {
-    let Rule { lhs, rhs, merge: Semantics { score, .. }, .. } = rule;
-    let rule = unsafe { std::mem::transmute(rule) };
-    let indexed = IndexedRule { index, lhs: *lhs, rhs, rule, score: *score };
-    by_name[rule.lhs].push(indexed);
+    by_name[rule.lhs].push(IndexedRule { base: unsafe { std::mem::transmute(rule) }, index });
     index += rule.rhs.len() + 1;
   }
   IndexedGrammar { by_name, max_index: index, names: &grammar.names, start: grammar.start }
@@ -471,7 +466,7 @@ impl<'a, S: Clone, T: Clone> Parser<'a, S, T> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use base::{Lexer, RuleData, Tense, TermData};
+  use base::{Lexer, RuleData, Semantics, Tense, TermData};
   use std::marker::PhantomData;
   use test::Bencher;
 
