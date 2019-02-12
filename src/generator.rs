@@ -1,5 +1,5 @@
 use base::{Child, Derivation, Grammar, Rule, Term};
-use rand::Rng;
+use rand::Rng as RngTrait;
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
@@ -7,15 +7,17 @@ use std::rc::Rc;
 // We use a memo both to speed up generation and to avoid an infinite loop on
 // recursive rules, such as the left-recursive "repeat" rules.
 
+type Rng = rand::rngs::StdRng;
+
 type Tree<'a, S, T> = Option<Child<'a, S, T>>;
 
-struct Memo<'a, 'b, R: Rng, S, T> {
+struct Memo<'a, 'b, S, T> {
   generator: &'a Generator<'a, S, T>,
   memo: FxHashMap<String, Tree<'a, S, T>>,
-  rng: &'b mut R,
+  rng: &'b mut Rng,
 }
 
-impl<'a, 'b, R: Rng, S, T> Memo<'a, 'b, R, S, T> {
+impl<'a, 'b, S, T> Memo<'a, 'b, S, T> {
   fn generate_from_list(&mut self, rules: &[&'a Rule<S, T>], value: &S) -> Tree<'a, S, T> {
     let scores: Vec<_> = {
       let f = |x: &&'a Rule<S, T>| {
@@ -94,13 +96,13 @@ impl<'a, S, T> Generator<'a, S, T> {
     Self { by_name, grammar }
   }
 
-  fn generate<R: Rng>(&'a self, rng: &mut R, value: &S) -> Option<Derivation<'a, S, T>> {
+  fn generate(&'a self, rng: &mut Rng, value: &S) -> Option<Derivation<'a, S, T>> {
     self.generate_from_rules(rng, &self.by_name[self.grammar.start], value)
   }
 
-  fn generate_from_rules<R: Rng>(
+  fn generate_from_rules(
     &'a self,
-    rng: &mut R,
+    rng: &mut Rng,
     rules: &[&'a Rule<S, T>],
     value: &S,
   ) -> Option<Derivation<'a, S, T>> {
@@ -230,10 +232,6 @@ mod tests {
     }
   }
 
-  fn make_rng() -> rand::rngs::StdRng {
-    rand::SeedableRng::from_seed([17; 32])
-  }
-
   #[test]
   fn generation_works() {
     let grammar = make_grammar(0.0);
@@ -241,7 +239,7 @@ mod tests {
     let tests = vec![(0, "8/2/2"), (2, "2-2+2"), (3, "7-5"), (5, "7/7*(5-3)"), (6, "8/4")];
     for (index, expected) in tests {
       let rules = [&grammar.rules[index]];
-      let mut rng = make_rng();
+      let mut rng = rand::SeedableRng::from_seed([17; 32]);
       let result = generator.generate_from_rules(&mut rng, &rules, &2.0).map(|x| x.value.clone());
       assert_eq!(result, Some(expected.to_string()));
     }
@@ -253,7 +251,7 @@ mod tests {
     for (deepness, expected) in tests {
       let grammar = make_grammar(deepness);
       let generator = Generator::new(&grammar);
-      let mut rng = make_rng();
+      let mut rng = rand::SeedableRng::from_seed([17; 32]);
       let result = generator.generate(&mut rng, &2.0).map(|x| x.value.clone());
       assert_eq!(result, Some(expected.to_string()));
     }
@@ -263,7 +261,7 @@ mod tests {
   fn generation_benchmark(b: &mut Bencher) {
     let grammar = make_grammar(0.0);
     let generator = Generator::new(&grammar);
-    let mut rng = make_rng();
+    let mut rng = rand::SeedableRng::from_seed([17; 32]);
     b.iter(|| generator.generate(&mut rng, &2.0));
   }
 }
