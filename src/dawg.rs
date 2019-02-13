@@ -2,9 +2,9 @@
 // Unlike a trie, the edges of a DAWG can form an arbitrary directed acyclic
 // graph and paths can share nodes. Compress minimizes the number of nodes.
 
-use arena::Arena;
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::hash::Hash;
+use std::rc::Rc;
 
 pub trait Item: Clone + Eq + Hash + Ord {}
 
@@ -12,8 +12,6 @@ impl<T: Clone + Eq + Hash + Ord> Item for T {}
 
 pub struct Dawg<K: Item, V: Item> {
   data: Vec<Node<K, V>>,
-  edge_arena: Arena<FxHashMap<K, usize>>,
-  node_arena: Arena<FxHashSet<V>>,
 }
 
 struct Memo<K: Item, V: Item> {
@@ -23,17 +21,13 @@ struct Memo<K: Item, V: Item> {
 
 #[derive(Clone)]
 struct Node<K: Item, V: Item> {
-  edges: Option<*mut FxHashMap<K, usize>>,
-  nodes: Option<*mut FxHashSet<V>>,
+  edges: Option<Rc<FxHashMap<K, usize>>>,
+  nodes: Option<Rc<FxHashSet<V>>>,
 }
 
 impl<K: Item, V: Item> Dawg<K, V> {
   pub fn new(items: &[(&[K], V)]) -> Self {
-    let mut dawg = Self {
-      data: vec![Node { edges: None, nodes: None }],
-      edge_arena: Arena::with_capacity(items.len()),
-      node_arena: Arena::with_capacity(items.len()),
-    };
+    let mut dawg = Self { data: vec![Node { edges: None, nodes: None }] };
     items.iter().for_each(|(k, v)| dawg.add(k, v));
     dawg
   }
@@ -58,14 +52,14 @@ impl<K: Item, V: Item> Dawg<K, V> {
   pub fn get(&self, keys: &[K]) -> Vec<V> {
     let mut prev = self.size();
     for k in keys.iter() {
-      if let Some(next) = self.data[prev].edges.and_then(|x| unsafe { &*x }.get(k)) {
+      if let Some(next) = self.data[prev].edges.as_ref().and_then(|x| x.get(k)) {
         prev = *next;
       } else {
         return vec![];
       }
     }
-    let nodes = self.data[prev].nodes;
-    nodes.map(|x| unsafe { &*x }.iter().map(|x| x.clone()).collect()).unwrap_or_default()
+    let nodes = &self.data[prev].nodes;
+    nodes.as_ref().map(|x| x.iter().map(|x| x.clone()).collect()).unwrap_or_default()
   }
 
   pub fn size(&self) -> usize {
@@ -74,26 +68,26 @@ impl<K: Item, V: Item> Dawg<K, V> {
 
   fn add_helper(&mut self, i: usize, keys: &[K], value: &V) -> usize {
     if keys.is_empty() {
-      if self.data[i].nodes.map_or(false, |x| unsafe { &*x }.contains(&value)) {
+      if self.data[i].nodes.as_ref().map_or(false, |x| x.contains(&value)) {
         return i;
       }
       let mut entry = self.data[i].clone();
-      let mut nodes = entry.nodes.map(|x| unsafe { &*x }.clone()).unwrap_or_default();
+      let mut nodes = entry.nodes.as_ref().map(|x| (**x).clone()).unwrap_or_default();
       nodes.insert(value.clone());
-      entry.nodes.replace(self.node_arena.alloc(nodes));
+      entry.nodes.replace(Rc::new(nodes));
       self.data.push(entry);
       return self.data.len() - 1;
     }
     let (head, tail) = (&keys[0], &keys[1..]);
-    let index = self.data[i].edges.and_then(|x| unsafe { &*x }.get(head).cloned()).unwrap_or(0);
+    let index = self.data[i].edges.as_ref().and_then(|x| x.get(head).cloned()).unwrap_or(0);
     let child = self.add_helper(index, tail, value);
     if child == index {
       return i;
     }
     let mut entry = self.data[i].clone();
-    let mut edges = entry.edges.map(|x| unsafe { &*x }.clone()).unwrap_or_default();
+    let mut edges = entry.edges.as_ref().map(|x| (**x).clone()).unwrap_or_default();
     edges.insert(head.clone(), child);
-    entry.edges.replace(self.edge_arena.alloc(edges));
+    entry.edges.replace(Rc::new(edges));
     self.data.push(entry);
     self.data.len() - 1
   }
@@ -103,8 +97,8 @@ impl<K: Item, V: Item> Dawg<K, V> {
     let (mut edges, mut nodes): (Vec<_>, Vec<_>) = {
       let f = |(k, i): (&K, &usize)| (k.clone(), self.compress_helper(*i, memo));
       let g = |x: &V| x.clone();
-      let edges = entry.edges.map(|x| unsafe { &*x }.iter().map(f).collect()).unwrap_or_default();
-      let nodes = entry.nodes.map(|x| unsafe { &*x }.iter().map(g).collect()).unwrap_or_default();
+      let edges = entry.edges.as_ref().map(|x| x.iter().map(f).collect()).unwrap_or_default();
+      let nodes = entry.nodes.as_ref().map(|x| x.iter().map(g).collect()).unwrap_or_default();
       (edges, nodes)
     };
     (edges.sort(), nodes.sort());
@@ -114,16 +108,16 @@ impl<K: Item, V: Item> Dawg<K, V> {
       let edges = if edges.is_empty() {
         None
       } else {
-        let new = memo.dawg.edge_arena.alloc(FxHashMap::default());
+        let mut new = FxHashMap::default();
         edges.into_iter().for_each(|(k, i)| std::mem::drop(new.insert(k, i)));
-        Some(new as *mut _)
+        Some(Rc::new(new))
       };
       let nodes = if nodes.is_empty() {
         None
       } else {
-        let new = memo.dawg.node_arena.alloc(FxHashSet::default());
+        let mut new = FxHashSet::default();
         nodes.into_iter().for_each(|x| std::mem::drop(new.insert(x)));
-        Some(new as *mut _)
+        Some(Rc::new(new))
       };
       memo.dawg.data.push(Node { edges, nodes });
     }
@@ -132,16 +126,16 @@ impl<K: Item, V: Item> Dawg<K, V> {
 
   fn entries_helper(&self, i: usize) -> Vec<(Vec<K>, V)> {
     let mut result = vec![];
-    if let Some(edges) = self.data[i].edges {
-      for (k, i) in unsafe { &*edges } {
+    if let Some(edges) = &self.data[i].edges {
+      for (k, i) in edges.iter() {
         self.entries_helper(*i).into_iter().for_each(|(mut keys, value)| {
           keys.push(k.clone());
           result.push((keys, value));
         });
       }
     }
-    if let Some(nodes) = self.data[i].nodes {
-      unsafe { &*nodes }.iter().for_each(|x| result.push((vec![], x.clone())));
+    if let Some(nodes) = &self.data[i].nodes {
+      nodes.iter().for_each(|x| result.push((vec![], x.clone())));
     }
     result
   }
