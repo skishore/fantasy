@@ -18,6 +18,7 @@ static GLOBAL: Jemalloc = Jemalloc;
 mod arena;
 mod base;
 mod combine;
+mod dawg;
 mod fantasy;
 mod generator;
 mod lambda;
