@@ -177,45 +177,67 @@ mod tests {
 
   #[test]
   fn all_entries_included() {
-    let keys = subsets("abcde".as_bytes()).into_iter().map(|x| (x, true)).collect();
+    let keys = subsets(b"abcde").into_iter().map(|x| (x, true)).collect();
     let dawg = dawg(&keys);
     keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(k.as_slice()), vec![true]));
     assert_eq!(dawg.entries().len(), 32);
-    assert_eq!(dawg.get("ac".as_bytes()), vec![true]);
-    assert_eq!(dawg.get("ca".as_bytes()), vec![]);
-    assert_eq!(dawg.get("abc".as_bytes()), vec![true]);
-    assert_eq!(dawg.get("cab".as_bytes()), vec![]);
+    assert_eq!(dawg.get(b"ac"), vec![true]);
+    assert_eq!(dawg.get(b"ca"), vec![]);
+    assert_eq!(dawg.get(b"abc"), vec![true]);
+    assert_eq!(dawg.get(b"cab"), vec![]);
     assert!(dawg.size() >= 32);
   }
 
   #[test]
   fn compression_yields_fewer_nodes() {
-    let keys = subsets("abcde".as_bytes()).into_iter().map(|x| (x, true)).collect();
+    let keys = subsets(b"abcde").into_iter().map(|x| (x, true)).collect();
     let dawg = dawg(&keys).compress();
     keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(k.as_slice()), vec![true]));
     assert_eq!(dawg.entries().len(), 32);
-    assert_eq!(dawg.get("ac".as_bytes()), vec![true]);
-    assert_eq!(dawg.get("ca".as_bytes()), vec![]);
-    assert_eq!(dawg.get("abc".as_bytes()), vec![true]);
-    assert_eq!(dawg.get("cab".as_bytes()), vec![]);
+    assert_eq!(dawg.get(b"ac"), vec![true]);
+    assert_eq!(dawg.get(b"ca"), vec![]);
+    assert_eq!(dawg.get(b"abc"), vec![true]);
+    assert_eq!(dawg.get(b"cab"), vec![]);
     assert_eq!(dawg.size(), 6);
   }
 
   #[test]
   fn compression_handles_varied_values() {
-    let keys = subsets("abcde".as_bytes()).into_iter().map(|x| (x.clone(), x.len() % 2)).collect();
+    let keys = subsets(b"abcde").into_iter().map(|x| (x.clone(), x.len() % 2)).collect();
     let dawg = dawg(&keys).compress();
     keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(k.as_slice()), vec![k.len() % 2]));
     assert_eq!(dawg.entries().len(), 32);
-    assert_eq!(dawg.get("ac".as_bytes()), vec![0]);
-    assert_eq!(dawg.get("ca".as_bytes()), vec![]);
-    assert_eq!(dawg.get("abc".as_bytes()), vec![1]);
-    assert_eq!(dawg.get("cab".as_bytes()), vec![]);
+    assert_eq!(dawg.get(b"ac"), vec![0]);
+    assert_eq!(dawg.get(b"ca"), vec![]);
+    assert_eq!(dawg.get(b"abc"), vec![1]);
+    assert_eq!(dawg.get(b"cab"), vec![]);
     assert_eq!(dawg.size(), 10);
   }
 
   #[bench]
-  fn dawg_benchmark(b: &mut Bencher) {
-    // TODO(skishore): Try out a getter benchmark on a compressed DAWG here.
+  fn insertion_benchmark(b: &mut Bencher) {
+    let keys = subsets(b"abcdefghij").into_iter().map(|x| (x, true)).collect();
+    b.iter(|| assert!(dawg(&keys).size() >= 1024));
+  }
+
+  #[bench]
+  fn compression_benchmark(b: &mut Bencher) {
+    let keys = subsets(b"abcdefghij").into_iter().map(|x| (x, true)).collect();
+    let dawg = dawg(&keys);
+    b.iter(|| assert_eq!(dawg.compress().size(), 11));
+  }
+
+  #[bench]
+  fn expanded_lookup_benchmark(b: &mut Bencher) {
+    let keys = subsets(b"abcdefghij").into_iter().map(|x| (x, true)).collect();
+    let dawg = dawg(&keys);
+    b.iter(|| assert_eq!(dawg.get(b"acegi"), vec![true]));
+  }
+
+  #[bench]
+  fn compressed_lookup_benchmark(b: &mut Bencher) {
+    let keys = subsets(b"abcdefghij").into_iter().map(|x| (x, true)).collect();
+    let dawg = dawg(&keys).compress();
+    b.iter(|| assert_eq!(dawg.get(b"acegi"), vec![true]));
   }
 }
