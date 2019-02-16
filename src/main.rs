@@ -15,22 +15,18 @@ extern crate test;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
-mod arena;
-mod base;
-mod combine;
-mod dawg;
-mod fantasy;
-mod generator;
-mod lambda;
-mod parser;
+mod lib;
+mod nlu;
 
-fn debug((k, v): &(usize, Option<Rc<lambda::Lambda>>)) -> String {
+use lib::lambda::Lambda;
+
+fn debug((k, v): &(usize, Option<Rc<Lambda>>)) -> String {
   format!("Key {}: {}", k, v.as_ref().map(|x| x.stringify()).unwrap_or("-".to_string()))
 }
 
 fn main() {
-  let lambda = Some(lambda::Lambda::parse("R[a].b & c").unwrap());
-  let template = lambda::Lambda::template("$0.$1 & $2").unwrap();
+  let lambda = Some(Lambda::parse("R[a].b & c").unwrap());
+  let template = Lambda::template("$0.$1 & $2").unwrap();
   for (i, option) in template.split(&lambda).iter().enumerate() {
     let mut result: Vec<_> = option.iter().map(debug).collect();
     result.sort();

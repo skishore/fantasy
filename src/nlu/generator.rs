@@ -1,4 +1,4 @@
-use base::{Child, Derivation, Grammar, Rule, Term};
+use super::base::{Child, Derivation, Grammar, Rule, Term};
 use rand::Rng as RngTrait;
 use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
@@ -126,8 +126,8 @@ impl<'a, S, T> Generator<'a, S, T> {
 
 #[cfg(test)]
 mod tests {
+  use super::super::base::{Lexer, Match, Semantics, Tense, Token};
   use super::*;
-  use base::{Lexer, Match, Semantics, Tense, Token};
   use std::marker::PhantomData;
   use test::Bencher;
 

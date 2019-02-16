@@ -1,5 +1,5 @@
-use arena::Arena;
-use base::{Child, Derivation, Entry, Grammar, Rule, Term, Token};
+use super::base::{Child, Derivation, Entry, Grammar, Rule, Term, Token};
+use lib::arena::Arena;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
@@ -460,8 +460,8 @@ impl<'a, S, T> Parser<'a, S, T> {
 
 #[cfg(test)]
 mod tests {
+  use super::super::base::{Lexer, Match, Semantics, Tense};
   use super::*;
-  use base::{Lexer, Match, Semantics, Tense};
   use std::marker::PhantomData;
   use test::Bencher;
 

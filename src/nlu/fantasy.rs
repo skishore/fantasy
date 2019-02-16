@@ -55,7 +55,7 @@ enum TermNode {
 // A parser that builds up the AST above.
 
 fn parse(input: &str) -> Result<Vec<RootNode>, String> {
-  use combine::*;
+  use lib::combine::*;
   use std::thread_local;
 
   enum DataNode {
