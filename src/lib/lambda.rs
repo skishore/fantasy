@@ -108,7 +108,6 @@ fn stringify(lambda: &Lambda, context: u32) -> String {
 
 fn template(input: &str) -> Result<Rc<Template<OptionLambda>>, String> {
   use super::combine::*;
-  use std::thread_local;
 
   type Node = Rc<Template<OptionLambda>>;
 
