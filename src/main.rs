@@ -15,6 +15,7 @@ extern crate test;
 #[global_allocator]
 static GLOBAL: Jemalloc = Jemalloc;
 
+mod hindi;
 mod lib;
 mod nlu;
 
