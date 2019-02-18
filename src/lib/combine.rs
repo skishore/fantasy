@@ -1,7 +1,7 @@
 use regex::Regex;
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::collections::BTreeSet;
-use std::convert::Into;
 use std::rc::Rc;
 
 struct State<'a> {
@@ -13,6 +13,12 @@ struct State<'a> {
 type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>;
 
 pub struct Parser<T>(Rc<Method<T>>);
+
+impl<T> Into<Parser<T>> for &Parser<T> {
+  fn into(self) -> Parser<T> {
+    Parser(Rc::clone(&self.0))
+  }
+}
 
 impl<T: 'static> Parser<T> {
   fn new<F: for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)> + 'static>(f: F) -> Self {
@@ -29,24 +35,10 @@ impl<T: 'static> Parser<T> {
   }
 }
 
-// Provided so that parser combinators can be called by value or by reference.
-
-impl<T> AsRef<Parser<T>> for Parser<T> {
-  fn as_ref(&self) -> &Parser<T> {
-    self
-  }
-}
-
-impl<T> Into<Parser<T>> for &Parser<T> {
-  fn into(self) -> Parser<T> {
-    Parser(Rc::clone(&self.0))
-  }
-}
-
 // Methods for constructing parsers.
 
-pub fn any<A: 'static>(parsers: &[impl AsRef<Parser<A>>]) -> Parser<A> {
-  let parsers: Vec<Parser<A>> = parsers.iter().map(|x| x.as_ref().into()).collect();
+pub fn any<A: 'static>(parsers: &[impl Borrow<Parser<A>>]) -> Parser<A> {
+  let parsers: Vec<Parser<A>> = parsers.iter().map(|x| x.borrow().into()).collect();
   Parser::new(move |x, s| parsers.iter().filter_map(|y| (y.0)(x, s)).next())
 }
 
@@ -60,7 +52,7 @@ pub fn fail<A: 'static>(message: &str) -> Parser<A> {
 
 pub fn lazy<A: 'static>() -> (Rc<RefCell<Parser<A>>>, Parser<A>) {
   let result = Rc::new(RefCell::new(fail("Uninitialized lazy!")));
-  (Rc::clone(&result), Parser::new(move |x, s| (result.borrow().0)(x, s)))
+  (Rc::clone(&result), Parser::new(move |x, s| (RefCell::borrow(&result).0)(x, s)))
 }
 
 pub fn map<A: 'static, B: 'static, F: Fn(A) -> B + 'static>(

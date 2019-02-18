@@ -376,11 +376,11 @@ impl<'a, 'b, T> Skipped<'a, 'b, T> {
   }
 
   fn get_completed(&mut self, arena: &mut Arena<State<'a, 'b, T>>) -> States<'a, 'b, T> {
-    self.penalize(arena, self.completed.as_ref())
+    self.penalize(arena, &self.completed)
   }
 
   fn get_scannable(&mut self, arena: &mut Arena<State<'a, 'b, T>>) -> States<'a, 'b, T> {
-    self.penalize(arena, self.scannable.as_ref())
+    self.penalize(arena, &self.scannable)
   }
 }
 
