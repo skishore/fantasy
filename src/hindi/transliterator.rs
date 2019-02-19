@@ -28,7 +28,7 @@ fn coerce(x: Bytes) -> &'static str {
 }
 
 fn disemvowel(x: &str) -> String {
-  x.chars().filter(|y| !"aeiou".contains(*y)).collect()
+  x.replace(|c| "aeiouy".contains(c), "")
 }
 
 fn hash_keys_from_latin(latin: &str) -> Vec<String> {
@@ -66,10 +66,13 @@ fn check(ch: &[u8]) -> Option<Bytes> {
 
 fn split(wx: &str) -> Vec<Bytes> {
   let wx = wx.as_bytes();
+  let mut prev_vowel = false;
   let mut prev_consonant = false;
   let mut result = Vec::with_capacity(2 * wx.len());
   for (i, byte) in wx.iter().enumerate() {
     let ch = *byte;
+    let next_vowel = b"aeiouAEIOU".contains(byte);
+    let next_consonant = !next_vowel && !b"zM".contains(byte);
     if ch == b'Z' {
       continue;
     } else if i + 1 < wx.len() && wx[i] == b'Z' {
@@ -78,10 +81,14 @@ fn split(wx: &str) -> Vec<Bytes> {
       result.push(b"ax");
     } else if ch == b'z' || ch == b'M' {
       result.push(b"nx");
+    } else if prev_vowel && next_vowel {
+      result.push(b"yx");
+      check(&wx[i..i + 1]).map(|x| result.push(x));
     } else {
       check(&wx[i..i + 1]).map(|x| result.push(x));
     }
-    prev_consonant = !b"aeiouAEIOUzM".contains(byte);
+    prev_vowel = next_vowel;
+    prev_consonant = next_consonant;
   }
   if result.is_empty() {
     return vec![b"zy"];
@@ -164,7 +171,7 @@ impl Transliterator {
         scores.entry(wx.clone()).or_insert_with(|| viterbi(&latin, &wx));
       }
     }
-    let mut scores: Vec<_> = scores.into_iter().collect();
+    let mut scores: Vec<_> = scores.into_iter().filter(|x| x.1 > std::f32::NEG_INFINITY).collect();
     scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
     scores.into_iter().map(|x| x.0).collect()
   }
@@ -211,6 +218,13 @@ mod tests {
   fn transliteration_allows_vowel_skips() {
     let t = Transliterator::new(&"khaUnga king".split(' ').collect::<Vec<_>>());
     check(t.transliterate("khunga"), &["khaUnga", "king"]);
+  }
+
+  #[test]
+  fn transliteration_allows_y_between_vowels() {
+    let t = Transliterator::new(&"leenge leyenge".split(' ').collect::<Vec<_>>());
+    check(t.transliterate("leenge ".trim()), &["leenge"]);
+    check(t.transliterate("leyenge".trim()), &["leyenge", "leenge"]);
   }
 
   #[bench]
