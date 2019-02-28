@@ -1,4 +1,8 @@
+use super::super::lib::lambda::{Args, Template};
+use super::base::Term;
 use rustc_hash::FxHashMap;
+use std::fmt::Debug;
+use std::rc::Rc;
 
 // We parse our grammar files into this AST, rooted at a list of RootNodes.
 
@@ -12,9 +16,10 @@ struct ItemNode {
 struct MacroNode {
   name: String,
   args: Vec<String>,
-  rule: Vec<RuleNode>,
+  rules: Vec<RuleNode>,
 }
 
+#[derive(Default)]
 struct RuleNode {
   merge: f32,
   split: f32,
@@ -26,7 +31,7 @@ struct RuleNode {
 struct SymbolNode {
   lhs: String,
   root: bool,
-  rule: Vec<RuleNode>,
+  rules: Vec<RuleNode>,
 }
 
 enum ExprNode {
@@ -35,16 +40,17 @@ enum ExprNode {
   Term(TermNode),
 }
 
+#[derive(PartialEq)]
 enum MarkNode {
-  First,
-  Last,
+  Max,
+  Min,
   Skip,
 }
 
 enum RootNode {
   Lexer(String),
   Macro(MacroNode),
-  Symbol(SymbolNode),
+  Rules(SymbolNode),
 }
 
 enum TermNode {
@@ -52,9 +58,241 @@ enum TermNode {
   Terminal(String),
 }
 
+// Helpers needed for converting from a basic template to the grammar's semantics callbacks.
+
+struct DefaultTemplate {}
+
+impl<T: Data> Template<T> for DefaultTemplate {
+  fn merge(&self, _: &Args<T>) -> T {
+    T::default()
+  }
+  fn split(&self, x: &T) -> Vec<Args<T>> {
+    if x.is_default() {
+      vec![vec![]]
+    } else {
+      vec![]
+    }
+  }
+}
+
+struct UnitTemplate {}
+
+impl<T: Data> Template<T> for UnitTemplate {
+  fn merge(&self, xs: &Args<T>) -> T {
+    xs.iter().filter(|(i, _)| *i == 0).next().map(|(_, x)| x.clone()).unwrap_or(T::default())
+  }
+  fn split(&self, x: &T) -> Vec<Args<T>> {
+    vec![vec![(0, x.clone())]]
+  }
+}
+
+fn get_semantics<T: Data>(rule: &RuleNode, template: Rc<Template<T>>) -> (Merge<T>, Split<T>) {
+  let n = rule.rhs.len();
+  let (merge, split) = (template.clone(), template.clone());
+  (
+    Merge {
+      callback: Box::new(move |x| merge.merge(&x.iter().cloned().enumerate().collect())),
+      score: rule.merge,
+    },
+    Split {
+      callback: Box::new(move |x| {
+        let mut result = vec![];
+        for option in x.as_ref().map(|y| split.split(y)).unwrap_or(vec![vec![]]) {
+          let mut entry = vec![None; n];
+          option.into_iter().filter(|(i, _)| *i < n).for_each(|(i, y)| entry[i] = Some(y));
+          result.push(entry);
+        }
+        result
+      }),
+      score: rule.split,
+    },
+  )
+}
+
+// Helpers to create a single term, which involves expanding macros.
+
+fn get_precedence(rhs: &[ItemNode]) -> Vec<usize> {
+  let mut result = vec![];
+  rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Max).for_each(|(i, _)| result.push(i));
+  rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Min).for_each(|(i, _)| result.push(i));
+  if result.is_empty() {
+    (0..rhs.len()).collect()
+  } else {
+    result
+  }
+}
+
+fn get_rule<T: Data>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
+  let n = rhs.len();
+  let template: Rc<Template<T>> =
+    if n == 1 { Rc::new(UnitTemplate {}) } else { Rc::new(DefaultTemplate {}) };
+  let (merge, split) = get_semantics(&RuleNode::default(), template);
+  Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: FxHashMap::default() }
+}
+
+// Logic for building a grammar from an AST.
+
+pub trait Data: 'static + Clone + Debug + Default {
+  fn is_default(&self) -> bool;
+  fn template(&str) -> Result<Rc<Template<Self>>>;
+}
+
+type Result<T> = std::result::Result<T, String>;
+
+type Grammar<T> = super::base::Grammar<Option<T>, T>;
+type Lexer<T> = super::base::Lexer<Option<T>, T>;
+type Rule<T> = super::base::Rule<Option<T>, T>;
+
+type Merge<T> = super::base::Semantics<Fn(&[T]) -> T>;
+type Split<T> = super::base::Semantics<Fn(&Option<T>) -> Vec<Vec<Option<T>>>>;
+
+struct State<T: Data> {
+  binding: FxHashMap<String, Term>,
+  grammar: Grammar<T>,
+  macros: FxHashMap<String, Rc<MacroNode>>,
+  symbol: FxHashMap<String, usize>,
+}
+
+impl<T: Data> State<T> {
+  fn build_binding(&mut self, binding: &str) -> Result<Term> {
+    match self.binding.get(binding) {
+      Some(Term::Symbol(x)) => Ok(Term::Symbol(*x)),
+      Some(Term::Terminal(x)) => Ok(Term::Terminal(x.clone())),
+      None => Err(format!("Unbound macro argument: {}", binding)),
+    }
+  }
+
+  fn build_expr(&mut self, expr: &ExprNode) -> Result<Term> {
+    match expr {
+      ExprNode::Binding(binding) => self.build_binding(binding),
+      ExprNode::Macro(name, args) => self.build_macro(name, args),
+      ExprNode::Term(TermNode::Symbol(x)) => Ok(Term::Symbol(self.get_symbol(x))),
+      ExprNode::Term(TermNode::Terminal(x)) => Ok(Term::Terminal(x.clone())),
+    }
+  }
+
+  fn build_macro(&mut self, name: &str, args: &[ExprNode]) -> Result<Term> {
+    let terms = args.iter().map(|x| self.build_expr(x)).collect::<Result<Vec<_>>>()?;
+    let names: Vec<_> = terms.iter().map(|x| self.get_name(x)).collect();
+    let symbol = format!("{}[{}]", name, names.join(", "));
+    if !self.symbol.contains_key(&symbol) {
+      let m = self.macros.get(name).cloned().ok_or(format!("Unbound macro: {}", name))?;
+      if terms.len() != m.args.len() {
+        return Err(format!("{} got {} arguments; expected: {}", name, terms.len(), m.args.len()));
+      }
+      let mut b: FxHashMap<_, _> = m.args.iter().zip(terms).map(|(x, y)| (x.clone(), y)).collect();
+      std::mem::swap(&mut self.binding, &mut b);
+      self.process_rules(&symbol, &m.rules)?;
+      std::mem::swap(&mut self.binding, &mut b);
+    }
+    Ok(Term::Symbol(self.get_symbol(&symbol)))
+  }
+
+  fn build_option(&mut self, term: Term) -> Term {
+    let name = format!("{}?", self.get_name(&term));
+    if !self.symbol.contains_key(&name) {
+      let symbol = self.get_symbol(&name);
+      for rhs in vec![vec![], vec![term]] {
+        self.grammar.rules.push(get_rule(symbol, rhs));
+      }
+    }
+    Term::Terminal(name)
+  }
+
+  fn build_term(&mut self, item: &ItemNode) -> Result<Term> {
+    let base = self.build_expr(&item.expr)?;
+    if item.optional {
+      Ok(self.build_option(base))
+    } else {
+      Ok(base)
+    }
+  }
+
+  fn get_name(&mut self, term: &Term) -> String {
+    match term {
+      Term::Symbol(x) => self.grammar.names[*x].clone(),
+      Term::Terminal(x) => x.clone(),
+    }
+  }
+
+  fn get_symbol(&mut self, name: &str) -> usize {
+    let names = &mut self.grammar.names;
+    *self.symbol.entry(name.to_string()).or_insert_with(|| {
+      names.push(name.to_string());
+      names.len() - 1
+    })
+  }
+
+  fn process_lexer(&mut self, _x: String) -> Result<()> {
+    // TODO(skishore): Figure out hos to build a lexer given a string in Rust.
+    unimplemented!()
+  }
+
+  fn process_macro(&mut self, x: MacroNode) -> Result<()> {
+    match self.macros.insert(x.name.clone(), Rc::new(x)) {
+      Some(x) => Err(format!("Duplicate macro: {}", x.name)),
+      None => Ok(()),
+    }
+  }
+
+  fn process_rules(&mut self, lhs: &str, rules: &[RuleNode]) -> Result<()> {
+    let lhs = self.get_symbol(&lhs);
+    rules.iter().try_for_each(|y| {
+      let rhs = y.rhs.iter().map(|z| self.build_term(z)).collect::<Result<Vec<_>>>()?;
+      let precedence = get_precedence(&y.rhs);
+      // TODO(skishore): Use the term indices, the slots, here.
+      let template = match &y.template {
+        Some(x) => T::template(x)?,
+        None => Rc::new(DefaultTemplate {}),
+      };
+      let (merge, split) = get_semantics(y, template);
+      self.grammar.rules.push(Rule { lhs, rhs, merge, split, precedence, tense: y.tense.clone() });
+      Ok(())
+    })
+  }
+
+  fn process_start(&mut self, x: &str) {
+    let lhs = self.get_symbol(x);
+    self.grammar.rules.push(get_rule(0, vec![Term::Symbol(lhs)]));
+  }
+}
+
+pub fn compile<T: Data>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<T>> {
+  let (mut lexers, mut macros, mut symbol) = (vec![], vec![], vec![]);
+  parse(input)?.into_iter().for_each(|x| match x {
+    RootNode::Lexer(x) => lexers.push(x),
+    RootNode::Macro(x) => macros.push(x),
+    RootNode::Rules(x) => symbol.push(x),
+  });
+  if lexers.is_empty() {
+    return Err("Unable to find lexer block!".to_string());
+  }
+
+  // TODO(skishore): We need to actually construct a lexer here.
+  let mut state: State<T> = State {
+    binding: FxHashMap::default(),
+    grammar: Grammar {
+      key: Box::new(|x| format!("{:?}", x)),
+      lexer: lexer,
+      names: vec![],
+      rules: vec![],
+      start: 0,
+    },
+    macros: FxHashMap::default(),
+    symbol: FxHashMap::default(),
+  };
+
+  state.get_symbol("$ROOT");
+  lexers.into_iter().try_for_each(|x| state.process_lexer(x))?;
+  macros.into_iter().try_for_each(|x| state.process_macro(x))?;
+  symbol.iter().try_for_each(|x| state.process_rules(&x.lhs, &x.rules))?;
+  symbol.iter().filter(|x| x.root).for_each(|x| state.process_start(&x.lhs));
+  Ok(state.grammar)
+}
+
 // A parser that builds up the AST above.
 
-fn parse(input: &str) -> Result<Vec<RootNode>, String> {
+fn parse(input: &str) -> Result<Vec<RootNode>> {
   use lib::combine::*;
   use std::thread_local;
 
@@ -101,8 +339,8 @@ fn parse(input: &str) -> Result<Vec<RootNode>, String> {
 
       // A parser for an RHS item, which is a marked-up expr.
       let mark = any(&[
-        map(st("*"), |_| MarkNode::First),
-        map(st("^"), |_| MarkNode::Last),
+        map(st("*"), |_| MarkNode::Max),
+        map(st("^"), |_| MarkNode::Min),
         succeed(|| MarkNode::Skip),
       ]);
       let item = seq4(
@@ -133,9 +371,8 @@ fn parse(input: &str) -> Result<Vec<RootNode>, String> {
       let side = seq3((sign, &ws, once), |x| x);
       let rule = seq3((&metas, &ws, separate(side, &ws, 1)), |(rule_data, _, sides)| {
         let rules = sides.into_iter().map(|(sign_data, _, (rhs, _, side_data))| {
-          let tense = FxHashMap::default();
+          let mut rule = RuleNode { rhs, ..RuleNode::default() };
           let data = rule_data.iter().chain(sign_data.iter()).chain(side_data.iter());
-          let mut rule = RuleNode { merge: 0.0, split: 0.0, rhs, template: None, tense };
           data.for_each(|z| match z {
             DataNode::Merge(x) => rule.merge = *x,
             DataNode::Split(x) => rule.split = *x,
@@ -151,8 +388,8 @@ fn parse(input: &str) -> Result<Vec<RootNode>, String> {
       let args = seq3((st("["), separate(binding, commas, 1), st("]")), |x| x.1);
       let update = any(&[
         regexp(r#"lexer: ```[\s\S]*```"#, |x| RootNode::Lexer(x.to_string())),
-        seq4((&id, args, &ws, &rule), |x| RootNode::Macro(MacroNode { name: x.0, args: x.1, rule: x.3 })),
-        seq4((&symbol, opt(st("!")), &ws, &rule), |x| RootNode::Symbol(SymbolNode { lhs: x.0, root: x.1.is_some(), rule: x.3 })),
+        seq4((&id, args, &ws, &rule), |x| RootNode::Macro(MacroNode { name: x.0, args: x.1, rules: x.3 })),
+        seq4((&symbol, opt(st("!")), &ws, &rule), |x| RootNode::Rules(SymbolNode { lhs: x.0, root: x.1.is_some(), rules: x.3 })),
       ]);
       seq3((&ws, separate(update, &ws, 1), &ws), |x| x.1)
     };
