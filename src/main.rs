@@ -2,7 +2,6 @@
 #![feature(test)]
 
 use jemallocator::Jemalloc;
-use std::rc::Rc;
 
 extern crate jemallocator;
 extern crate rand;
@@ -18,20 +17,24 @@ static GLOBAL: Jemalloc = Jemalloc;
 mod hindi;
 mod lib;
 mod nlu;
+mod payload;
 
-use lib::lambda::Lambda;
+use lib::base::Result;
+use payload::base::Payload;
+use payload::lambda::Lambda;
 
-fn debug((k, v): &(usize, Option<Rc<Lambda>>)) -> String {
-  format!("Key {}: {}", k, v.as_ref().map(|x| x.stringify()).unwrap_or("-".to_string()))
+fn debug((k, v): &(usize, Lambda)) -> String {
+  format!("Key {}: {}", k, v.stringify())
 }
 
-fn main() {
-  let lambda = Some(Lambda::parse("R[a].b & c").unwrap());
-  let template = Lambda::template("$0.$1 & $2").unwrap();
+fn main() -> Result<()> {
+  let lambda = Lambda::parse("R[a].b & c")?;
+  let template = Lambda::template("$0.$1 & $2")?;
   for (i, option) in template.split(&lambda).iter().enumerate() {
     let mut result: Vec<_> = option.iter().map(debug).collect();
     result.sort();
     println!("Option {}:", i);
     result.iter().for_each(|x| println!("    {}", x));
   }
+  Ok(())
 }

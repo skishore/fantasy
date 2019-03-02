@@ -1,7 +1,7 @@
-use super::super::lib::lambda::{Args, Template};
+use super::super::lib::base::Result;
+use super::super::payload::base::{Args, Payload, Template};
 use super::base::Term;
 use rustc_hash::FxHashMap;
-use std::fmt::Debug;
 use std::rc::Rc;
 
 // We parse our grammar files into this AST, rooted at a list of RootNodes.
@@ -62,12 +62,12 @@ enum TermNode {
 
 struct DefaultTemplate {}
 
-impl<T: Data> Template<T> for DefaultTemplate {
+impl<T: Payload> Template<T> for DefaultTemplate {
   fn merge(&self, _: &Args<T>) -> T {
     T::default()
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
-    if x.is_default() {
+    if x == &T::default() {
       vec![vec![]]
     } else {
       vec![]
@@ -77,7 +77,7 @@ impl<T: Data> Template<T> for DefaultTemplate {
 
 struct UnitTemplate {}
 
-impl<T: Data> Template<T> for UnitTemplate {
+impl<T: Payload> Template<T> for UnitTemplate {
   fn merge(&self, xs: &Args<T>) -> T {
     xs.iter().filter(|(i, _)| *i == 0).next().map(|(_, x)| x.clone()).unwrap_or(T::default())
   }
@@ -86,7 +86,7 @@ impl<T: Data> Template<T> for UnitTemplate {
   }
 }
 
-fn get_semantics<T: Data>(rule: &RuleNode, template: Rc<Template<T>>) -> (Merge<T>, Split<T>) {
+fn get_semantics<T: Payload>(rule: &RuleNode, template: Rc<Template<T>>) -> (Merge<T>, Split<T>) {
   let n = rule.rhs.len();
   let (merge, split) = (template.clone(), template.clone());
   (
@@ -122,7 +122,7 @@ fn get_precedence(rhs: &[ItemNode]) -> Vec<usize> {
   }
 }
 
-fn get_rule<T: Data>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
+fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
   let n = rhs.len();
   let template: Rc<Template<T>> =
     if n == 1 { Rc::new(UnitTemplate {}) } else { Rc::new(DefaultTemplate {}) };
@@ -132,13 +132,6 @@ fn get_rule<T: Data>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
 
 // Logic for building a grammar from an AST.
 
-pub trait Data: 'static + Clone + Debug + Default {
-  fn is_default(&self) -> bool;
-  fn template(&str) -> Result<Rc<Template<Self>>>;
-}
-
-type Result<T> = std::result::Result<T, String>;
-
 type Grammar<T> = super::base::Grammar<Option<T>, T>;
 type Lexer<T> = super::base::Lexer<Option<T>, T>;
 type Rule<T> = super::base::Rule<Option<T>, T>;
@@ -146,14 +139,14 @@ type Rule<T> = super::base::Rule<Option<T>, T>;
 type Merge<T> = super::base::Semantics<Fn(&[T]) -> T>;
 type Split<T> = super::base::Semantics<Fn(&Option<T>) -> Vec<Vec<Option<T>>>>;
 
-struct State<T: Data> {
+struct State<T: Payload> {
   binding: FxHashMap<String, Term>,
   grammar: Grammar<T>,
   macros: FxHashMap<String, Rc<MacroNode>>,
   symbol: FxHashMap<String, usize>,
 }
 
-impl<T: Data> State<T> {
+impl<T: Payload> State<T> {
   fn build_binding(&mut self, binding: &str) -> Result<Term> {
     match self.binding.get(binding) {
       Some(Term::Symbol(x)) => Ok(Term::Symbol(*x)),
@@ -257,7 +250,7 @@ impl<T: Data> State<T> {
   }
 }
 
-pub fn compile<T: Data>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<T>> {
+pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<T>> {
   let (mut lexers, mut macros, mut symbol) = (vec![], vec![], vec![]);
   parse(input)?.into_iter().for_each(|x| match x {
     RootNode::Lexer(x) => lexers.push(x),
@@ -272,7 +265,10 @@ pub fn compile<T: Data>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<T>>
   let mut state: State<T> = State {
     binding: FxHashMap::default(),
     grammar: Grammar {
-      key: Box::new(|x| format!("{:?}", x)),
+      key: Box::new(|x| match x {
+        Some(x) => format!("Some({})", x.stringify()),
+        None => "None".to_string(),
+      }),
       lexer: lexer,
       names: vec![],
       rules: vec![],

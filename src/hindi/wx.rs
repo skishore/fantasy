@@ -1,3 +1,4 @@
+use super::super::lib::base::Result;
 use rustc_hash::FxHashMap;
 
 // WX is a transliteration format developed at IIT Kanpur. The main advantages
@@ -55,7 +56,7 @@ pub fn is_vowel(ch: char) -> bool {
 
 // Now we implement the logic for transliteration from Hindi to WX and back.
 
-pub fn hindi_to_wx(hindi: &str) -> Result<String, String> {
+pub fn hindi_to_wx(hindi: &str) -> Result<String> {
   let mut prev_consonant = false;
   let mut result = String::with_capacity(2 * hindi.len());
   hindi.chars().try_for_each(|x| {
@@ -81,10 +82,10 @@ pub fn hindi_to_wx(hindi: &str) -> Result<String, String> {
   Ok(result)
 }
 
-pub fn wx_to_hindi(wx: &str) -> Result<String, String> {
+pub fn wx_to_hindi(wx: &str) -> Result<String> {
   let mut prev_consonant = false;
   let mut result = String::with_capacity(2 * wx.len());
-  wx.chars().try_for_each(|x| -> Result<(), String> {
+  wx.chars().try_for_each(|x| -> Result<()> {
     let hi = WX_TO_HINDI.with(|a| a.get(&x).cloned());
     let hi = hi.ok_or_else(|| format!("Invalid WX: {}", wx))?;
     let next_consonant = is_consonant(hi);

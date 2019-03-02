@@ -1,3 +1,4 @@
+use super::base::Result;
 use regex::Regex;
 use std::borrow::Borrow;
 use std::cell::RefCell;
@@ -25,12 +26,12 @@ impl<T: 'static> Parser<T> {
     Parser(Rc::new(f))
   }
 
-  pub fn parse(&self, x: &str) -> Result<T, String> {
+  pub fn parse(&self, x: &str) -> Result<T> {
     let mut state = State { expected: vec![], input: x, remainder: x.len() };
     match (self.0)(x, &mut state) {
       Some((value, "")) => Ok(value),
-      Some((_, x)) => Result::Err(format(Some(x.len()), &mut state)),
-      None => Result::Err(format(None, &mut state)),
+      Some((_, x)) => Err(format(Some(x.len()), &mut state)),
+      None => Err(format(None, &mut state)),
     }
   }
 }
@@ -221,7 +222,7 @@ mod tests {
     string(x, |_| ())
   }
 
-  fn test_error<T: std::fmt::Debug>(result: Result<T, String>, prefix: &str) {
+  fn test_error<T: std::fmt::Debug>(result: Result<T>, prefix: &str) {
     let error = result.unwrap_err();
     if !error.starts_with(prefix) {
       let error = error.split('\n').nth(0).unwrap_or("");
