@@ -1,5 +1,5 @@
 use super::super::lib::base::Result;
-use super::base::{Args, Payload, Template};
+use super::base::{append, Args, Payload, Template};
 use std::rc::Rc;
 
 // A lambda DCS type used for utterance semantics.
@@ -46,7 +46,7 @@ impl Payload for Lambda {
   }
 }
 
-// Helpers for representing lambda DCS expressions.
+// Helpers for implementing the Payload trait.
 
 struct Operator {
   commutes: bool,
@@ -297,14 +297,6 @@ impl Template<Lambda> for VariableTemplate {
 
 // Internal helpers for the templates above.
 
-fn append<T: Clone>(xs: &[Args<T>], ys: &[Args<T>], zs: &mut Vec<Args<T>>) {
-  for x in xs {
-    for y in ys {
-      zs.push(x.iter().chain(y.iter()).map(|z| z.clone()).collect());
-    }
-  }
-}
-
 fn collapse(op: Binary, mut x: Vec<Rc<Expr>>) -> Lambda {
   match x.len() {
     0 | 1 => x.pop(),
@@ -348,6 +340,10 @@ mod tests {
 
   fn t(input: &str) -> Rc<Template<Lambda>> {
     Lambda::template(input).unwrap()
+  }
+
+  fn empty() -> Vec<Args<Lambda>> {
+    vec![]
   }
 
   fn merge(template: &Template<Lambda>, args: Vec<Lambda>) -> Lambda {
@@ -394,6 +390,7 @@ mod tests {
   #[test]
   fn splitting_joins_works() {
     let template = t("color.$0");
+    assert_eq!(template.split(&l("type.food")), empty());
     assert_eq!(template.split(&l("color.red")), vec![vec![(0, l("red"))]]);
     assert_eq!(template.split(&None), vec![vec![(0, None)]]);
   }
@@ -429,6 +426,7 @@ mod tests {
   #[test]
   fn splitting_custom_functions_works() {
     let template = t("Tell($0, name.$1)");
+    assert_eq!(template.split(&l("Ask(you.name)")), empty());
     assert_eq!(template.split(&l("Tell(I, name.X)")), vec![vec![(0, l("I")), (1, l("X"))]]);
     assert_eq!(template.split(&None), vec![vec![(0, None)], vec![(1, None)]]);
   }
@@ -461,18 +459,18 @@ mod tests {
   }
 
   #[bench]
-  fn lambda_parse_benchmark(b: &mut Bencher) {
+  fn parse_benchmark(b: &mut Bencher) {
     b.iter(|| Lambda::parse("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap());
   }
 
   #[bench]
-  fn lambda_stringify_benchmark(b: &mut Bencher) {
+  fn stringify_benchmark(b: &mut Bencher) {
     let lambda = Lambda::parse("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap();
     b.iter(|| lambda.stringify());
   }
 
   #[bench]
-  fn lambda_template_benchmark(b: &mut Bencher) {
+  fn template_benchmark(b: &mut Bencher) {
     b.iter(|| Lambda::template("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap());
   }
 
