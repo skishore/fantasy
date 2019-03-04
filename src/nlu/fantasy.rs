@@ -67,7 +67,7 @@ impl<T: Payload> Template<T> for DefaultTemplate {
     T::default()
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
-    if x == &T::default() {
+    if x.is_default() {
       vec![vec![]]
     } else {
       vec![]
@@ -234,8 +234,8 @@ impl<T: Payload> State<T> {
       let rhs = y.rhs.iter().map(|z| self.build_term(z)).collect::<Result<Vec<_>>>()?;
       let precedence = get_precedence(&y.rhs);
       // TODO(skishore): Use the term indices, the slots, here.
-      let template = match &y.template {
-        Some(x) => T::template(x)?,
+      let template: Rc<Template<T>> = match &y.template {
+        Some(x) => T::template(x)?.into(),
         None => Rc::new(DefaultTemplate {}),
       };
       let (merge, split) = get_semantics(y, template);

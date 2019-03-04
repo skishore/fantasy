@@ -1,5 +1,5 @@
 use super::super::lib::base::Result;
-use super::base::{append, Args, Payload, Template};
+use super::base::{append, cross, Args, Payload, Template, VariableTemplate};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::rc::Rc;
 
@@ -17,6 +17,22 @@ pub enum Value {
 }
 
 impl Payload for Json {
+  fn base_lex(input: &str) -> Self {
+    Some(Rc::new(Value::String(input.to_string())))
+  }
+
+  fn base_unlex(&self) -> Option<&str> {
+    if let Value::String(x) = &**self.as_ref()? {
+      Some(x.as_str())
+    } else {
+      None
+    }
+  }
+
+  fn is_default(&self) -> bool {
+    self.is_none()
+  }
+
   fn parse(input: &str) -> Result<Self> {
     Ok(template(input)?.merge(&vec![]))
   }
@@ -25,12 +41,12 @@ impl Payload for Json {
     stringify(self)
   }
 
-  fn template(input: &str) -> Result<Rc<Template<Self>>> {
+  fn template(input: &str) -> Result<Box<Template<Self>>> {
     template(input)
   }
 }
 
-// Helpers for implementing the Payload trait.
+// Helpers used to implement the Payload trait.
 
 fn stringify(input: &Json) -> String {
   match input {
@@ -39,25 +55,26 @@ fn stringify(input: &Json) -> String {
       Value::Number(x) => x.to_string(),
       Value::String(x) => x.clone(),
       Value::Dict(x) => {
-        let terms = x.iter().map(|(k, v)| format!("{}: {}", k, stringify(v)));
-        format!("{{{}}}", terms.collect::<Vec<_>>().join(", "))
+        let mut terms: Vec<_> = x.iter().map(|(k, v)| format!("{}: {}", k, stringify(v))).collect();
+        terms.sort();
+        format!("{{{}}}", terms.join(", "))
       }
       Value::List(x) => {
-        let terms = x.iter().map(|y| stringify(y));
-        format!("[{}]", terms.collect::<Vec<_>>().join(", "))
+        let terms: Vec<_> = x.iter().map(|y| stringify(y)).collect();
+        format!("[{}]", terms.join(", "))
       }
     },
     None => "null".to_string(),
   }
 }
 
-fn template(input: &str) -> Result<Rc<Template<Json>>> {
+fn template(input: &str) -> Result<Box<Template<Json>>> {
   use super::super::lib::combine::*;
 
-  type Node = Rc<Template<Json>>;
+  type Node = Box<Template<Json>>;
 
   pub fn wrap(x: impl Template<Json> + 'static) -> Node {
-    Rc::new(x)
+    Box::new(x)
   }
 
   thread_local! {
@@ -116,12 +133,6 @@ fn template(input: &str) -> Result<Rc<Template<Json>>> {
 
 // Implementations of specific JSON templates.
 
-fn cross<T: Clone>(a: Vec<Args<T>>, b: Vec<Args<T>>) -> Vec<Args<T>> {
-  let mut result = Vec::with_capacity(a.len() * b.len());
-  append(&a, &b, &mut result);
-  result
-}
-
 fn coerce_dict(json: &Json) -> &[(String, Json)] {
   let x = json.as_ref();
   x.map(|x| if let Value::Dict(y) = &**x { y.as_slice() } else { &[] }).unwrap_or_default()
@@ -148,7 +159,7 @@ fn list_to_null(xs: Vec<Json>) -> Json {
   }
 }
 
-struct DictBaseTemplate(Vec<(String, Rc<Template<Json>>)>, FxHashSet<String>);
+struct DictBaseTemplate(Vec<(String, Box<Template<Json>>)>, FxHashSet<String>);
 
 impl Template<Json> for DictBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -168,7 +179,7 @@ impl Template<Json> for DictBaseTemplate {
   }
 }
 
-struct DictPairTemplate(Rc<Template<Json>>, Rc<Template<Json>>);
+struct DictPairTemplate(Box<Template<Json>>, Box<Template<Json>>);
 
 impl Template<Json> for DictPairTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -199,7 +210,7 @@ impl Template<Json> for DictPairTemplate {
   }
 }
 
-struct DictWrapTemplate(Rc<Template<Json>>);
+struct DictWrapTemplate(Box<Template<Json>>);
 
 impl Template<Json> for DictWrapTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -207,15 +218,15 @@ impl Template<Json> for DictWrapTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    if x.as_ref().map(|y| if let Value::Dict(_) = &**y { true } else { false }).unwrap_or(true) {
-      self.0.split(x)
-    } else {
+    if x.is_some() && coerce_dict(x).is_empty() {
       vec![]
+    } else {
+      self.0.split(x)
     }
   }
 }
 
-struct ListBaseTemplate(Rc<Template<Json>>);
+struct ListBaseTemplate(Box<Template<Json>>);
 
 impl Template<Json> for ListBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -232,7 +243,7 @@ impl Template<Json> for ListBaseTemplate {
   }
 }
 
-struct ListPairTemplate(Rc<Template<Json>>, Rc<Template<Json>>);
+struct ListPairTemplate(Box<Template<Json>>, Box<Template<Json>>);
 
 impl Template<Json> for ListPairTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -254,7 +265,7 @@ impl Template<Json> for ListPairTemplate {
   }
 }
 
-struct ListWrapTemplate(Rc<Template<Json>>);
+struct ListWrapTemplate(Box<Template<Json>>);
 
 impl Template<Json> for ListWrapTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -262,10 +273,10 @@ impl Template<Json> for ListWrapTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    if x.as_ref().map(|y| if let Value::List(_) = &**y { true } else { false }).unwrap_or(true) {
-      self.0.split(x)
-    } else {
+    if x.is_some() && coerce_list(x).is_empty() {
       vec![]
+    } else {
+      self.0.split(x)
     }
   }
 }
@@ -273,8 +284,8 @@ impl Template<Json> for ListWrapTemplate {
 // Specific implementations of the Template interface.
 
 enum Item {
-  Literals(Vec<(String, Rc<Template<Json>>)>),
-  Variable(Rc<Template<Json>>),
+  Literals(Vec<(String, Box<Template<Json>>)>),
+  Variable(Box<Template<Json>>),
 }
 
 struct BaseTemplate(Json);
@@ -293,42 +304,31 @@ impl Template<Json> for BaseTemplate {
   }
 }
 
-struct VariableTemplate(usize);
-
-impl Template<Json> for VariableTemplate {
-  fn merge(&self, xs: &Args<Json>) -> Json {
-    xs.iter().filter_map(|(i, x)| if *i == self.0 { x.clone() } else { None }).next()
-  }
-  fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    vec![vec![(self.0, x.clone())]]
-  }
-}
-
-fn dict(items: Vec<Item>) -> Rc<Template<Json>> {
+fn dict(items: Vec<Item>) -> Box<Template<Json>> {
   if items.is_empty() {
-    return Rc::new(BaseTemplate(None));
+    return Box::new(BaseTemplate(None));
   }
   let mut xs = items.into_iter().map(|x| match x {
     Item::Literals(dict) => {
       let keys = dict.iter().map(|(k, _)| k.clone()).collect::<FxHashSet<_>>();
-      Rc::new(DictBaseTemplate(dict, keys))
+      Box::new(DictBaseTemplate(dict, keys))
     }
     Item::Variable(x) => x,
   });
   let base = xs.next().unwrap();
-  Rc::new(DictWrapTemplate(xs.fold(base, |a, x| Rc::new(DictPairTemplate(a, x)))))
+  Box::new(DictWrapTemplate(xs.fold(base, |a, x| Box::new(DictPairTemplate(a, x)))))
 }
 
-fn list(items: Vec<(Rc<Template<Json>>, bool)>) -> Rc<Template<Json>> {
+fn list(items: Vec<(Box<Template<Json>>, bool)>) -> Box<Template<Json>> {
   if items.is_empty() {
-    return Rc::new(BaseTemplate(None));
+    return Box::new(BaseTemplate(None));
   }
   let mut xs = items.into_iter().map(|x| match x {
-    (x, false) => Rc::new(ListBaseTemplate(x)),
+    (x, false) => Box::new(ListBaseTemplate(x)),
     (x, true) => x,
   });
   let base = xs.next().unwrap();
-  Rc::new(ListWrapTemplate(xs.fold(base, |a, x| Rc::new(ListPairTemplate(a, x)))))
+  Box::new(ListWrapTemplate(xs.fold(base, |a, x| Box::new(ListPairTemplate(a, x)))))
 }
 
 #[cfg(test)]
@@ -340,7 +340,7 @@ mod tests {
     Json::parse(input).unwrap()
   }
 
-  fn t(input: &str) -> Rc<Template<Json>> {
+  fn t(input: &str) -> Box<Template<Json>> {
     Json::template(input).unwrap()
   }
 

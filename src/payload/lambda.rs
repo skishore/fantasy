@@ -1,5 +1,5 @@
 use super::super::lib::base::Result;
-use super::base::{append, Args, Payload, Template};
+use super::base::{append, Args, Payload, Template, VariableTemplate};
 use std::rc::Rc;
 
 // A lambda DCS type used for utterance semantics.
@@ -28,6 +28,22 @@ pub enum Expr {
 }
 
 impl Payload for Lambda {
+  fn base_lex(input: &str) -> Self {
+    Some(Rc::new(Expr::Terminal(input.to_string())))
+  }
+
+  fn base_unlex(&self) -> Option<&str> {
+    if let Expr::Terminal(x) = &**self.as_ref()? {
+      Some(x.as_str())
+    } else {
+      None
+    }
+  }
+
+  fn is_default(&self) -> bool {
+    self.is_none()
+  }
+
   fn parse(input: &str) -> Result<Self> {
     if input == "-" {
       Ok(None)
@@ -41,12 +57,12 @@ impl Payload for Lambda {
     self.as_ref().map(|x| stringify(x, std::u32::MAX)).unwrap_or("-".to_string())
   }
 
-  fn template(input: &str) -> Result<Rc<Template<Self>>> {
+  fn template(input: &str) -> Result<Box<Template<Self>>> {
     template(input)
   }
 }
 
-// Helpers for implementing the Payload trait.
+// Helpers used to implement the Payload trait.
 
 struct Operator {
   commutes: bool,
@@ -106,13 +122,13 @@ fn stringify(lambda: &Expr, context: u32) -> String {
   }
 }
 
-fn template(input: &str) -> Result<Rc<Template<Lambda>>> {
+fn template(input: &str) -> Result<Box<Template<Lambda>>> {
   use super::super::lib::combine::*;
 
-  type Node = Rc<Template<Lambda>>;
+  type Node = Box<Template<Lambda>>;
 
   pub fn wrap(x: impl Template<Lambda> + 'static) -> Node {
-    Rc::new(x)
+    Box::new(x)
   }
 
   thread_local! {
@@ -176,7 +192,7 @@ fn template(input: &str) -> Result<Rc<Template<Lambda>>> {
 
 // Templates that operate on lambda DCS expressions.
 
-struct BinaryTemplate(Binary, Rc<Template<Lambda>>, Rc<Template<Lambda>>);
+struct BinaryTemplate(Binary, Box<Template<Lambda>>, Box<Template<Lambda>>);
 
 impl Template<Lambda> for BinaryTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
@@ -220,7 +236,7 @@ impl Template<Lambda> for BinaryTemplate {
   }
 }
 
-struct CustomTemplate(String, Vec<Rc<Template<Lambda>>>);
+struct CustomTemplate(String, Vec<Box<Template<Lambda>>>);
 
 impl Template<Lambda> for CustomTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
@@ -273,7 +289,7 @@ impl Template<Lambda> for TerminalTemplate {
   }
 }
 
-struct UnaryTemplate(Unary, Rc<Template<Lambda>>);
+struct UnaryTemplate(Unary, Box<Template<Lambda>>);
 
 impl Template<Lambda> for UnaryTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
@@ -281,17 +297,6 @@ impl Template<Lambda> for UnaryTemplate {
   }
   fn split(&self, x: &Lambda) -> Vec<Args<Lambda>> {
     self.1.split(&involute(self.0, x.clone()))
-  }
-}
-
-struct VariableTemplate(usize);
-
-impl Template<Lambda> for VariableTemplate {
-  fn merge(&self, xs: &Args<Lambda>) -> Lambda {
-    xs.iter().filter_map(|(i, x)| if *i == self.0 { x.clone() } else { None }).next()
-  }
-  fn split(&self, x: &Lambda) -> Vec<Args<Lambda>> {
-    vec![vec![(self.0, x.clone())]]
   }
 }
 
@@ -338,7 +343,7 @@ mod tests {
     Lambda::parse(input).unwrap()
   }
 
-  fn t(input: &str) -> Rc<Template<Lambda>> {
+  fn t(input: &str) -> Box<Template<Lambda>> {
     Lambda::template(input).unwrap()
   }
 
