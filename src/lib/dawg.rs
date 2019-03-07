@@ -153,20 +153,11 @@ mod tests {
 
   fn subsets<T: Clone>(xs: &[T]) -> Vec<Vec<T>> {
     if xs.is_empty() {
-      vec![vec![]]
-    } else {
-      let mut ys = subsets(&xs[1..]);
-      let zs: Vec<_> = ys
-        .iter()
-        .map(|y| {
-          let mut z = vec![xs[0].clone()];
-          z.extend_from_slice(y);
-          z
-        })
-        .collect();
-      ys.extend(zs);
-      ys
+      return vec![vec![]];
     }
+    let (head, tail) = xs.split_at(1);
+    let ys = subsets(&tail);
+    ys.iter().map(|y| head.iter().chain(y).cloned().collect()).chain(ys.clone()).collect()
   }
 
   #[test]

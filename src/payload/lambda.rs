@@ -33,11 +33,7 @@ impl Payload for Lambda {
   }
 
   fn base_unlex(&self) -> Option<&str> {
-    if let Expr::Terminal(x) = &**self.as_ref()? {
-      Some(x.as_str())
-    } else {
-      None
-    }
+    return if let Expr::Terminal(x) = &**self.as_ref()? { Some(x.as_str()) } else { None };
   }
 
   fn is_default(&self) -> bool {
@@ -46,15 +42,14 @@ impl Payload for Lambda {
 
   fn parse(input: &str) -> Result<Self> {
     if input == "-" {
-      Ok(None)
-    } else {
-      let base = template(input)?.merge(&vec![]);
-      Ok(Some(base.ok_or("Empty lambda expression!".to_string())?))
+      return Ok(None);
     }
+    let base = template(input)?.merge(&vec![]);
+    Ok(Some(base.ok_or("Empty lambda expression!".to_string())?))
   }
 
   fn stringify(&self) -> String {
-    self.as_ref().map(|x| stringify(x, std::u32::MAX)).unwrap_or("-".to_string())
+    self.as_ref().map_or("-".into(), |x| stringify(x, std::u32::MAX))
   }
 
   fn template(input: &str) -> Result<Box<Template<Self>>> {
@@ -277,15 +272,11 @@ impl Template<Lambda> for TerminalTemplate {
     self.1.clone()
   }
   fn split(&self, x: &Lambda) -> Vec<Args<Lambda>> {
-    let matched = x.as_ref().map(|y| match **y {
+    let matched = x.as_ref().map_or(false, |y| match **y {
       Expr::Terminal(ref z) => *z == self.0,
       _ => false,
     });
-    if matched.unwrap_or(false) {
-      vec![vec![]]
-    } else {
-      vec![]
-    }
+    return if matched { vec![vec![]] } else { vec![] };
   }
 }
 

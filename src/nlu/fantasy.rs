@@ -67,11 +67,7 @@ impl<T: Payload> Template<T> for DefaultTemplate {
     T::default()
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
-    if x.is_default() {
-      vec![vec![]]
-    } else {
-      vec![]
-    }
+    return if x.is_default() { vec![vec![]] } else { vec![] };
   }
 }
 
@@ -79,7 +75,7 @@ struct UnitTemplate {}
 
 impl<T: Payload> Template<T> for UnitTemplate {
   fn merge(&self, xs: &Args<T>) -> T {
-    xs.iter().filter(|(i, _)| *i == 0).next().map(|(_, x)| x.clone()).unwrap_or(T::default())
+    xs.iter().filter(|(i, _)| *i == 0).next().map(|(_, x)| x.clone()).unwrap_or_default()
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
     vec![vec![(0, x.clone())]]
@@ -115,11 +111,7 @@ fn get_precedence(rhs: &[ItemNode]) -> Vec<usize> {
   let mut result = vec![];
   rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Max).for_each(|(i, _)| result.push(i));
   rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Min).for_each(|(i, _)| result.push(i));
-  if result.is_empty() {
-    (0..rhs.len()).collect()
-  } else {
-    result
-  }
+  return if result.is_empty() { (0..rhs.len()).collect() } else { result };
 }
 
 fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
@@ -194,11 +186,7 @@ impl<T: Payload> State<T> {
 
   fn build_term(&mut self, item: &ItemNode) -> Result<Term> {
     let base = self.build_expr(&item.expr)?;
-    if item.optional {
-      Ok(self.build_option(base))
-    } else {
-      Ok(base)
-    }
+    return if item.optional { Ok(self.build_option(base)) } else { Ok(base) };
   }
 
   fn get_name(&mut self, term: &Term) -> String {

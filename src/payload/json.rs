@@ -22,11 +22,7 @@ impl Payload for Json {
   }
 
   fn base_unlex(&self) -> Option<&str> {
-    if let Value::String(x) = &**self.as_ref()? {
-      Some(x.as_str())
-    } else {
-      None
-    }
+    return if let Value::String(x) = &**self.as_ref()? { Some(x.as_str()) } else { None };
   }
 
   fn is_default(&self) -> bool {
@@ -144,19 +140,11 @@ fn coerce_list(json: &Json) -> &[Json] {
 }
 
 fn dict_to_null(xs: Vec<(String, Json)>) -> Json {
-  if xs.is_empty() {
-    None
-  } else {
-    Some(Rc::new(Value::Dict(xs)))
-  }
+  return if xs.is_empty() { None } else { Some(Rc::new(Value::Dict(xs))) };
 }
 
 fn list_to_null(xs: Vec<Json>) -> Json {
-  if xs.is_empty() {
-    None
-  } else {
-    Some(Rc::new(Value::List(xs)))
-  }
+  return if xs.is_empty() { None } else { Some(Rc::new(Value::List(xs))) };
 }
 
 struct DictBaseTemplate(Vec<(String, Box<Template<Json>>)>, FxHashSet<String>);
@@ -218,11 +206,7 @@ impl Template<Json> for DictWrapTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    if x.is_some() && coerce_dict(x).is_empty() {
-      vec![]
-    } else {
-      self.0.split(x)
-    }
+    return if x.is_some() && coerce_dict(x).is_empty() { vec![] } else { self.0.split(x) };
   }
 }
 
@@ -273,11 +257,7 @@ impl Template<Json> for ListWrapTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    if x.is_some() && coerce_list(x).is_empty() {
-      vec![]
-    } else {
-      self.0.split(x)
-    }
+    return if x.is_some() && coerce_list(x).is_empty() { vec![] } else { self.0.split(x) };
   }
 }
 
@@ -296,11 +276,7 @@ impl Template<Json> for BaseTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    if *x == self.0 {
-      vec![vec![]]
-    } else {
-      vec![]
-    }
+    return if *x == self.0 { vec![vec![]] } else { vec![] };
   }
 }
 

@@ -40,9 +40,8 @@ fn hash_keys_from_latin(latin: &str) -> Vec<String> {
 }
 
 fn hash_keys_from_wx(wx: &str) -> Vec<String> {
-  let default = vec![];
   let options: Vec<_> = WX_HASH_KEYS
-    .with(|a| split(wx).into_iter().map(|x| a.get(x).unwrap_or(&default).clone()).collect());
+    .with(|a| split(wx).into_iter().map(|x| a.get(x).cloned().unwrap_or_default()).collect());
   let vowel = !options.is_empty() && options[0].iter().any(|x| x.is_empty());
   let basis = if vowel { vec!["*".to_string()] } else { vec!["".to_string()] };
   options.into_iter().fold(basis, |a, x| {

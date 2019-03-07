@@ -94,11 +94,7 @@ pub fn repeat<A: 'static>(parser: impl Into<Parser<A>>, min: usize) -> Parser<Ve
       remainder = x;
       result.push(value);
     }
-    if result.len() < min {
-      None
-    } else {
-      Some((result, remainder))
-    }
+    return if result.len() < min { None } else { Some((result, remainder)) };
   })
 }
 
@@ -114,11 +110,7 @@ pub fn separate<A: 'static, B: 'static>(
     result.append(&mut x.1);
     result
   });
-  if min == 0 {
-    any(&[list, succeed(|| vec![])])
-  } else {
-    list
-  }
+  return if min == 0 { any(&[list, succeed(|| vec![])]) } else { list };
 }
 
 pub fn seq2<A: 'static, B: 'static, F: Fn((A, B)) -> T + 'static, T: 'static>(
@@ -188,8 +180,8 @@ fn format<'a>(remainder: Option<usize>, state: &mut State<'a>) -> String {
   }
   let total = state.input.len();
   let index = std::cmp::max(std::cmp::min(total - state.remainder, total), 0);
-  let start = state.input[..index].rfind('\n').map(|x| x + 1).unwrap_or(0);
-  let end = state.input[start..].find('\n').map(|x| x + start).unwrap_or(total);
+  let start = state.input[..index].rfind('\n').map_or(0, |x| x + 1);
+  let end = state.input[start..].find('\n').map_or(total, |x| x + start);
   let (line, column) = (state.input[..end].split('\n').count(), index - start + 1);
   let expected: BTreeSet<_> = state.expected.iter().map(|x| x.to_string()).collect();
   let expected = expected.into_iter().collect::<Vec<_>>().join(" | ");

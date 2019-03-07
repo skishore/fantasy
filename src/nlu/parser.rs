@@ -261,7 +261,7 @@ impl<'a, 'b, T> Chart<'a, 'b, T> {
       format!("{} -> {}, from: {} (score: {})", lhs, rhs.join(" "), x.start, x.score)
     });
     let states = states.collect::<Vec<_>>().join("\n");
-    format!("\nColumn {}{}\n{}", self.column.token_index, header.unwrap_or("".to_string()), states)
+    format!("\nColumn {}{}\n{}", self.column.token_index, header.unwrap_or_default(), states)
   }
 
   fn process_token(&mut self, token: &'a Token<'b, T>) {
