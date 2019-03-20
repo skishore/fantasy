@@ -1,5 +1,5 @@
 use super::super::lib::base::Result;
-use super::super::payload::base::{Args, Payload, Template};
+use super::super::payload::base::{DefaultTemplate, Payload, SlotTemplate, Template, UnitTemplate};
 use super::base::Term;
 use rustc_hash::FxHashMap;
 use std::rc::Rc;
@@ -60,30 +60,22 @@ enum TermNode {
 
 // Helpers needed for converting from a basic template to the grammar's semantics callbacks.
 
-struct DefaultTemplate {}
-
-impl<T: Payload> Template<T> for DefaultTemplate {
-  fn merge(&self, _: &Args<T>) -> T {
-    T::default()
-  }
-  fn split(&self, x: &T) -> Vec<Args<T>> {
-    return if x.is_default() { vec![vec![]] } else { vec![] };
-  }
+fn get_precedence(rhs: &[ItemNode]) -> Vec<usize> {
+  let mut result = vec![];
+  rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Max).for_each(|(i, _)| result.push(i));
+  rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Min).for_each(|(i, _)| result.push(i));
+  return if result.is_empty() { (0..rhs.len()).collect() } else { result };
 }
 
-struct UnitTemplate {}
-
-impl<T: Payload> Template<T> for UnitTemplate {
-  fn merge(&self, xs: &Args<T>) -> T {
-    xs.iter().filter(|(i, _)| *i == 0).next().map(|(_, x)| x.clone()).unwrap_or_default()
-  }
-  fn split(&self, x: &T) -> Vec<Args<T>> {
-    vec![vec![(0, x.clone())]]
-  }
+fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
+  let n = rhs.len();
+  let template: Rc<Template<T>> =
+    if n == 1 { Rc::new(UnitTemplate {}) } else { Rc::new(DefaultTemplate {}) };
+  let (merge, split) = get_semantics(n, &RuleNode::default(), template);
+  Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: FxHashMap::default() }
 }
 
-fn get_semantics<T: Payload>(rule: &RuleNode, template: Rc<Template<T>>) -> (Merge<T>, Split<T>) {
-  let n = rule.rhs.len();
+fn get_semantics<T: Payload>(n: usize, rule: &RuleNode, template: Rc<Template<T>>) -> Pair<T> {
   let (merge, split) = (template.clone(), template.clone());
   (
     Merge {
@@ -105,21 +97,28 @@ fn get_semantics<T: Payload>(rule: &RuleNode, template: Rc<Template<T>>) -> (Mer
   )
 }
 
-// Helpers to create a single term, which involves expanding macros.
-
-fn get_precedence(rhs: &[ItemNode]) -> Vec<usize> {
-  let mut result = vec![];
-  rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Max).for_each(|(i, _)| result.push(i));
-  rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Min).for_each(|(i, _)| result.push(i));
-  return if result.is_empty() { (0..rhs.len()).collect() } else { result };
-}
-
-fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
-  let n = rhs.len();
-  let template: Rc<Template<T>> =
-    if n == 1 { Rc::new(UnitTemplate {}) } else { Rc::new(DefaultTemplate {}) };
-  let (merge, split) = get_semantics(&RuleNode::default(), template);
-  Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: FxHashMap::default() }
+// TODO(skishore): We're doing an optimization here that's not completely sound.
+// We're marking all terms other than optional (suffix-?) terms as being required,
+// which causes SlotTemplate to skip splits that yield a default value for those terms.
+//
+// This required assumption fails in the case of symbols that can expand to an empty
+// RHS without provided rule semantics. However, the optimization is critical, as we
+// need a way to stop generation in the default case where it works.
+fn get_template<T: Payload>(n: usize, rule: &RuleNode) -> Result<Rc<Template<T>>> {
+  let template = match &rule.template {
+    Some(x) => T::template(x)?,
+    None => return Ok(Rc::new(DefaultTemplate {})),
+  };
+  let terms = rule.rhs.iter().enumerate();
+  let limit = rule.rhs.iter().fold(None, |a, x| x.index.map(|y| std::cmp::max(y, a.unwrap_or(y))));
+  let slots = if let Some(limit) = limit {
+    let mut slots = vec![None; limit + 1];
+    terms.for_each(|(i, x)| x.index.iter().for_each(|y| slots[*y] = Some((i, x.optional))));
+    slots
+  } else {
+    terms.map(|(i, x)| Some((i, x.optional))).collect()
+  };
+  Ok(Rc::new(SlotTemplate::new(n, slots, template)))
 }
 
 // Logic for building a grammar from an AST.
@@ -130,6 +129,7 @@ type Rule<T> = super::base::Rule<Option<T>, T>;
 
 type Merge<T> = super::base::Semantics<Fn(&[T]) -> T>;
 type Split<T> = super::base::Semantics<Fn(&Option<T>) -> Vec<Vec<Option<T>>>>;
+type Pair<T> = (Merge<T>, Split<T>);
 
 struct State<T: Payload> {
   binding: FxHashMap<String, Term>,
@@ -219,14 +219,10 @@ impl<T: Payload> State<T> {
   fn process_rules(&mut self, lhs: &str, rules: &[RuleNode]) -> Result<()> {
     let lhs = self.get_symbol(&lhs);
     rules.iter().try_for_each(|y| {
-      let rhs = y.rhs.iter().map(|z| self.build_term(z)).collect::<Result<Vec<_>>>()?;
+      let n = y.rhs.len();
       let precedence = get_precedence(&y.rhs);
-      // TODO(skishore): Use the term indices, the slots, here.
-      let template: Rc<Template<T>> = match &y.template {
-        Some(x) => T::template(x)?.into(),
-        None => Rc::new(DefaultTemplate {}),
-      };
-      let (merge, split) = get_semantics(y, template);
+      let (merge, split) = get_semantics(n, y, get_template(n, y)?);
+      let rhs = y.rhs.iter().map(|z| self.build_term(z)).collect::<Result<Vec<_>>>()?;
       self.grammar.rules.push(Rule { lhs, rhs, merge, split, precedence, tense: y.tense.clone() });
       Ok(())
     })
