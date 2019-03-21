@@ -186,7 +186,7 @@ impl<T: Payload> State<T> {
         self.grammar.rules.push(get_rule(symbol, rhs));
       }
     }
-    Term::Terminal(name)
+    Term::Symbol(*self.symbol.get(&name).unwrap())
   }
 
   fn build_term(&mut self, item: &ItemNode) -> Result<Term> {
@@ -211,7 +211,7 @@ impl<T: Payload> State<T> {
 
   fn process_lexer(&mut self, _x: String) -> Result<()> {
     // TODO(skishore): Figure out hos to build a lexer given a string in Rust.
-    unimplemented!()
+    Ok(())
   }
 
   fn process_macro(&mut self, x: MacroNode) -> Result<()> {
@@ -411,7 +411,31 @@ fn parse(input: &str) -> Result<Vec<RootNode>> {
 
 #[cfg(test)]
 mod tests {
+  use super::super::super::nlu::base::{Lexer, Match, Tense, Token};
+  use super::super::super::payload::lambda::Lambda;
   use super::*;
+
+  struct DummyLexer<T: Payload>(Rc<Match<T>>);
+
+  impl<T: Payload> Default for DummyLexer<T> {
+    fn default() -> Self {
+      Self(Rc::new(Match { tenses: vec![], texts: FxHashMap::default(), value: T::default() }))
+    }
+  }
+
+  impl<T: Payload> Lexer<Option<T>, T> for DummyLexer<T> {
+    fn fix(&self, _: &Match<T>, _: &Tense) -> Vec<Rc<Match<T>>> {
+      unimplemented!()
+    }
+
+    fn lex<'a: 'b, 'b>(&'a self, _: &'b str) -> Vec<Token<'b, T>> {
+      unimplemented!()
+    }
+
+    fn unlex(&self, _: &str, _: &Option<T>) -> Vec<Rc<Match<T>>> {
+      vec![self.0.clone()]
+    }
+  }
 
   #[test]
   fn smoke_test() {
@@ -687,6 +711,6 @@ return new HindiLexer(Lambda, vocabulary);
 
 ```
 "#;
-    parse(input).unwrap();
+    compile(input, Box::new(DummyLexer::<Lambda>::default())).unwrap();
   }
 }
