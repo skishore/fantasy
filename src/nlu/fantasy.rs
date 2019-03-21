@@ -1,7 +1,7 @@
 use super::super::lib::base::Result;
 use super::super::payload::base::{DefaultTemplate, Payload, SlotTemplate, Template, UnitTemplate};
 use super::base::Term;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use std::rc::Rc;
 
 // We parse our grammar files into this AST, rooted at a list of RootNodes.
@@ -119,6 +119,11 @@ fn get_template<T: Payload>(n: usize, rule: &RuleNode) -> Result<Rc<Template<T>>
     terms.map(|(i, x)| Some((i, x.optional))).collect()
   };
   Ok(Rc::new(SlotTemplate::new(n, slots, template)))
+}
+
+fn get_warning(mut xs: Vec<String>, message: &str) -> Result<()> {
+  xs.sort();
+  return if xs.is_empty() { Ok(()) } else { Err(format!("{}: {}", message, xs.join(", "))) };
 }
 
 // Logic for building a grammar from an AST.
@@ -267,7 +272,33 @@ pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<
   macros.into_iter().try_for_each(|x| state.process_macro(x))?;
   symbol.iter().try_for_each(|x| state.process_rules(&x.lhs, &x.rules))?;
   symbol.iter().filter(|x| x.root).for_each(|x| state.process_start(&x.lhs));
-  Ok(state.grammar)
+  validate(state.grammar)
+}
+
+pub fn validate<T: Payload>(grammar: Grammar<T>) -> Result<Grammar<T>> {
+  // Collect all the symbol, text, and type terms in this grammar.
+  let mut lhs = FxHashSet::default();
+  let mut rhs = FxHashSet::default();
+  let mut terminals = FxHashSet::default();
+  rhs.insert(grammar.start);
+  grammar.rules.iter().for_each(|x| {
+    lhs.insert(x.lhs);
+    x.rhs.iter().for_each(|y| match y {
+      Term::Symbol(z) => std::mem::drop(rhs.insert(*z)),
+      Term::Terminal(z) => std::mem::drop(terminals.insert(z.clone())),
+    });
+  });
+
+  // Throw if a symbol is LHS- or RHS-only, or if a terminal is unknown to the lexer.
+  {
+    let dead_end = rhs.iter().filter(|x| !lhs.contains(*x)).map(|x| grammar.names[*x].clone());
+    let unreachable = lhs.iter().filter(|x| !rhs.contains(*x)).map(|x| grammar.names[*x].clone());
+    let unknown = terminals.into_iter().filter(|x| grammar.lexer.unlex(&x, &None).is_empty());
+    get_warning(dead_end.collect(), "Dead-end symbols")?;
+    get_warning(unreachable.collect(), "Unreachable symbols")?;
+    get_warning(unknown.collect(), "Unknown terminals")?;
+  }
+  Ok(grammar)
 }
 
 // A parser that builds up the AST above.
