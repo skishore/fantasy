@@ -1,7 +1,6 @@
-use super::super::lib::base::Result;
+use super::super::lib::base::{HashMap, HashSet, Result};
 use super::super::payload::base::{DefaultTemplate, Payload, SlotTemplate, Template, UnitTemplate};
 use super::base::Term;
-use rustc_hash::{FxHashMap, FxHashSet};
 use std::rc::Rc;
 
 // We parse our grammar files into this AST, rooted at a list of RootNodes.
@@ -25,7 +24,7 @@ struct RuleNode {
   split: f32,
   rhs: Vec<ItemNode>,
   template: Option<String>,
-  tense: FxHashMap<String, String>,
+  tense: HashMap<String, String>,
 }
 
 struct SymbolNode {
@@ -72,7 +71,7 @@ fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
   let template: Rc<Template<T>> =
     if n == 1 { Rc::new(UnitTemplate {}) } else { Rc::new(DefaultTemplate {}) };
   let (merge, split) = get_semantics(n, &RuleNode::default(), template);
-  Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: FxHashMap::default() }
+  Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: HashMap::default() }
 }
 
 fn get_semantics<T: Payload>(n: usize, rule: &RuleNode, template: Rc<Template<T>>) -> Pair<T> {
@@ -137,10 +136,10 @@ type Split<T> = super::base::Semantics<Fn(&Option<T>) -> Vec<Vec<Option<T>>>>;
 type Pair<T> = (Merge<T>, Split<T>);
 
 struct State<T: Payload> {
-  binding: FxHashMap<String, Term>,
+  binding: HashMap<String, Term>,
   grammar: Grammar<T>,
-  macros: FxHashMap<String, Rc<MacroNode>>,
-  symbol: FxHashMap<String, usize>,
+  macros: HashMap<String, Rc<MacroNode>>,
+  symbol: HashMap<String, usize>,
 }
 
 impl<T: Payload> State<T> {
@@ -170,7 +169,7 @@ impl<T: Payload> State<T> {
       if terms.len() != m.args.len() {
         return Err(format!("{} got {} arguments; expected: {}", name, terms.len(), m.args.len()));
       }
-      let mut b: FxHashMap<_, _> = m.args.iter().zip(terms).map(|(x, y)| (x.clone(), y)).collect();
+      let mut b: HashMap<_, _> = m.args.iter().zip(terms).map(|(x, y)| (x.clone(), y)).collect();
       std::mem::swap(&mut self.binding, &mut b);
       self.process_rules(&symbol, &m.rules)?;
       std::mem::swap(&mut self.binding, &mut b);
@@ -252,7 +251,7 @@ pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<
 
   // TODO(skishore): We need to actually construct a lexer here.
   let mut state: State<T> = State {
-    binding: FxHashMap::default(),
+    binding: HashMap::default(),
     grammar: Grammar {
       key: Box::new(|x| match x {
         Some(x) => format!("Some({})", x.stringify()),
@@ -263,8 +262,8 @@ pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<
       rules: vec![],
       start: 0,
     },
-    macros: FxHashMap::default(),
-    symbol: FxHashMap::default(),
+    macros: HashMap::default(),
+    symbol: HashMap::default(),
   };
 
   state.get_symbol("$ROOT");
@@ -277,9 +276,9 @@ pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<
 
 pub fn validate<T: Payload>(grammar: Grammar<T>) -> Result<Grammar<T>> {
   // Collect all the symbol, text, and type terms in this grammar.
-  let mut lhs = FxHashSet::default();
-  let mut rhs = FxHashSet::default();
-  let mut terminals = FxHashSet::default();
+  let mut lhs = HashSet::default();
+  let mut rhs = HashSet::default();
+  let mut terminals = HashSet::default();
   rhs.insert(grammar.start);
   grammar.rules.iter().for_each(|x| {
     lhs.insert(x.lhs);
@@ -419,7 +418,7 @@ mod tests {
 
   impl<T: Payload> Default for DummyLexer<T> {
     fn default() -> Self {
-      Self(Rc::new(Match { tenses: vec![], texts: FxHashMap::default(), value: T::default() }))
+      Self(Rc::new(Match { tenses: vec![], texts: HashMap::default(), value: T::default() }))
     }
   }
 

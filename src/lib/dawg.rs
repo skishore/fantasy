@@ -2,7 +2,7 @@
 // Unlike a trie, the edges of a DAWG can form an arbitrary directed acyclic
 // graph and paths can share nodes. Compress minimizes the number of nodes.
 
-use rustc_hash::{FxHashMap, FxHashSet};
+use super::super::lib::base::{HashMap, HashSet};
 use std::hash::Hash;
 use std::rc::Rc;
 
@@ -16,13 +16,13 @@ pub struct Dawg<K: Item, V: Item> {
 
 struct Memo<K: Item, V: Item> {
   dawg: Dawg<K, V>,
-  memo: FxHashMap<(Vec<(K, usize)>, Vec<V>), usize>,
+  memo: HashMap<(Vec<(K, usize)>, Vec<V>), usize>,
 }
 
 #[derive(Clone)]
 struct Node<K: Item, V: Item> {
-  edges: Option<Rc<FxHashMap<K, usize>>>,
-  nodes: Option<Rc<FxHashSet<V>>>,
+  edges: Option<Rc<HashMap<K, usize>>>,
+  nodes: Option<Rc<HashSet<V>>>,
 }
 
 impl<K: Item, V: Item> Dawg<K, V> {
@@ -38,7 +38,7 @@ impl<K: Item, V: Item> Dawg<K, V> {
   }
 
   pub fn compress(&self) -> Self {
-    let mut memo = Memo { dawg: Self::new(&[]), memo: FxHashMap::default() };
+    let mut memo = Memo { dawg: Self::new(&[]), memo: HashMap::default() };
     self.compress_helper(self.size(), &mut memo);
     memo.dawg
   }
@@ -108,14 +108,14 @@ impl<K: Item, V: Item> Dawg<K, V> {
       let edges = if edges.is_empty() {
         None
       } else {
-        let mut new = FxHashMap::default();
+        let mut new = HashMap::default();
         edges.into_iter().for_each(|(k, i)| std::mem::drop(new.insert(k, i)));
         Some(Rc::new(new))
       };
       let nodes = if nodes.is_empty() {
         None
       } else {
-        let mut new = FxHashSet::default();
+        let mut new = HashSet::default();
         nodes.into_iter().for_each(|x| std::mem::drop(new.insert(x)));
         Some(Rc::new(new))
       };

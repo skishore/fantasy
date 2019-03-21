@@ -1,6 +1,6 @@
+use super::super::lib::base::{HashMap, HashSet};
 use super::frequencies::{Bytes, LOG_FREQUENCY, VOWEL_SKIP_LOG_FREQUENCY};
 use lib::dawg::Dawg;
-use rustc_hash::{FxHashMap, FxHashSet};
 use std::str::from_utf8;
 
 // Used to compute a coarse hash key for a given Latin or WX string, such that
@@ -9,15 +9,15 @@ use std::str::from_utf8;
 thread_local! {
   static DROPPED_SUFFIXES: Vec<String> = {
     let pieces: Vec<Bytes> = vec![b"ny", b"zy"];
-    let result: FxHashSet<_> = LOG_FREQUENCY.with(|a| {
+    let result: HashSet<_> = LOG_FREQUENCY.with(|a| {
       pieces.iter().flat_map(|x| a.get(x).unwrap().1.keys().map(|x| coerce(x).into())).collect()
     });
     result.into_iter().collect()
   };
 
-  static WX_HASH_KEYS: FxHashMap<Bytes, Vec<String>> = {
+  static WX_HASH_KEYS: HashMap<Bytes, Vec<String>> = {
     LOG_FREQUENCY.with(|a| a.iter().map(|(k, v)| {
-      let set: FxHashSet<_> = v.1.keys().map(|x| disemvowel(coerce(x))).collect();
+      let set: HashSet<_> = v.1.keys().map(|x| disemvowel(coerce(x))).collect();
       (*k, set.into_iter().collect())
     }).collect())
   };
@@ -164,7 +164,7 @@ impl Transliterator {
 
   pub fn transliterate(&self, latin: &str) -> Vec<String> {
     let latin = latin.to_lowercase();
-    let mut scores = FxHashMap::default();
+    let mut scores = HashMap::default();
     for key in hash_keys_from_latin(&latin) {
       for wx in self.dawg.get(key.as_bytes()) {
         scores.entry(wx.clone()).or_insert_with(|| viterbi(&latin, &wx));

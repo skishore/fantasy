@@ -1,11 +1,11 @@
+use super::super::lib::base::HashMap;
 use super::super::lib::base::Result;
-use rustc_hash::FxHashMap;
 
 // WX is a transliteration format developed at IIT Kanpur. The main advantages
 // of using this format are that all of its transliteration results are single
 // alphabetic characters. We first prepare some transliteration dictionaries.
 
-type Dict = FxHashMap<char, char>;
+type Dict = HashMap<char, char>;
 
 static EXTRA: &'static str = "\u{902}\u{903}\u{901}\u{93c}";
 static HINDI: &'static str = "अआइईउऊएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहऋॠऌ\u{902}\u{903}\u{901}\u{93c}";
@@ -32,14 +32,14 @@ thread_local! {
 }
 
 fn flip_dict(dict: &Dict) -> Dict {
-  let mut result = FxHashMap::default();
+  let mut result = HashMap::default();
   dict.iter().for_each(|(k, v)| std::mem::drop(result.insert(v.clone(), k.clone())));
   result
 }
 
 fn make_dict(keys: &str, values: &str) -> Dict {
   assert_eq!(keys.chars().count(), values.chars().count());
-  let mut result = FxHashMap::default();
+  let mut result = HashMap::default();
   keys.chars().zip(values.chars()).for_each(|(k, v)| std::mem::drop(result.insert(k, v)));
   result
 }

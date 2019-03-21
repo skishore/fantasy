@@ -1,12 +1,12 @@
-use rustc_hash::FxHashMap;
+use super::super::lib::base::HashMap;
 
 pub type Bytes = &'static [u8];
 
 thread_local! {
   pub static VOWEL_SKIP_LOG_FREQUENCY: f32 = (0.1 as f32).log2();
 
-  pub static LOG_FREQUENCY: FxHashMap<Bytes, (Bytes, FxHashMap<Bytes, f32>)> = {
-    let mut result = FxHashMap::default();
+  pub static LOG_FREQUENCY: HashMap<Bytes, (Bytes, HashMap<Bytes, f32>)> = {
+    let mut result = HashMap::default();
     result.insert("a", items(&[("a", 10), ("e", 0), ("i", 0), ("o", 0), ("u", 0), ("aa", 5), ("", 0)]));
     result.insert("A", items(&[("aa", 14730), ("a", 13216), ("", 0)]));
     result.insert("i", items(&[("a", 36), ("e", 75), ("i", 8784), ("o", 0), ("u", 4), ("ee", 94), ("", 0)]));
@@ -79,12 +79,12 @@ thread_local! {
 }
 
 pub fn pair_keys_with_values(
-  dict: FxHashMap<&'static str, FxHashMap<Bytes, f32>>,
-) -> FxHashMap<Bytes, (Bytes, FxHashMap<Bytes, f32>)> {
+  dict: HashMap<&'static str, HashMap<Bytes, f32>>,
+) -> HashMap<Bytes, (Bytes, HashMap<Bytes, f32>)> {
   dict.into_iter().map(|(k, v)| (k.as_bytes(), (k.as_bytes(), v))).collect()
 }
 
-pub fn items(items: &[(&'static str, usize)]) -> FxHashMap<Bytes, f32> {
+pub fn items(items: &[(&'static str, usize)]) -> HashMap<Bytes, f32> {
   let sum = items.iter().fold(0, |a, x| a + x.1 + 1);
   items.iter().map(|(k, v)| (k.as_bytes(), ((*v as f32 + 1.0) / (sum as f32)).log2())).collect()
 }

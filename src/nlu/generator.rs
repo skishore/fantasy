@@ -1,6 +1,6 @@
+use super::super::lib::base::HashMap;
 use super::base::{Child, Derivation, Grammar, Rule, Term};
 use rand::Rng as RngTrait;
-use rustc_hash::FxHashMap;
 use std::collections::hash_map::Entry;
 use std::rc::Rc;
 
@@ -13,7 +13,7 @@ type Tree<'a, S, T> = Option<Child<'a, S, T>>;
 
 struct Memo<'a, 'b, S, T> {
   generator: &'a Generator<'a, S, T>,
-  memo: FxHashMap<String, Tree<'a, S, T>>,
+  memo: HashMap<String, Tree<'a, S, T>>,
   rng: &'b mut Rng,
 }
 
@@ -107,7 +107,7 @@ impl<'a, S, T> Generator<'a, S, T> {
     value: &S,
   ) -> Option<Derivation<'a, S, T>> {
     let result = {
-      let mut memo = Memo { generator: self, memo: FxHashMap::default(), rng };
+      let mut memo = Memo { generator: self, memo: HashMap::default(), rng };
       memo.generate_from_list(rules, value)
     };
     match result {
@@ -149,7 +149,7 @@ mod tests {
 
     fn unlex(&self, name: &str, value: &T) -> Vec<Rc<Match<String>>> {
       if name.len() == 1 && *value == T::default() {
-        let (tenses, texts, value) = (vec![], FxHashMap::default(), name.to_string());
+        let (tenses, texts, value) = (vec![], HashMap::default(), name.to_string());
         vec![Rc::new(Match { tenses, texts, value })]
       } else {
         vec![]
@@ -173,7 +173,7 @@ mod tests {
       Semantics { callback: Box::new(|x| x.join("")), score: 0.0 };
     let split: Semantics<Fn(&S) -> Vec<Vec<S>>> = Semantics { callback: f, score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
-    Rule { lhs, rhs, merge, split, precedence: vec![], tense: FxHashMap::default() }
+    Rule { lhs, rhs, merge, split, precedence: vec![], tense: HashMap::default() }
   }
 
   fn make_term(term: &str) -> Term {

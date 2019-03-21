@@ -1,4 +1,4 @@
-use rustc_hash::FxHashMap;
+use super::super::lib::base::HashMap;
 use std::rc::Rc;
 
 // Parsing, generation, and correction all return derivations. These methods
@@ -38,7 +38,7 @@ pub struct Derivation<'a, S, T> {
 
 pub type Entry<T> = (f32, Rc<Match<T>>);
 
-pub type Tense = FxHashMap<String, String>;
+pub type Tense = HashMap<String, String>;
 
 pub trait Lexer<S, T> {
   fn fix(&self, &Match<T>, &Tense) -> Vec<Rc<Match<T>>>;
@@ -48,12 +48,12 @@ pub trait Lexer<S, T> {
 
 pub struct Match<T> {
   pub tenses: Vec<Tense>,
-  pub texts: FxHashMap<&'static str, String>,
+  pub texts: HashMap<&'static str, String>,
   pub value: T,
 }
 
 pub struct Token<'a, T> {
-  pub matches: FxHashMap<&'a str, Entry<T>>,
+  pub matches: HashMap<&'a str, Entry<T>>,
   pub text: &'a str,
 }
 

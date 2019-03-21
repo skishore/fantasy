@@ -1,6 +1,6 @@
 use super::super::lib::base::Result;
+use super::super::lib::base::{HashMap, HashSet};
 use super::base::{append, cross, Args, Payload, Template, VariableTemplate};
-use rustc_hash::{FxHashMap, FxHashSet};
 use std::rc::Rc;
 
 // A JSON type used for utterance semantics.
@@ -147,7 +147,7 @@ fn list_to_null(xs: Vec<Json>) -> Json {
   return if xs.is_empty() { None } else { Some(Rc::new(Value::List(xs))) };
 }
 
-struct DictBaseTemplate(Vec<(String, Box<Template<Json>>)>, FxHashSet<String>);
+struct DictBaseTemplate(Vec<(String, Box<Template<Json>>)>, HashSet<String>);
 
 impl Template<Json> for DictBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -161,7 +161,7 @@ impl Template<Json> for DictBaseTemplate {
       return vec![];
     }
     let base = vec![vec![]];
-    let mut dict = FxHashMap::default();
+    let mut dict = HashMap::default();
     xs.iter().for_each(|(k, v)| std::mem::drop(dict.insert(k, v)));
     self.0.iter().fold(base, |a, (k, v)| cross(a, v.split(dict.get(k).cloned().unwrap_or(&None))))
   }
@@ -286,7 +286,7 @@ fn dict(items: Vec<Item>) -> Box<Template<Json>> {
   }
   let mut xs = items.into_iter().map(|x| match x {
     Item::Literals(dict) => {
-      let keys = dict.iter().map(|(k, _)| k.clone()).collect::<FxHashSet<_>>();
+      let keys = dict.iter().map(|(k, _)| k.clone()).collect::<HashSet<_>>();
       Box::new(DictBaseTemplate(dict, keys))
     }
     Item::Variable(x) => x,

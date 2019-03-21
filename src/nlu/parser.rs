@@ -1,6 +1,6 @@
+use super::super::lib::base::HashMap;
 use super::base::{Child, Derivation, Entry, Grammar, Rule, Term, Token};
 use lib::arena::Arena;
-use rustc_hash::FxHashMap;
 use std::rc::Rc;
 
 // A State is a rule along with a "cursor" and a "start", where the cursor is
@@ -112,15 +112,15 @@ struct Chart<'a, 'b, T> {
   grammar: &'a IndexedGrammar<'b, T>,
   skipped: Option<Skipped<'a, 'b, T>>,
   states: Arena<State<'a, 'b, T>>,
-  wanted: FxHashMap<usize, *const State<'a, 'b, T>>,
+  wanted: HashMap<usize, *const State<'a, 'b, T>>,
 }
 
 struct Column<'a, 'b, T> {
   completed: Vec<*const State<'a, 'b, T>>,
   scannable: Vec<*const State<'a, 'b, T>>,
   states: Vec<*mut State<'a, 'b, T>>,
-  lookup: FxHashMap<usize, *mut State<'a, 'b, T>>,
-  nullable: FxHashMap<usize, *const State<'a, 'b, T>>,
+  lookup: HashMap<usize, *mut State<'a, 'b, T>>,
+  nullable: HashMap<usize, *const State<'a, 'b, T>>,
   token: Option<&'a Token<'b, T>>,
   token_index: usize,
 }
@@ -132,14 +132,14 @@ impl<'a, 'b, T> Chart<'a, 'b, T> {
       completed: Vec::with_capacity(lists),
       scannable: Vec::with_capacity(lists),
       states: Vec::with_capacity(lists),
-      lookup: FxHashMap::default(),
-      nullable: FxHashMap::default(),
+      lookup: HashMap::default(),
+      nullable: HashMap::default(),
       token: None,
       token_index: 0,
     };
     let (candidates, states) = (Arena::with_capacity(arena), Arena::with_capacity(arena));
     let skipped = if options.skip_count > 0 { Some(Skipped::new(options)) } else { None };
-    let (debug, wanted) = (options.debug, FxHashMap::default());
+    let (debug, wanted) = (options.debug, HashMap::default());
     let mut result = Self { candidates, column, debug, grammar, skipped, states, wanted };
     for rule in &result.grammar.by_name[grammar.start] {
       result.column.states.push(result.states.alloc(State::new(0, rule, 0)));
@@ -472,7 +472,7 @@ mod tests {
 
   impl<T: Default> Default for CharacterLexer<T> {
     fn default() -> Self {
-      let (tenses, texts, value) = (vec![], FxHashMap::default(), T::default());
+      let (tenses, texts, value) = (vec![], HashMap::default(), T::default());
       Self { base: Rc::new(Match { tenses, texts, value }), mark: PhantomData }
     }
   }
@@ -485,7 +485,7 @@ mod tests {
     fn lex<'a: 'b, 'b>(&'a self, input: &'b str) -> Vec<Token<'b, T>> {
       let map = input.char_indices().map(|(i, x)| {
         let text = &input[i..i + x.len_utf8()];
-        let mut matches = FxHashMap::default();
+        let mut matches = HashMap::default();
         matches.insert(text, (0.0, Rc::clone(&self.base)));
         matches.insert("%ch", (0.0, Rc::clone(&self.base)));
         Token { matches, text }
@@ -514,7 +514,7 @@ mod tests {
     let split: Semantics<Fn(&()) -> Vec<Vec<()>>> =
       Semantics { callback: Box::new(|_| unimplemented!()), score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
-    Rule { lhs, rhs, merge, split, precedence: vec![], tense: FxHashMap::default() }
+    Rule { lhs, rhs, merge, split, precedence: vec![], tense: HashMap::default() }
   }
 
   fn make_term(term: &str) -> Term {
