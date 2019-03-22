@@ -236,68 +236,33 @@ impl<T: Payload> State<T> {
     let lhs = self.get_symbol(x);
     self.grammar.rules.push(get_rule(0, vec![Term::Symbol(lhs)]));
   }
-}
 
-pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<T>> {
-  let (mut lexers, mut macros, mut symbol) = (vec![], vec![], vec![]);
-  parse(input)?.into_iter().for_each(|x| match x {
-    RootNode::Lexer(x) => lexers.push(x),
-    RootNode::Macro(x) => macros.push(x),
-    RootNode::Rules(x) => symbol.push(x),
-  });
-  if lexers.is_empty() {
-    return Err("Unable to find lexer block!".to_string());
-  }
-
-  // TODO(skishore): We need to actually construct a lexer here.
-  let mut state: State<T> = State {
-    binding: HashMap::default(),
-    grammar: Grammar {
-      key: Box::new(|x| match x {
-        Some(x) => format!("Some({})", x.stringify()),
-        None => "None".to_string(),
-      }),
-      lexer: lexer,
-      names: vec![],
-      rules: vec![],
-      start: 0,
-    },
-    macros: HashMap::default(),
-    symbol: HashMap::default(),
-  };
-
-  state.get_symbol("$ROOT");
-  lexers.into_iter().try_for_each(|x| state.process_lexer(x))?;
-  macros.into_iter().try_for_each(|x| state.process_macro(x))?;
-  symbol.iter().try_for_each(|x| state.process_rules(&x.lhs, &x.rules))?;
-  symbol.iter().filter(|x| x.root).for_each(|x| state.process_start(&x.lhs));
-  validate(state.grammar)
-}
-
-pub fn validate<T: Payload>(grammar: Grammar<T>) -> Result<Grammar<T>> {
-  // Collect all the symbol, text, and type terms in this grammar.
-  let mut lhs = HashSet::default();
-  let mut rhs = HashSet::default();
-  let mut terminals = HashSet::default();
-  rhs.insert(grammar.start);
-  grammar.rules.iter().for_each(|x| {
-    lhs.insert(x.lhs);
-    x.rhs.iter().for_each(|y| match y {
-      Term::Symbol(z) => std::mem::drop(rhs.insert(*z)),
-      Term::Terminal(z) => std::mem::drop(terminals.insert(z.clone())),
+  fn validate(self) -> Result<Grammar<T>> {
+    // Collect all the symbol, text, and type terms in this grammar.
+    let mut lhs = HashSet::default();
+    let mut rhs = HashSet::default();
+    let mut terminals = HashSet::default();
+    rhs.insert(self.grammar.start);
+    self.grammar.rules.iter().for_each(|x| {
+      lhs.insert(x.lhs);
+      x.rhs.iter().for_each(|y| match y {
+        Term::Symbol(z) => std::mem::drop(rhs.insert(*z)),
+        Term::Terminal(z) => std::mem::drop(terminals.insert(z.clone())),
+      });
     });
-  });
 
-  // Throw if a symbol is LHS- or RHS-only, or if a terminal is unknown to the lexer.
-  {
-    let dead_end = rhs.iter().filter(|x| !lhs.contains(*x)).map(|x| grammar.names[*x].clone());
-    let unreachable = lhs.iter().filter(|x| !rhs.contains(*x)).map(|x| grammar.names[*x].clone());
-    let unknown = terminals.into_iter().filter(|x| grammar.lexer.unlex(&x, &None).is_empty());
-    get_warning(dead_end.collect(), "Dead-end symbols")?;
-    get_warning(unreachable.collect(), "Unreachable symbols")?;
-    get_warning(unknown.collect(), "Unknown terminals")?;
+    // Throw if a symbol is LHS- or RHS-only, or if a terminal is unknown to the lexer.
+    {
+      let Grammar { lexer, names, .. } = &self.grammar;
+      let dead_end = rhs.iter().filter(|x| !lhs.contains(*x)).map(|x| names[*x].clone());
+      let unreachable = lhs.iter().filter(|x| !rhs.contains(*x)).map(|x| names[*x].clone());
+      let unknown = terminals.into_iter().filter(|x| lexer.unlex(&x, &None).is_empty());
+      get_warning(dead_end.collect(), "Dead-end symbols")?;
+      get_warning(unreachable.collect(), "Unreachable symbols")?;
+      get_warning(unknown.collect(), "Unknown terminals")?;
+    }
+    Ok(self.grammar)
   }
-  Ok(grammar)
 }
 
 // A parser that builds up the AST above.
@@ -406,6 +371,44 @@ fn parse(input: &str) -> Result<Vec<RootNode>> {
   }
 
   PARSER.with(|x| x.parse(input))
+}
+
+// Our public API is a simple function.
+
+pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<T>> {
+  let (mut lexers, mut macros, mut symbol) = (vec![], vec![], vec![]);
+  parse(input)?.into_iter().for_each(|x| match x {
+    RootNode::Lexer(x) => lexers.push(x),
+    RootNode::Macro(x) => macros.push(x),
+    RootNode::Rules(x) => symbol.push(x),
+  });
+  if lexers.is_empty() {
+    return Err("Unable to find lexer block!".to_string());
+  }
+
+  // TODO(skishore): We need to actually construct a lexer here.
+  let mut state: State<T> = State {
+    binding: HashMap::default(),
+    grammar: Grammar {
+      key: Box::new(|x| match x {
+        Some(x) => format!("Some({})", x.stringify()),
+        None => "None".to_string(),
+      }),
+      lexer: lexer,
+      names: vec![],
+      rules: vec![],
+      start: 0,
+    },
+    macros: HashMap::default(),
+    symbol: HashMap::default(),
+  };
+
+  state.get_symbol("$ROOT");
+  lexers.into_iter().try_for_each(|x| state.process_lexer(x))?;
+  macros.into_iter().try_for_each(|x| state.process_macro(x))?;
+  symbol.iter().try_for_each(|x| state.process_rules(&x.lhs, &x.rules))?;
+  symbol.iter().filter(|x| x.root).for_each(|x| state.process_start(&x.lhs));
+  state.validate()
 }
 
 #[cfg(test)]

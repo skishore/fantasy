@@ -184,11 +184,11 @@ mod tests {
     }
   }
 
-  fn check_number(n: usize) -> Split<f32> {
+  fn split_number(n: usize) -> Split<f32> {
     Box::new(move |x| if *x == n as f32 { vec![vec![0.0]] } else { vec![] })
   }
 
-  fn check_operator(f: Box<Fn(f32, f32) -> f32>) -> Split<f32> {
+  fn split_operator(f: Box<Fn(f32, f32) -> f32>) -> Split<f32> {
     Box::new(move |x| {
       let mut result = vec![];
       for a in 0..10 {
@@ -211,22 +211,22 @@ mod tests {
       rules: vec![
         make_rule(0, "$1     ", Box::new(|x| vec![vec![*x]])),
         make_rule(1, "$2     ", Box::new(|x| vec![vec![*x]])).score(-deepness),
-        make_rule(1, "$1 + $2", check_operator(Box::new(|a, b| a + b))),
-        make_rule(1, "$1 - $2", check_operator(Box::new(|a, b| a - b))),
+        make_rule(1, "$1 + $2", split_operator(Box::new(|a, b| a + b))),
+        make_rule(1, "$1 - $2", split_operator(Box::new(|a, b| a - b))),
         make_rule(2, "$3     ", Box::new(|x| vec![vec![*x]])).score(-deepness),
-        make_rule(2, "$2 * $3", check_operator(Box::new(|a, b| a * b))),
-        make_rule(2, "$2 / $3", check_operator(Box::new(|a, b| a / b))),
+        make_rule(2, "$2 * $3", split_operator(Box::new(|a, b| a * b))),
+        make_rule(2, "$2 / $3", split_operator(Box::new(|a, b| a / b))),
         make_rule(3, "( $1 ) ", Box::new(|x| vec![vec![0.0, *x, 0.0]])),
-        make_rule(3, "0      ", check_number(0)),
-        make_rule(3, "1      ", check_number(1)),
-        make_rule(3, "2      ", check_number(2)),
-        make_rule(3, "3      ", check_number(3)),
-        make_rule(3, "4      ", check_number(4)),
-        make_rule(3, "5      ", check_number(5)),
-        make_rule(3, "6      ", check_number(6)),
-        make_rule(3, "7      ", check_number(7)),
-        make_rule(3, "8      ", check_number(8)),
-        make_rule(3, "9      ", check_number(9)),
+        make_rule(3, "0      ", split_number(0)),
+        make_rule(3, "1      ", split_number(1)),
+        make_rule(3, "2      ", split_number(2)),
+        make_rule(3, "3      ", split_number(3)),
+        make_rule(3, "4      ", split_number(4)),
+        make_rule(3, "5      ", split_number(5)),
+        make_rule(3, "6      ", split_number(6)),
+        make_rule(3, "7      ", split_number(7)),
+        make_rule(3, "8      ", split_number(8)),
+        make_rule(3, "9      ", split_number(9)),
       ],
       start: 0,
     }
