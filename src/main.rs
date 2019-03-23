@@ -19,22 +19,47 @@ mod lib;
 mod nlu;
 mod payload;
 
-use lib::base::Result;
+use lib::base::{HashMap, Result};
+use nlu::base::{Lexer, Match, Tense, Token};
+use nlu::fantasy::compile;
+use nlu::parser::Parser;
 use payload::base::Payload;
 use payload::lambda::Lambda;
+use std::rc::Rc;
 
-fn debug((k, v): &(usize, Lambda)) -> String {
-  format!("Key {}: {}", k, v.stringify())
+struct SpaceLexer {}
+
+impl SpaceLexer {
+  fn default_match<T: Payload>(&self, term: &str) -> Rc<Match<T>> {
+    Rc::new(Match { tenses: vec![], texts: HashMap::default(), value: T::base_lex(term) })
+  }
+}
+
+impl<T: Payload> Lexer<Option<T>, T> for SpaceLexer {
+  fn fix(&self, _: &Match<T>, _: &Tense) -> Vec<Rc<Match<T>>> {
+    unimplemented!()
+  }
+
+  fn lex<'a: 'b, 'b>(&'a self, input: &'b str) -> Vec<Token<'b, T>> {
+    let xs = input.split(' ').map(|x| {
+      let matches = vec![(x, (0.0, self.default_match(x)))];
+      Token { matches: matches.into_iter().collect(), text: x }
+    });
+    xs.collect()
+  }
+
+  fn unlex(&self, terminal: &str, _: &Option<T>) -> Vec<Rc<Match<T>>> {
+    vec![self.default_match(terminal)]
+  }
 }
 
 fn main() -> Result<()> {
-  let lambda = Lambda::parse("R[a].b & c")?;
-  let template = Lambda::template("$0.$1 & $2")?;
-  for (i, option) in template.split(&lambda).iter().enumerate() {
-    let mut result: Vec<_> = option.iter().map(debug).collect();
-    result.sort();
-    println!("Option {}:", i);
-    result.iter().for_each(|x| println!("    {}", x));
+  let args: Vec<_> = std::env::args().collect();
+  if args.len() != 3 {
+    return Err("Usage: ./main $grammar $input".to_string());
   }
-  Ok(())
+  let grammar_data = std::fs::read_to_string(&args[1]).map_err(|x| x.to_string())?;
+  let grammar = compile::<Lambda>(&grammar_data, Box::new(SpaceLexer {}))?;
+  let value = Parser::new(&grammar).set_debug(true).parse(&args[2]).unwrap().value;
+  Ok(println!("\n{}", value.stringify()))
 }
