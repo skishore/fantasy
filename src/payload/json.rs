@@ -338,6 +338,9 @@ mod tests {
 
   #[test]
   fn parsing_works() {
+    assert_eq!(j("[]"), None);
+    assert_eq!(j("{}"), None);
+    assert_eq!(j("null"), None);
     assert_eq!(j("false"), Some(Rc::new(Value::Boolean(false))));
     assert_eq!(j("17.5"), Some(Rc::new(Value::Number(17.5))));
     assert_eq!(j("'1000'"), Some(Rc::new(Value::String("1000".into()))));
@@ -363,7 +366,7 @@ mod tests {
   fn boolean_template_works() {
     let template = t("false");
     assert_eq!(merge(&*template, vec![]), j("false"));
-    assert_eq!(template.split(&j("false")), vec![vec![]]);
+    assert_eq!(template.split(&j("false")), [[]]);
     assert_eq!(template.split(&j("true")), empty());
     assert_eq!(template.split(&j("null")), empty());
   }
@@ -372,7 +375,7 @@ mod tests {
   fn number_template_works() {
     let template = t("17.5");
     assert_eq!(merge(&*template, vec![]), j("17.5"));
-    assert_eq!(template.split(&j("17.5")), vec![vec![]]);
+    assert_eq!(template.split(&j("17.5")), [[]]);
     assert_eq!(template.split(&j("17")), empty());
     assert_eq!(template.split(&j("null")), empty());
   }
@@ -381,7 +384,7 @@ mod tests {
   fn string_template_works() {
     let template = t("'1000'");
     assert_eq!(merge(&*template, vec![]), j("'1000'"));
-    assert_eq!(template.split(&j("'1000'")), vec![vec![]]);
+    assert_eq!(template.split(&j("'1000'")), [[]]);
     assert_eq!(template.split(&j("1000")), empty());
     assert_eq!(template.split(&j("null")), empty());
   }
@@ -390,8 +393,8 @@ mod tests {
   fn dict_template_works() {
     let template = t("{num: 17, str: 'is', bool: false}");
     assert_eq!(merge(&*template, vec![]), j("{num: 17, str: 'is', bool: false}"));
-    assert_eq!(template.split(&j("{num: 17, str: 'is', bool: false}")), vec![vec![]]);
-    assert_eq!(template.split(&j("{bool: false, num: 17, str: 'is'}")), vec![vec![]]);
+    assert_eq!(template.split(&j("{num: 17, str: 'is', bool: false}")), [[]]);
+    assert_eq!(template.split(&j("{bool: false, num: 17, str: 'is'}")), [[]]);
     assert_eq!(template.split(&j("{num: 18, str: 'is', bool: false}")), empty());
     assert_eq!(template.split(&j("null")), empty());
   }
@@ -400,7 +403,7 @@ mod tests {
   fn list_template_works() {
     let template = t("[17, 'is', false]");
     assert_eq!(merge(&*template, vec![]), j("[17, 'is', false]"));
-    assert_eq!(template.split(&j("[17, 'is', false]")), vec![vec![]]);
+    assert_eq!(template.split(&j("[17, 'is', false]")), [[]]);
     assert_eq!(template.split(&j("[false, 17, 'is']")), empty());
     assert_eq!(template.split(&j("[18, 'is', false]")), empty());
     assert_eq!(template.split(&j("null")), empty());
@@ -411,8 +414,8 @@ mod tests {
     let template = t("$2");
     assert_eq!(merge(&*template, vec![]), j("null"));
     assert_eq!(merge(&*template, vec![j("null"), j("null"), j("17")]), j("17"));
-    assert_eq!(template.split(&j("17")), vec![vec![(2, j("17"))]]);
-    assert_eq!(template.split(&j("null")), vec![vec![(2, j("null"))]]);
+    assert_eq!(template.split(&j("17")), [[(2, j("17"))]]);
+    assert_eq!(template.split(&j("null")), [[(2, j("null"))]]);
   }
 
   #[test]
@@ -422,9 +425,9 @@ mod tests {
     assert_eq!(merge(&*t, vec![j("17"), j("'is'"), j("null")]), j("{num: 17}"));
     assert_eq!(merge(&*t, vec![j("null"), j("'is'"), j("null")]), j("null"));
     assert_eq!(t.split(&j("{num: 17, bool: false, key: 'value'}")), empty());
-    assert_eq!(t.split(&j("{num: 17, bool: false}")), vec![vec![(0, j("17")), (2, j("false"))]]);
-    assert_eq!(t.split(&j("{num: 17}")), vec![vec![(0, j("17")), (2, j("null"))]]);
-    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (2, j("null"))]]);
+    assert_eq!(t.split(&j("{num: 17, bool: false}")), [[(0, j("17")), (2, j("false"))]]);
+    assert_eq!(t.split(&j("{num: 17}")), [[(0, j("17")), (2, j("null"))]]);
+    assert_eq!(t.split(&j("null")), [[(0, j("null")), (2, j("null"))]]);
     assert_eq!(t.split(&j("false")), empty());
   }
 
@@ -439,21 +442,21 @@ mod tests {
     assert_eq!(merge(&*t, vec![j("null"), j("null"), j("null")]), j("null"));
     assert_eq!(
       t.split(&j("{num: 17, bool: false}")),
-      vec![
-        vec![(0, j("null")), (1, j("{num: 17}")), (2, j("false"))],
-        vec![(0, j("17")), (1, j("null")), (2, j("false"))],
-        vec![(0, j("null")), (1, j("{bool: false, num: 17}")), (2, j("null"))],
-        vec![(0, j("17")), (1, j("{bool: false}")), (2, j("null"))],
+      [
+        [(0, j("null")), (1, j("{num: 17}")), (2, j("false"))],
+        [(0, j("17")), (1, j("null")), (2, j("false"))],
+        [(0, j("null")), (1, j("{bool: false, num: 17}")), (2, j("null"))],
+        [(0, j("17")), (1, j("{bool: false}")), (2, j("null"))],
       ]
     );
     assert_eq!(
       t.split(&j("{num: 17}")),
-      vec![
-        vec![(0, j("null")), (1, j("{num: 17}")), (2, j("null"))],
-        vec![(0, j("17")), (1, j("null")), (2, j("null"))],
+      [
+        [(0, j("null")), (1, j("{num: 17}")), (2, j("null"))],
+        [(0, j("17")), (1, j("null")), (2, j("null"))],
       ]
     );
-    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null")), (2, j("null"))]]);
+    assert_eq!(t.split(&j("null")), [[(0, j("null")), (1, j("null")), (2, j("null"))]]);
     assert_eq!(t.split(&j("false")), empty());
   }
 
@@ -464,12 +467,9 @@ mod tests {
     assert_eq!(merge(&*t, vec![j("3"), j("null")]), j("[3]"));
     assert_eq!(merge(&*t, vec![j("null"), j("null")]), j("null"));
     assert_eq!(t.split(&j("[3, 5, 7]")), empty());
-    assert_eq!(t.split(&j("[3, 5]")), vec![vec![(0, j("3")), (1, j("5"))]]);
-    assert_eq!(
-      t.split(&j("[3]")),
-      vec![vec![(0, j("null")), (1, j("3"))], vec![(0, j("3")), (1, j("null"))]]
-    );
-    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null"))]]);
+    assert_eq!(t.split(&j("[3, 5]")), [[(0, j("3")), (1, j("5"))]]);
+    assert_eq!(t.split(&j("[3]")), [[(0, j("null")), (1, j("3"))], [(0, j("3")), (1, j("null"))]]);
+    assert_eq!(t.split(&j("null")), [[(0, j("null")), (1, j("null"))]]);
     assert_eq!(t.split(&j("false")), empty());
   }
 
@@ -481,35 +481,35 @@ mod tests {
     assert_eq!(merge(&*t, vec![j("null"), j("null"), j("null")]), j("null"));
     assert_eq!(
       t.split(&j("[3, 5, 7]")),
-      vec![
-        vec![(0, j("null")), (1, j("null")), (2, j("[3, 5, 7]"))],
-        vec![(0, j("null")), (1, j("[3]")), (2, j("[5, 7]"))],
-        vec![(0, j("3")), (1, j("null")), (2, j("[5, 7]"))],
-        vec![(0, j("null")), (1, j("[3, 5]")), (2, j("[7]"))],
-        vec![(0, j("3")), (1, j("[5]")), (2, j("[7]"))],
-        vec![(0, j("null")), (1, j("[3, 5, 7]")), (2, j("null"))],
-        vec![(0, j("3")), (1, j("[5, 7]")), (2, j("null"))],
+      [
+        [(0, j("null")), (1, j("null")), (2, j("[3, 5, 7]"))],
+        [(0, j("null")), (1, j("[3]")), (2, j("[5, 7]"))],
+        [(0, j("3")), (1, j("null")), (2, j("[5, 7]"))],
+        [(0, j("null")), (1, j("[3, 5]")), (2, j("[7]"))],
+        [(0, j("3")), (1, j("[5]")), (2, j("[7]"))],
+        [(0, j("null")), (1, j("[3, 5, 7]")), (2, j("null"))],
+        [(0, j("3")), (1, j("[5, 7]")), (2, j("null"))],
       ]
     );
     assert_eq!(
       t.split(&j("[3, 5]")),
-      vec![
-        vec![(0, j("null")), (1, j("null")), (2, j("[3, 5]"))],
-        vec![(0, j("null")), (1, j("[3]")), (2, j("[5]"))],
-        vec![(0, j("3")), (1, j("null")), (2, j("[5]"))],
-        vec![(0, j("null")), (1, j("[3, 5]")), (2, j("null"))],
-        vec![(0, j("3")), (1, j("[5]")), (2, j("null"))],
+      [
+        [(0, j("null")), (1, j("null")), (2, j("[3, 5]"))],
+        [(0, j("null")), (1, j("[3]")), (2, j("[5]"))],
+        [(0, j("3")), (1, j("null")), (2, j("[5]"))],
+        [(0, j("null")), (1, j("[3, 5]")), (2, j("null"))],
+        [(0, j("3")), (1, j("[5]")), (2, j("null"))],
       ]
     );
     assert_eq!(
       t.split(&j("[3]")),
-      vec![
-        vec![(0, j("null")), (1, j("null")), (2, j("[3]"))],
-        vec![(0, j("null")), (1, j("[3]")), (2, j("null"))],
-        vec![(0, j("3")), (1, j("null")), (2, j("null"))],
+      [
+        [(0, j("null")), (1, j("null")), (2, j("[3]"))],
+        [(0, j("null")), (1, j("[3]")), (2, j("null"))],
+        [(0, j("3")), (1, j("null")), (2, j("null"))],
       ]
     );
-    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null")), (2, j("null"))]]);
+    assert_eq!(t.split(&j("null")), [[(0, j("null")), (1, j("null")), (2, j("null"))]]);
     assert_eq!(t.split(&j("false")), empty());
   }
 

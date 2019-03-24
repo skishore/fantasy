@@ -149,12 +149,12 @@ mod tests {
     );
     assert_eq!(
       t.split(&j("[3, 5, 7]")),
-      vec![
-        vec![(3, j("3")), (4, j("[5]")), (5, j("[7]"))],
-        vec![(3, j("3")), (4, j("[5, 7]")), (5, j("null"))],
+      [
+        [(3, j("3")), (4, j("[5]")), (5, j("[7]"))],
+        [(3, j("3")), (4, j("[5, 7]")), (5, j("null"))],
       ]
     );
-    assert_eq!(t.split(&j("[3, 5]")), vec![vec![(3, j("3")), (4, j("[5]")), (5, j("null"))]],);
+    assert_eq!(t.split(&j("[3, 5]")), [[(3, j("3")), (4, j("[5]")), (5, j("null"))]]);
     assert_eq!(t.split(&j("[3]")), empty());
     assert_eq!(t.split(&j("null")), empty());
   }
@@ -167,8 +167,8 @@ mod tests {
     assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]")]), j("[3]"));
     assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]"), j("null")]), j("[3]"));
     assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("null"), j("[5]")]), j("[3, 5]"));
-    assert_eq!(t.split(&j("[3, 5]")), vec![vec![(2, j("3")), (4, j("[5]"))]]);
-    assert_eq!(t.split(&j("[3]")), vec![vec![(2, j("3")), (4, j("null"))]]);
+    assert_eq!(t.split(&j("[3, 5]")), [[(2, j("3")), (4, j("[5]"))]]);
+    assert_eq!(t.split(&j("[3]")), [[(2, j("3")), (4, j("null"))]]);
     assert_eq!(t.split(&j("null")), empty());
   }
 
@@ -182,13 +182,13 @@ mod tests {
     assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("null"), j("[5]")]), j("[3, 5]"));
     assert_eq!(
       t.split(&j("[3, 5]")),
-      vec![vec![(2, j("null")), (4, j("[3, 5]"))], vec![(2, j("3")), (4, j("[5]"))]]
+      [[(2, j("null")), (4, j("[3, 5]"))], [(2, j("3")), (4, j("[5]"))]]
     );
     assert_eq!(
       t.split(&j("[3]")),
-      vec![vec![(2, j("null")), (4, j("[3]"))], vec![(2, j("3")), (4, j("null"))]]
+      [[(2, j("null")), (4, j("[3]"))], [(2, j("3")), (4, j("null"))]]
     );
-    assert_eq!(t.split(&j("null")), vec![vec![(2, j("null")), (4, j("null"))]]);
+    assert_eq!(t.split(&j("null")), [[(2, j("null")), (4, j("null"))]]);
   }
 
   #[test]
@@ -199,7 +199,7 @@ mod tests {
     assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]")]), j("[3]"));
     assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]"), j("null")]), j("[3]"));
     assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("null"), j("[5]")]), j("[3, 5]"));
-    assert_eq!(t.split(&j("[3, 5]")), vec![vec![(2, j("3")), (4, j("[5]"))]]);
+    assert_eq!(t.split(&j("[3, 5]")), [[(2, j("3")), (4, j("[5]"))]]);
     assert_eq!(t.split(&j("[3]")), empty());
     assert_eq!(t.split(&j("null")), empty());
   }

@@ -387,8 +387,8 @@ mod tests {
   fn splitting_joins_works() {
     let template = t("color.$0");
     assert_eq!(template.split(&l("type.food")), empty());
-    assert_eq!(template.split(&l("color.red")), vec![vec![(0, l("red"))]]);
-    assert_eq!(template.split(&None), vec![vec![(0, None)]]);
+    assert_eq!(template.split(&l("color.red")), [[(0, l("red"))]]);
+    assert_eq!(template.split(&None), [[(0, None)]]);
   }
 
   #[test]
@@ -396,7 +396,7 @@ mod tests {
     let template = t("$0.$1");
     assert_eq!(
       template.split(&l("a.b.c")),
-      vec![vec![(0, l("a")), (1, l("b.c"))], vec![(0, l("a.b")), (1, l("c"))],],
+      [[(0, l("a")), (1, l("b.c"))], [(0, l("a.b")), (1, l("c"))]],
     );
   }
 
@@ -405,18 +405,18 @@ mod tests {
     let template = t("$0 & country.$1");
     assert_eq!(
       template.split(&l("I & country.US")),
-      vec![vec![(0, l("I")), (1, l("US"))], vec![(0, l("I & country.US")), (1, None)],]
+      [[(0, l("I")), (1, l("US"))], [(0, l("I & country.US")), (1, None)]]
     );
     assert_eq!(
       template.split(&l("country.US & I")),
-      vec![vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
+      [[(0, l("I")), (1, l("US"))], [(0, l("country.US & I")), (1, None)]]
     );
     assert_eq!(
       template.split(&l("country.US")),
-      vec![vec![(0, None), (1, l("US"))], vec![(0, l("country.US")), (1, None)],]
+      [[(0, None), (1, l("US"))], [(0, l("country.US")), (1, None)]]
     );
-    assert_eq!(template.split(&l("I")), vec![vec![(0, l("I")), (1, None)]]);
-    assert_eq!(template.split(&None), vec![vec![(0, None), (1, None)]]);
+    assert_eq!(template.split(&l("I")), [[(0, l("I")), (1, None)]]);
+    assert_eq!(template.split(&None), [[(0, None), (1, None)]]);
   }
 
   #[test]
@@ -424,7 +424,7 @@ mod tests {
     let template = t("R[$0].I & ~$1");
     assert_eq!(
       template.split(&l("R[name].I & ~Ann")),
-      vec![vec![(0, None), (1, l("~(R[name].I & ~Ann)"))], vec![(0, l("name")), (1, l("Ann"))],]
+      [[(0, None), (1, l("~(R[name].I & ~Ann)"))], [(0, l("name")), (1, l("Ann"))]]
     );
   }
 
@@ -432,8 +432,8 @@ mod tests {
   fn splitting_custom_functions_works() {
     let template = t("Tell($0, name.$1)");
     assert_eq!(template.split(&l("Ask(you.name)")), empty());
-    assert_eq!(template.split(&l("Tell(I, name.X)")), vec![vec![(0, l("I")), (1, l("X"))]]);
-    assert_eq!(template.split(&None), vec![vec![(0, None)], vec![(1, None)]]);
+    assert_eq!(template.split(&l("Tell(I, name.X)")), [[(0, l("I")), (1, l("X"))]]);
+    assert_eq!(template.split(&None), [[(0, None)], [(1, None)]]);
   }
 
   #[test]
@@ -441,7 +441,7 @@ mod tests {
     let template = t("$0 & country.$1");
     assert_eq!(
       template.split(&l("country.US & I")),
-      [vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
+      [[(0, l("I")), (1, l("US"))], [(0, l("country.US & I")), (1, None)]]
     );
   }
 
