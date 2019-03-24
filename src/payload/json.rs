@@ -453,7 +453,7 @@ mod tests {
         vec![(0, j("17")), (1, j("null")), (2, j("null"))],
       ]
     );
-    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null")), (2, j("null"))],]);
+    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null")), (2, j("null"))]]);
     assert_eq!(t.split(&j("false")), empty());
   }
 
@@ -467,7 +467,7 @@ mod tests {
     assert_eq!(t.split(&j("[3, 5]")), vec![vec![(0, j("3")), (1, j("5"))]]);
     assert_eq!(
       t.split(&j("[3]")),
-      vec![vec![(0, j("null")), (1, j("3"))], vec![(0, j("3")), (1, j("null"))],]
+      vec![vec![(0, j("null")), (1, j("3"))], vec![(0, j("3")), (1, j("null"))]]
     );
     assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null"))]]);
     assert_eq!(t.split(&j("false")), empty());
@@ -509,7 +509,7 @@ mod tests {
         vec![(0, j("3")), (1, j("null")), (2, j("null"))],
       ]
     );
-    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null")), (2, j("null"))],]);
+    assert_eq!(t.split(&j("null")), vec![vec![(0, j("null")), (1, j("null")), (2, j("null"))]]);
     assert_eq!(t.split(&j("false")), empty());
   }
 

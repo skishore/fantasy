@@ -8,7 +8,8 @@ use super::super::lib::base::Result;
 type Dict = HashMap<char, char>;
 
 static EXTRA: &'static str = "\u{902}\u{903}\u{901}\u{93c}";
-static HINDI: &'static str = "अआइईउऊएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहऋॠऌ\u{902}\u{903}\u{901}\u{93c}";
+static HINDI: &'static str =
+  "अआइईउऊएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहऋॠऌ\u{902}\u{903}\u{901}\u{93c}";
 static LATIN: &'static str = "aAiIuUeEoOkKgGfcCjJFtTdDNwWxXnpPbBmyrlvSRshqQLMHzZ";
 
 static NUKTA: char = '\u{93c}';

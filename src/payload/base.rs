@@ -71,6 +71,9 @@ impl<T: Payload> Template<T> for SlotTemplate<T> {
       let mut missing = self.required;
       for (k, v) in xs.into_iter() {
         if let Some(slot) = self.slots[k] {
+          if v.is_default() && !slot.1 {
+            return None;
+          }
           result.push((slot.0, v));
           missing -= if slot.1 { 0 } else { 1 };
         } else if !v.is_default() {
@@ -103,5 +106,101 @@ impl<T: Clone + Default> Template<T> for VariableTemplate {
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
     vec![vec![(self.0, x.clone())]]
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::super::json::Json;
+  use super::*;
+
+  fn j(input: &str) -> Json {
+    Json::parse(input).unwrap()
+  }
+
+  fn t(input: &str) -> Box<Template<Json>> {
+    Json::template(input).unwrap()
+  }
+
+  fn empty() -> Vec<Args<Json>> {
+    vec![]
+  }
+
+  fn merge(template: &Template<Json>, args: Vec<Json>) -> Json {
+    template.merge(&args.into_iter().enumerate().collect())
+  }
+
+  #[test]
+  fn slot_template_works() {
+    let slots = vec![Some((3, false)), Some((4, false)), Some((5, true))];
+    let t = SlotTemplate::new(6, slots, t("[$0, ...$1, ...$2]"));
+    assert_eq!(merge(&t, vec![j("3"), j("[5, 7]"), j("null")]), j("null"));
+    assert_eq!(
+      merge(&t, vec![j("null"), j("null"), j("null"), j("3"), j("[5, 7]")]),
+      j("[3, 5, 7]")
+    );
+    assert_eq!(
+      merge(&t, vec![j("null"), j("null"), j("null"), j("3"), j("[5, 7]"), j("null")]),
+      j("[3, 5, 7]")
+    );
+    assert_eq!(
+      merge(&t, vec![j("null"), j("null"), j("null"), j("3"), j("null"), j("[5, 7]")]),
+      j("[3, 5, 7]")
+    );
+    assert_eq!(
+      t.split(&j("[3, 5, 7]")),
+      vec![
+        vec![(3, j("3")), (4, j("[5]")), (5, j("[7]"))],
+        vec![(3, j("3")), (4, j("[5, 7]")), (5, j("null"))],
+      ]
+    );
+    assert_eq!(t.split(&j("[3, 5]")), vec![vec![(3, j("3")), (4, j("[5]")), (5, j("null"))]],);
+    assert_eq!(t.split(&j("[3]")), empty());
+    assert_eq!(t.split(&j("null")), empty());
+  }
+
+  #[test]
+  fn slot_template_handles_missing_slots() {
+    let slots = vec![Some((2, false)), None, Some((4, true))];
+    let t = SlotTemplate::new(6, slots, t("[$0, ...$1, ...$2]"));
+    assert_eq!(merge(&t, vec![j("3"), j("[5, 7]"), j("null")]), j("null"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]")]), j("[3]"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]"), j("null")]), j("[3]"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("null"), j("[5]")]), j("[3, 5]"));
+    assert_eq!(t.split(&j("[3, 5]")), vec![vec![(2, j("3")), (4, j("[5]"))]]);
+    assert_eq!(t.split(&j("[3]")), vec![vec![(2, j("3")), (4, j("null"))]]);
+    assert_eq!(t.split(&j("null")), empty());
+  }
+
+  #[test]
+  fn slot_template_handles_all_optional_slots() {
+    let slots = vec![Some((2, true)), None, Some((4, true))];
+    let t = SlotTemplate::new(6, slots, t("[$0, ...$1, ...$2]"));
+    assert_eq!(merge(&t, vec![j("3"), j("[5, 7]"), j("null")]), j("null"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]")]), j("[3]"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]"), j("null")]), j("[3]"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("null"), j("[5]")]), j("[3, 5]"));
+    assert_eq!(
+      t.split(&j("[3, 5]")),
+      vec![vec![(2, j("null")), (4, j("[3, 5]"))], vec![(2, j("3")), (4, j("[5]"))]]
+    );
+    assert_eq!(
+      t.split(&j("[3]")),
+      vec![vec![(2, j("null")), (4, j("[3]"))], vec![(2, j("3")), (4, j("null"))]]
+    );
+    assert_eq!(t.split(&j("null")), vec![vec![(2, j("null")), (4, j("null"))]]);
+  }
+
+  #[test]
+  fn slot_template_handles_all_required_slots() {
+    let slots = vec![Some((2, false)), None, Some((4, false))];
+    let t = SlotTemplate::new(6, slots, t("[$0, ...$1, ...$2]"));
+    assert_eq!(merge(&t, vec![j("3"), j("[5, 7]"), j("null")]), j("null"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]")]), j("[3]"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("[5]"), j("null")]), j("[3]"));
+    assert_eq!(merge(&t, vec![j("null"), j("null"), j("3"), j("null"), j("[5]")]), j("[3, 5]"));
+    assert_eq!(t.split(&j("[3, 5]")), vec![vec![(2, j("3")), (4, j("[5]"))]]);
+    assert_eq!(t.split(&j("[3]")), empty());
+    assert_eq!(t.split(&j("null")), empty());
   }
 }
