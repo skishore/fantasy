@@ -394,7 +394,7 @@ pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<
         Some(x) => format!("Some({})", x.stringify()),
         None => "None".to_string(),
       }),
-      lexer: lexer,
+      lexer,
       names: vec![],
       rules: vec![],
       start: 0,

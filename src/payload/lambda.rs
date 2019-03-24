@@ -211,7 +211,7 @@ impl Template<Lambda> for BinaryTemplate {
     let bits: Vec<_> = if commutes {
       (0..(1 << base.len())).collect()
     } else {
-      (0..(base.len() - 1)).map(|i| 1 << (i + 1) - 1).collect()
+      (0..(base.len() - 1)).map(|i| (1 << (i + 1)) - 1).collect()
     };
     let mut result = vec![];
     for i in bits {
@@ -392,6 +392,15 @@ mod tests {
   }
 
   #[test]
+  fn splitting_multiple_joins_works() {
+    let template = t("$0.$1");
+    assert_eq!(
+      template.split(&l("a.b.c")),
+      vec![vec![(0, l("a")), (1, l("b.c"))], vec![(0, l("a.b")), (1, l("c"))],],
+    );
+  }
+
+  #[test]
   fn splitting_binary_operators_works() {
     let template = t("$0 & country.$1");
     assert_eq!(
@@ -400,11 +409,11 @@ mod tests {
     );
     assert_eq!(
       template.split(&l("country.US & I")),
-      [vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
+      vec![vec![(0, l("I")), (1, l("US"))], vec![(0, l("country.US & I")), (1, None)],]
     );
     assert_eq!(
       template.split(&l("country.US")),
-      [vec![(0, None), (1, l("US"))], vec![(0, l("country.US")), (1, None)],]
+      vec![vec![(0, None), (1, l("US"))], vec![(0, l("country.US")), (1, None)],]
     );
     assert_eq!(template.split(&l("I")), vec![vec![(0, l("I")), (1, None)]]);
     assert_eq!(template.split(&None), vec![vec![(0, None), (1, None)]]);
