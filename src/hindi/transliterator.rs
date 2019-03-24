@@ -43,8 +43,8 @@ fn hash_keys_from_wx(wx: &str) -> Vec<String> {
   let options: Vec<_> = WX_HASH_KEYS
     .with(|a| split(wx).into_iter().map(|x| a.get(x).cloned().unwrap_or_default()).collect());
   let vowel = !options.is_empty() && options[0].iter().any(|x| x.is_empty());
-  let basis = if vowel { vec!["*".to_string()] } else { vec!["".to_string()] };
-  options.into_iter().fold(basis, |a, x| {
+  let basis = if vowel { "*" } else { "" };
+  options.into_iter().fold(vec![basis.to_string()], |a, x| {
     a.into_iter().flat_map(|b| x.iter().map(|y| b.clone() + y).collect::<Vec<_>>()).collect()
   })
 }
@@ -155,8 +155,9 @@ impl Transliterator {
   pub fn new(words: &[&str]) -> Self {
     let mut dawg = Dawg::new(&[]);
     for wx in words {
-      for key in hash_keys_from_wx(wx) {
-        dawg.add(key.as_bytes(), &wx.to_string());
+      let wx = wx.to_string();
+      for key in hash_keys_from_wx(&wx) {
+        dawg.add(key.as_bytes(), &wx);
       }
     }
     Self { dawg: dawg.compress() }
@@ -181,49 +182,45 @@ mod tests {
   use super::*;
   use test::Bencher;
 
-  fn check(actual: Vec<String>, expected: &[&str]) {
-    assert_eq!(actual, expected.iter().map(|x| x.to_string()).collect::<Vec<_>>());
-  }
-
   #[test]
   fn empty_list_returned_without_transliterations() {
     let t = Transliterator::new(&"hE hEM ho hUz".split(' ').collect::<Vec<_>>());
-    check(t.transliterate("main"), &[]);
+    assert_eq!(t.transliterate("main"), &[] as &[&str]);
   }
 
   #[test]
   fn mismatched_consonant_values_filtered() {
     let t = Transliterator::new(&"tA wA dZA".split(' ').collect::<Vec<_>>());
-    check(t.transliterate("tha"), &["wA", "tA"]);
+    assert_eq!(t.transliterate("tha"), &["wA", "tA"]);
   }
 
   #[test]
   fn mismatched_initial_vowels_filtered() {
     let t = Transliterator::new(&"aBI BI".split(' ').collect::<Vec<_>>());
-    check(t.transliterate("abhi"), &["aBI"]);
+    assert_eq!(t.transliterate("abhi"), &["aBI"]);
   }
 
   #[test]
   fn transliterations_ranked_correctly() {
     let t = Transliterator::new(&"hE hEM ho hUz".split(' ').collect::<Vec<_>>());
-    check(t.transliterate("hain".trim()), &["hEM", "hE", "hUz", "ho"]);
-    check(t.transliterate("hai ".trim()), &["hE", "hEM", "ho", "hUz"]);
-    check(t.transliterate("ho  ".trim()), &["ho", "hE", "hEM", "hUz"]);
-    check(t.transliterate("hoon".trim()), &["hUz", "ho", "hEM", "hE"]);
-    check(t.transliterate("hu  ".trim()), &["hUz", "ho", "hE", "hEM"]);
+    assert_eq!(t.transliterate("hain".trim()), &["hEM", "hE", "hUz", "ho"]);
+    assert_eq!(t.transliterate("hai ".trim()), &["hE", "hEM", "ho", "hUz"]);
+    assert_eq!(t.transliterate("ho  ".trim()), &["ho", "hE", "hEM", "hUz"]);
+    assert_eq!(t.transliterate("hoon".trim()), &["hUz", "ho", "hEM", "hE"]);
+    assert_eq!(t.transliterate("hu  ".trim()), &["hUz", "ho", "hE", "hEM"]);
   }
 
   #[test]
   fn transliteration_allows_vowel_skips() {
     let t = Transliterator::new(&"khaUnga king".split(' ').collect::<Vec<_>>());
-    check(t.transliterate("khunga"), &["khaUnga", "king"]);
+    assert_eq!(t.transliterate("khunga"), &["khaUnga", "king"]);
   }
 
   #[test]
   fn transliteration_allows_y_between_vowels() {
     let t = Transliterator::new(&"leenge leyenge".split(' ').collect::<Vec<_>>());
-    check(t.transliterate("leenge ".trim()), &["leenge"]);
-    check(t.transliterate("leyenge".trim()), &["leyenge", "leenge"]);
+    assert_eq!(t.transliterate("leenge ".trim()), &["leenge"]);
+    assert_eq!(t.transliterate("leyenge".trim()), &["leyenge", "leenge"]);
   }
 
   #[bench]

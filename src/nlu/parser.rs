@@ -261,7 +261,7 @@ impl<'a, 'b, T> Chart<'a, 'b, T> {
       format!("{} -> {}, from: {} (score: {})", lhs, rhs.join(" "), x.start, x.score)
     });
     let states = states.collect::<Vec<_>>().join("\n");
-    format!("\nColumn {}{}\n{}", self.column.token_index, header.unwrap_or_default(), states)
+    format!("Column {}{}\n{}\n", self.column.token_index, header.unwrap_or_default(), states)
   }
 
   fn process_token(&mut self, token: &'a Token<'b, T>) {
@@ -521,9 +521,9 @@ mod tests {
     if term.starts_with("$") {
       Term::Symbol(term[1..].parse().unwrap())
     } else if term == "%ws" {
-      Term::Terminal(" ".to_string())
+      Term::Terminal(" ".into())
     } else {
-      Term::Terminal(term.to_string())
+      Term::Terminal(term.into())
     }
   }
 
@@ -532,7 +532,7 @@ mod tests {
     let grammar = Grammar {
       key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
-      names: "$Root $As $Bs $Neither $A $B".split(' ').map(|x| x.to_string()).collect(),
+      names: "$Root $As $Bs $Neither $A $B".split(' ').map(|x| x.into()).collect(),
       rules: vec![
         make_rule(0, "$1    ", |x| x.join("")),
         make_rule(0, "$2    ", |x| x.join("")),
@@ -551,12 +551,12 @@ mod tests {
       start: 0,
     };
     let parser = Parser::new(&grammar);
-    assert_eq!(parser.value("aaa"), Some("aaa".to_string()));
-    assert_eq!(parser.value("aab"), Some("aa".to_string()));
-    assert_eq!(parser.value("abb"), Some("bb".to_string()));
-    assert_eq!(parser.value("bab"), Some("bb".to_string()));
-    assert_eq!(parser.value("b?b"), Some("bb".to_string()));
-    assert_eq!(parser.value("b??"), Some("".to_string()));
+    assert_eq!(parser.value("aaa").unwrap(), "aaa");
+    assert_eq!(parser.value("aab").unwrap(), "aa");
+    assert_eq!(parser.value("abb").unwrap(), "bb");
+    assert_eq!(parser.value("bab").unwrap(), "bb");
+    assert_eq!(parser.value("b?b").unwrap(), "bb");
+    assert_eq!(parser.value("b??").unwrap(), "");
   }
 
   #[test]
@@ -564,7 +564,7 @@ mod tests {
     let grammar = Grammar {
       key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
-      names: "$Root $Add $Num $Whitespace".split(' ').map(|x| x.to_string()).collect(),
+      names: "$Root $Add $Num $Whitespace".split(' ').map(|x| x.into()).collect(),
       rules: vec![
         make_rule(0, "$1 $3  ", |x| x[0]),
         make_rule(1, "$2     ", |x| x[0]),
@@ -596,7 +596,7 @@ mod tests {
     let grammar = Grammar {
       key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
-      names: "$Root $Add $Mul $Num".split(' ').map(|x| x.to_string()).collect(),
+      names: "$Root $Add $Mul $Num".split(' ').map(|x| x.into()).collect(),
       rules: vec![
         make_rule(0, "$1     ", |x| x[0]),
         make_rule(1, "$2     ", |x| x[0]),

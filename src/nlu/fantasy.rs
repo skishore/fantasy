@@ -122,7 +122,7 @@ fn get_template<T: Payload>(n: usize, rule: &RuleNode) -> Result<Rc<Template<T>>
 
 fn get_warning(mut xs: Vec<String>, message: &str) -> Result<()> {
   xs.sort();
-  return if xs.is_empty() { Ok(()) } else { Err(format!("{}: {}", message, xs.join(", "))) };
+  return if xs.is_empty() { Ok(()) } else { Err(format!("{}: {}", message, xs.join(", ")))? };
 }
 
 // Logic for building a grammar from an AST.
@@ -147,7 +147,7 @@ impl<T: Payload> State<T> {
     match self.binding.get(binding) {
       Some(Term::Symbol(x)) => Ok(Term::Symbol(*x)),
       Some(Term::Terminal(x)) => Ok(Term::Terminal(x.clone())),
-      None => Err(format!("Unbound macro argument: {}", binding)),
+      None => Err(format!("Unbound macro argument: {}", binding))?,
     }
   }
 
@@ -167,7 +167,7 @@ impl<T: Payload> State<T> {
     if !self.symbol.contains_key(&symbol) {
       let m = self.macros.get(name).cloned().ok_or(format!("Unbound macro: {}", name))?;
       if terms.len() != m.args.len() {
-        return Err(format!("{} got {} arguments; expected: {}", name, terms.len(), m.args.len()));
+        return Err(format!("{} got {} arguments; expected: {}", name, terms.len(), m.args.len()))?;
       }
       let mut b: HashMap<_, _> = m.args.iter().zip(terms).map(|(x, y)| (x.clone(), y)).collect();
       std::mem::swap(&mut self.binding, &mut b);
@@ -215,7 +215,7 @@ impl<T: Payload> State<T> {
 
   fn process_macro(&mut self, x: MacroNode) -> Result<()> {
     match self.macros.insert(x.name.clone(), Rc::new(x)) {
-      Some(x) => Err(format!("Duplicate macro: {}", x.name)),
+      Some(x) => Err(format!("Duplicate macro: {}", x.name))?,
       None => Ok(()),
     }
   }
@@ -383,7 +383,7 @@ pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<
     RootNode::Rules(x) => symbol.push(x),
   });
   if lexers.is_empty() {
-    return Err("Unable to find lexer block!".to_string());
+    Err("Unable to find lexer block!")?;
   }
 
   // TODO(skishore): We need to actually construct a lexer here.

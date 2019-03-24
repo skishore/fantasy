@@ -45,7 +45,7 @@ impl Payload for Lambda {
       return Ok(None);
     }
     let base = template(input)?.merge(&vec![]);
-    Ok(Some(base.ok_or("Empty lambda expression!".to_string())?))
+    Ok(Some(base.ok_or("Empty lambda expression!")?))
   }
 
   fn stringify(&self) -> String {
@@ -451,7 +451,7 @@ mod tests {
   #[test]
   fn stringify_sorts_terms() {
     let lambda = l("Tell(x) & f.e & (d.c | b.a)");
-    assert_eq!(lambda.stringify(), "(b.a | d.c) & Tell(x) & f.e".to_string());
+    assert_eq!(lambda.stringify(), "(b.a | d.c) & Tell(x) & f.e");
   }
 
   #[bench]

@@ -329,7 +329,7 @@ mod tests {
   }
 
   fn test_error<T: std::fmt::Debug>(result: Result<T>, prefix: &str) {
-    let error = result.unwrap_err();
+    let error = format!("{:?}", result.unwrap_err());
     if !error.starts_with(prefix) {
       let error = error.split('\n').nth(0).unwrap_or("");
       panic!("Error does not match prefix:\nexpected: {:?}\n  actual: {:?}", prefix, error);
@@ -340,20 +340,20 @@ mod tests {
   fn parsing_works() {
     assert_eq!(j("false"), Some(Rc::new(Value::Boolean(false))));
     assert_eq!(j("17.5"), Some(Rc::new(Value::Number(17.5))));
-    assert_eq!(j("'1000'"), Some(Rc::new(Value::String("1000".to_string()))));
+    assert_eq!(j("'1000'"), Some(Rc::new(Value::String("1000".into()))));
     assert_eq!(
       j("{num: 17, str: 'is', bool: false}"),
       Some(Rc::new(Value::Dict(vec![
-        ("num".to_string(), Some(Rc::new(Value::Number(17.0)))),
-        ("str".to_string(), Some(Rc::new(Value::String("is".to_string())))),
-        ("bool".to_string(), Some(Rc::new(Value::Boolean(false)))),
+        ("num".into(), Some(Rc::new(Value::Number(17.0)))),
+        ("str".into(), Some(Rc::new(Value::String("is".into())))),
+        ("bool".into(), Some(Rc::new(Value::Boolean(false)))),
       ])))
     );
     assert_eq!(
       j("[17, 'is', false]"),
       Some(Rc::new(Value::List(vec![
         Some(Rc::new(Value::Number(17.0))),
-        Some(Rc::new(Value::String("is".to_string()))),
+        Some(Rc::new(Value::String("is".into()))),
         Some(Rc::new(Value::Boolean(false))),
       ])))
     );

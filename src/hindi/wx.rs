@@ -125,11 +125,11 @@ mod tests {
 
   #[test]
   fn test_hindi_to_wx() {
-    ITEMS.with(|a| a.iter().for_each(|x| assert_eq!(hindi_to_wx(x[1]).unwrap(), x[0].to_string())));
+    ITEMS.with(|a| a.iter().for_each(|x| assert_eq!(hindi_to_wx(x[1]).unwrap(), x[0])));
   }
 
   #[test]
   fn test_wx_to_hindi() {
-    ITEMS.with(|a| a.iter().for_each(|x| assert_eq!(wx_to_hindi(x[0]).unwrap(), x[1].to_string())));
+    ITEMS.with(|a| a.iter().for_each(|x| assert_eq!(wx_to_hindi(x[0]).unwrap(), x[1])));
   }
 }

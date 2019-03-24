@@ -25,6 +25,7 @@ use nlu::fantasy::compile;
 use nlu::parser::Parser;
 use payload::base::Payload;
 use payload::lambda::Lambda;
+use std::fs::read_to_string;
 use std::rc::Rc;
 
 struct SpaceLexer {}
@@ -56,10 +57,13 @@ impl<T: Payload> Lexer<Option<T>, T> for SpaceLexer {
 fn main() -> Result<()> {
   let args: Vec<_> = std::env::args().collect();
   if args.len() != 3 {
-    return Err("Usage: ./main $grammar $input".to_string());
+    Err("Usage: ./main $grammar $input")?;
   }
-  let grammar_data = std::fs::read_to_string(&args[1]).map_err(|x| x.to_string())?;
-  let grammar = compile::<Lambda>(&grammar_data, Box::new(SpaceLexer {}))?;
-  let value = Parser::new(&grammar).set_debug(true).parse(&args[2]).unwrap().value;
-  Ok(println!("\n{}", value.stringify()))
+  let (file, input) = (&args[1], &args[2]);
+  let data = read_to_string(file).map_err(|x| format!("Failed to read file {}: {}", file, x))?;
+  let grammar = compile::<Lambda>(&data, Box::new(SpaceLexer {}))
+    .map_err(|x| format!("Failed to compile grammar: {}\n\n{:?}", file, x))?;
+  let parser = Parser::new(&grammar).set_debug(true);
+  let value = parser.parse(input).ok_or(format!("Failed to parse input: {:?}", input))?.value;
+  Ok(println!("{}", value.stringify()))
 }

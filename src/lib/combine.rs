@@ -30,8 +30,8 @@ impl<T: 'static> Parser<T> {
     let mut state = State { expected: vec![], input: x, remainder: x.len() };
     match (self.0)(x, &mut state) {
       Some((value, "")) => Ok(value),
-      Some((_, x)) => Err(format(Some(x.len()), &mut state)),
-      None => Err(format(None, &mut state)),
+      Some((_, x)) => Err(format(Some(x.len()), &mut state).into()),
+      None => Err(format(None, &mut state).into()),
     }
   }
 }
@@ -215,7 +215,7 @@ mod tests {
   }
 
   fn test_error<T: std::fmt::Debug>(result: Result<T>, prefix: &str) {
-    let error = result.unwrap_err();
+    let error = format!("{:?}", result.unwrap_err());
     if !error.starts_with(prefix) {
       let error = error.split('\n').nth(0).unwrap_or("");
       panic!("Error does not match prefix:\nexpected: {:?}\n  actual: {:?}", prefix, error);

@@ -149,7 +149,7 @@ mod tests {
 
     fn unlex(&self, name: &str, value: &T) -> Vec<Rc<Match<String>>> {
       if name.len() == 1 && *value == T::default() {
-        let (tenses, texts, value) = (vec![], HashMap::default(), name.to_string());
+        let (tenses, texts, value) = (vec![], HashMap::default(), name.into());
         vec![Rc::new(Match { tenses, texts, value })]
       } else {
         vec![]
@@ -180,7 +180,7 @@ mod tests {
     if term.starts_with("$") {
       Term::Symbol(term[1..].parse().unwrap())
     } else {
-      Term::Terminal(term.to_string())
+      Term::Terminal(term.into())
     }
   }
 
@@ -207,7 +207,7 @@ mod tests {
     Grammar {
       key: Box::new(|x| format!("{}", x)),
       lexer: Box::new(CharacterLexer::default()),
-      names: "$Root $Add $Mul $Num".split(' ').map(|x| x.to_string()).collect(),
+      names: "$Root $Add $Mul $Num".split(' ').map(|x| x.into()).collect(),
       rules: vec![
         make_rule(0, "$1     ", Box::new(|x| vec![vec![*x]])),
         make_rule(1, "$2     ", Box::new(|x| vec![vec![*x]])).score(-deepness),
@@ -241,7 +241,7 @@ mod tests {
       let rules = [&grammar.rules[index]];
       let mut rng = rand::SeedableRng::from_seed([17; 32]);
       let result = generator.generate_from_rules(&mut rng, &rules, &2.0).map(|x| x.value.clone());
-      assert_eq!(result, Some(expected.to_string()));
+      assert_eq!(result.unwrap(), expected);
     }
   }
 
@@ -253,7 +253,7 @@ mod tests {
       let generator = Generator::new(&grammar);
       let mut rng = rand::SeedableRng::from_seed([17; 32]);
       let result = generator.generate(&mut rng, &2.0).map(|x| x.value.clone());
-      assert_eq!(result, Some(expected.to_string()));
+      assert_eq!(result.unwrap(), expected);
     }
   }
 
