@@ -50,6 +50,10 @@ impl<T: Payload> Lexer<Option<T>, T> for SpaceLexer {
     xs.collect()
   }
 
+  fn tense(&self, _: &HashMap<String, String>) -> Result<Tense> {
+    Ok(Tense::default())
+  }
+
   fn unlex(&self, terminal: &str, _: &Option<T>) -> Vec<Rc<Match<T>>> {
     vec![self.default_match(terminal)]
   }
@@ -64,7 +68,7 @@ fn main() -> Result<()> {
   let data = read_to_string(file).map_err(|x| format!("Failed to read file {}: {}", file, x))?;
   let grammar = compile::<Lambda>(&data, Box::new(SpaceLexer {}))
     .map_err(|x| format!("Failed to compile grammar: {}\n\n{:?}", file, x))?;
-  let parser = Parser::new(&grammar).set_debug(true);
-  let value = parser.parse(input).ok_or(format!("Failed to parse input: {:?}", input))?.value;
+  let maybe = Parser::new(&grammar).set_debug(true).parse(input);
+  let value = maybe.ok_or_else(|| format!("Failed to parse input: {:?}", input))?.value;
   Ok(println!("{}", value.stringify()))
 }

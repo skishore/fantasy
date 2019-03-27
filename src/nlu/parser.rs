@@ -460,6 +460,7 @@ impl<'a, S, T> Parser<'a, S, T> {
 
 #[cfg(test)]
 mod tests {
+  use super::super::super::lib::base::Result;
   use super::super::base::{Lexer, Match, Semantics, Tense};
   use super::*;
   use std::marker::PhantomData;
@@ -491,6 +492,10 @@ mod tests {
         Token { matches, text }
       });
       map.collect()
+    }
+
+    fn tense(&self, _: &HashMap<String, String>) -> Result<Tense> {
+      unimplemented!()
     }
 
     fn unlex(&self, _: &str, _: &()) -> Vec<Rc<Match<T>>> {

@@ -126,6 +126,7 @@ impl<'a, S, T> Generator<'a, S, T> {
 
 #[cfg(test)]
 mod tests {
+  use super::super::super::lib::base::Result;
   use super::super::base::{Lexer, Match, Semantics, Tense, Token};
   use super::*;
   use std::marker::PhantomData;
@@ -144,6 +145,10 @@ mod tests {
     }
 
     fn lex<'a: 'b, 'b>(&'a self, _: &'b str) -> Vec<Token<'b, String>> {
+      unimplemented!()
+    }
+
+    fn tense(&self, _: &HashMap<String, String>) -> Result<Tense> {
       unimplemented!()
     }
 

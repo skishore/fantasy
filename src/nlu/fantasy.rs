@@ -227,7 +227,8 @@ impl<T: Payload> State<T> {
       let precedence = get_precedence(&y.rhs);
       let (merge, split) = get_semantics(n, y, get_template(n, y)?);
       let rhs = y.rhs.iter().map(|z| self.build_term(z)).collect::<Result<Vec<_>>>()?;
-      self.grammar.rules.push(Rule { lhs, rhs, merge, split, precedence, tense: y.tense.clone() });
+      let tense = self.grammar.lexer.tense(&y.tense)?;
+      self.grammar.rules.push(Rule { lhs, rhs, merge, split, precedence, tense });
       Ok(())
     })
   }
@@ -432,6 +433,10 @@ mod tests {
 
     fn lex<'a: 'b, 'b>(&'a self, _: &'b str) -> Vec<Token<'b, T>> {
       unimplemented!()
+    }
+
+    fn tense(&self, _: &HashMap<String, String>) -> Result<Tense> {
+      Ok(Tense::default())
     }
 
     fn unlex(&self, _: &str, _: &Option<T>) -> Vec<Rc<Match<T>>> {
