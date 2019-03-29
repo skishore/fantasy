@@ -157,31 +157,25 @@ $WantPassive
 
 # The base vocabulary, including several classes of words.
 
-lexer: ```
+lexer: ```(
 
-const {flatten} = require('../lib/base');
-const {HindiLexer} = require('../hindi/lexer');
-const {Vocabulary} = require('../hindi/vocabulary');
-const {Lambda} = require('../template/lambda');
+  $ADJECTIVES:
 
-const {adjectives, nouns, numbers, particles, pronouns, verbs} = Vocabulary;
+         meaning | word
+    -------------|-------------
+     quality.bad | kharab/KarAb
+    quality.good | accha/acCA
+    quality.okay | thik/TIk
+      size.large | bara/baDZA
+      size.small | chota/cotA
 
-const vocabulary = flatten([
-  adjectives(`
-            meaning | word
-    ----------------|-------------
-        quality.bad | kharab/KarAb
-       quality.good | accha/acCA
-       quality.okay | thik/TIk
-         size.large | bara/baDZA
-         size.small | chota/cotA
-  `),
-  nouns(`
+  $NOUNS:
+
     # The "role" column encodes gender and declension. Nouns with a "." do not
     # decline while nouns with an "s" decline in the plural and oblique cases.
 
       category | meaning                    | word          | role
-      ---------|----------------------------|---------------|-----
+    -----------|----------------------------|---------------|-----
       abstract | type.help                  | madad/maxax   | f.
              ^ | type.name                  | nam/nAm       | m.
          drink | type.tea                   | chai/cAy      | f.
@@ -197,8 +191,15 @@ const vocabulary = flatten([
              ^ | gender.female & type.adult | aurat/Oraw    | fs
     profession | profession.doctor          | daktar/dAktar | m.
              ^ | profession.lawyer          | vakil/vakIl   | m.
-  `),
-  numbers(`
+
+  $NOUN_PLURALS:
+
+      singular | plural
+    -----------|-----------
+    aurat/Oraw | aurte/Orwe
+
+  $NUMBERS:
+
     meaning | word
     --------|-------------
           1 | ek/ek
@@ -210,8 +211,9 @@ const vocabulary = flatten([
           7 | sat/sAw
           8 | ath/AT
           9 | nau/nO
-  `),
-  particles(`
+
+  $PARTICLES:
+
     # TODO(skishore): The "temporary" category here contains words that should
     # appear in some part-of-speech list, but for which we don't yet have the
     # proper declension. For example, we haven't implemented the reflective
@@ -236,12 +238,13 @@ const vocabulary = flatten([
              ^ |     why | kyun/kyUM       | n
      temporary |       - | chahie/cAhIe    | n
              ^ |       - | dijie/dijIe     | n
-  `),
-  pronouns(`
+
+  $PRONOUNS:
+
     # The "role" column encodes person, number, and, for the 2nd person, tone.
     # The tone is either i (intimate), c (casual), or f (formal).
 
-    role | direct   | genitive        | dative (1)   | dative (2)  | copula
+    role | direct   | genitive        | dative_1     | dative_2    | copula
     -----|----------|-----------------|--------------|-------------|---------
      1s. | main/mEM | mera/merA       | mujhko/muJko | mujhe/muJe  | hun/hUz
      2si | tu/wU    | tera/werA       | tujhko/wuJko | tujhe/wuJe  | hai/hE
@@ -250,8 +253,9 @@ const vocabulary = flatten([
      2pc | tum/wum  | tumhara/wumhArA | tumko/wumko  | tumhe/wumhe | ho/ho
      2pf | ap/Ap    | apka/ApkA       | apko/Apko    | <           | ^
      3p. | voh/vah  | uska/uskA       | unko/unko    | usne/usne   | hai/hE
-  `),
-  verbs(`
+
+  $VERBS:
+
     meaning | word
     --------|-------------
       bring | lana/lAnA
@@ -262,9 +266,5 @@ const vocabulary = flatten([
       sleep | sona/sonA
        take | lena/lenA
        want | chahna/cAhnA
-  `),
-]);
 
-return new HindiLexer(Lambda, vocabulary);
-
-```
+)```

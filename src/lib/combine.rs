@@ -2,7 +2,6 @@ use super::base::Result;
 use regex::Regex;
 use std::borrow::Borrow;
 use std::cell::RefCell;
-use std::collections::BTreeSet;
 use std::rc::Rc;
 
 struct State<'a> {
@@ -182,11 +181,11 @@ fn format<'a>(remainder: Option<usize>, state: &mut State<'a>) -> String {
   let index = std::cmp::max(std::cmp::min(total - state.remainder, total), 0);
   let start = state.input[..index].rfind('\n').map_or(0, |x| x + 1);
   let end = state.input[start..].find('\n').map_or(total, |x| x + start);
-  let (line, column) = (state.input[..end].split('\n').count(), index - start + 1);
-  let expected: BTreeSet<_> = state.expected.iter().map(|x| x.to_string()).collect();
-  let expected = expected.into_iter().collect::<Vec<_>>().join(" | ");
-  let (hi, ws) = (&state.input[start..end], " ".repeat(column - 1));
-  format!("At line {}, column {}: expected: {}\n\n  {}\n  {}^\n", line, column, expected, hi, ws)
+  let (l, c) = (state.input[..end].split('\n').count(), index - start + 1);
+  let (h, w) = (&state.input[start..end], " ".repeat(c - 1));
+  let mut expected: Vec<_> = state.expected.iter().map(|x| x.to_string()).collect();
+  expected.sort();
+  format!("At line {}, column {}: expected: {}\n\n  {}\n  {}^\n", l, c, expected.join(" | "), h, w)
 }
 
 fn update<'a>(expected: Rc<String>, remainder: usize, state: &mut State<'a>) {

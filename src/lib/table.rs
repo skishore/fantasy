@@ -3,8 +3,8 @@ use super::base::Result;
 #[macro_export]
 macro_rules! for_each_row {
   ($a:expr, [$($b:ident),+], $c:block) => {
-    use super::super::lib::table::parse_table;
-    for ($($b),*) in parse_table(&[$(stringify!($b)),*], $a)?.into_iter().map(|x| {
+    let helper = super::super::lib::table::parse_table;
+    for ($($b),*) in helper(&[$(stringify!($b)),*], $a)?.into_iter().map(|x| {
       match &x.as_slice() { &[$($b),*] => ($(*$b),*), _ => panic!() }
     }) $c
   }
