@@ -53,7 +53,7 @@ fn rollup(cases: &[Case], class: &str, value: &str) -> Result<Vec<Entry>> {
 
 fn split(word: &str) -> Result<(String, String)> {
   let index = word.find('/').ok_or_else(|| format!("Invalid word (missing slash): {}", word))?;
-  let (hindi, latin) = word.split_at(index);
+  let (hindi, latin) = (&word[index + 1..], &word[..index]);
   Ok((hindi.to_string(), latin.to_string()))
 }
 
@@ -109,7 +109,7 @@ pub fn nouns(main: &str, supplement: &str) -> Result<Vec<Entry>> {
     let (gender, declines) = match role {
       "m." => ('m', false),
       "f." => ('f', false),
-      "ms" => ('f', true),
+      "ms" => ('m', true),
       "fs" => ('f', true),
       _ => Err(format!("Invalid noun role: {}", role))?,
     };
@@ -273,7 +273,7 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
     for (h, l, time, prefix) in &time_forms {
       let y = if vowel && *prefix { "y" } else { "" };
       let h: Vec<_> = ['A', 'e', 'I'].iter().map(|x| format!("{}{}{}{}", hstem, h, y, x)).collect();
-      let l: Vec<_> = ['A', 'e', 'I'].iter().map(|x| format!("{}{}{}{}", lstem, l, y, x)).collect();
+      let l: Vec<_> = ['a', 'e', 'i'].iter().map(|x| format!("{}{}{}{}", lstem, l, y, x)).collect();
       let mut t: Vec<_> = ["sm...", "pm...", ".f..."].iter().map(|x| tense(x).unwrap()).collect();
       t.iter_mut().for_each(|x| std::mem::drop(x.insert("time", time)));
       result.push(rollup(&zip(h, l, t), "verb", meaning)?);
@@ -293,8 +293,8 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
         .map(|x| format!("{}{}", hstem, x));
       let latins = ls.iter().map(|x| x.to_string());
       let latins = latins
-        .chain(hs.iter().map(|x| format!("{}i", &x[..x.len() - 1])))
-        .map(|x| format!("{}{}", hstem, x));
+        .chain(ls.iter().map(|x| format!("{}i", &x[..x.len() - 1])))
+        .map(|x| format!("{}{}", lstem, x));
       let tenses = ts.iter().map(|x| tense(x)).collect::<Result<Vec<_>>>()?;
       let tenses = tenses
         .iter()
@@ -307,4 +307,116 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
     }
   });
   Ok(result.into_iter().flatten().collect())
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_all_vocabulary_entries() {
+    let vocabulary = vec![
+      adjectives("
+             meaning | word
+        -------------|-------------
+         quality.bad | kharab/KarAb
+        quality.good | accha/acCA
+        quality.okay | thik/TIk
+          size.large | bara/baDZA
+          size.small | chota/cotA
+      "),
+      nouns(r#"
+        # The "role" column encodes gender and declension. Nouns with a "." do not
+        # decline while nouns with an "s" decline in the plural and oblique cases.
+
+          category | meaning                    | word          | role
+        -----------|----------------------------|---------------|-----
+          abstract | type.help                  | madad/maxax   | f.
+                 ^ | type.name                  | nam/nAm       | m.
+             drink | type.tea                   | chai/cAy      | f.
+                 ^ | type.water                 | pani/pAnI     | m.
+              food | type.apple                 | seb/seb       | m.
+                 ^ | type.bread                 | roti/rotI     | m.
+                 ^ | type.food                  | khana/KAnA    | m.
+            person | type.child                 | baccha/baccA  | ms
+                 ^ | type.adult                 | log/log       | m.
+                 ^ | gender.male & type.child   | larka/ladZakA | ms
+                 ^ | gender.female & type.child | larki/ladZakI | fs
+                 ^ | gender.male & type.adult   | admi/AxmI     | m.
+                 ^ | gender.female & type.adult | aurat/Oraw    | fs
+        profession | profession.doctor          | daktar/dAktar | m.
+                 ^ | profession.lawyer          | vakil/vakIl   | m.
+      "#, "
+          singular | plural
+        -----------|-----------
+        aurat/Oraw | aurte/Orwe
+      "),
+      numbers("
+        meaning | word
+        --------|-------------
+              1 | ek/ek
+              2 | do/xo
+              3 | tin/wIn
+              4 | char/cAr
+              5 | panch/pAzc
+              6 | chah/Cah
+              7 | sat/sAw
+              8 | ath/AT
+              9 | nau/nO
+      "),
+      particles(r#"
+        # TODO(skishore): The "temporary" category here contains words that should
+        # appear in some part-of-speech list, but for which we don't yet have the
+        # proper declension. For example, we haven't implemented the reflective
+        # tense "chahie" for "chahna" or the command tense "dijie" for "dena".
+
+          category | meaning | word            | declines
+        -----------|---------|-----------------|---------
+        determiner |    that | voh/vah         | n
+                 ^ |    this | yeh/yah         | n
+          particle |       - | aur/Or          | n
+                 ^ |       - | hello/helo      | n
+                 ^ |       - | ka/kA           | y
+                 ^ |       - | ko/ko           | n
+                 ^ |       - | liye/liye       | n
+                 ^ |       - | namaste/namaswe | n
+                 ^ |       - | sakta/sakwA     | y
+          question |     how | kaisa/kEsA      | y
+                 ^ |    what | kya/kyA         | n
+                 ^ |    when | kab/kab         | n
+                 ^ |   where | kaha/kahA       | n
+                 ^ |     who | kaun/kOn        | n
+                 ^ |     why | kyun/kyUM       | n
+         temporary |       - | chahie/cAhIe    | n
+                 ^ |       - | dijie/dijIe     | n
+      "#),
+      pronouns(r#"
+        # The "role" column encodes person, number, and, for the 2nd person, tone.
+        # The tone is either i (intimate), c (casual), or f (formal).
+
+        role | direct   | genitive        | dative_1     | dative_2    | copula
+        -----|----------|-----------------|--------------|-------------|---------
+         1s. | main/mEM | mera/merA       | mujhko/muJko | mujhe/muJe  | hun/hUz
+         2si | tu/wU    | tera/werA       | tujhko/wuJko | tujhe/wuJe  | hai/hE
+         3s. | voh/vah  | uska/uskA       | usko/usko    | use/use     | ^
+         1p. | ham/ham  | hamara/hamArA   | hamko/hamko  | hame/hame   | hain/hEM
+         2pc | tum/wum  | tumhara/wumhArA | tumko/wumko  | tumhe/wumhe | ho/ho
+         2pf | ap/Ap    | apka/ApkA       | apko/Apko    | <           | ^
+         3p. | voh/vah  | uska/uskA       | unko/unko    | usne/usne   | hai/hE
+      "#),
+      verbs("
+        meaning | word
+        --------|-------------
+          bring | lana/lAnA
+             do | karna/karnA
+          drink | pina/pInA
+            eat | khana/KAnA
+           give | dena/xenA
+          sleep | sona/sonA
+           take | lena/lenA
+           want | chahna/cAhnA
+      "),
+    ];
+    let _: Vec<_> = vocabulary.into_iter().flat_map(|x| x.unwrap().into_iter()).collect();
+  }
 }
