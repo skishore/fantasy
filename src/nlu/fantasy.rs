@@ -376,15 +376,18 @@ fn parse(input: &str) -> Result<Vec<RootNode>> {
 
 // Our public API is a simple function.
 
-pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<T>> {
+pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
+  input: &str,
+  f: F,
+) -> Result<Grammar<T>> {
   let (mut lexers, mut macros, mut symbol) = (vec![], vec![], vec![]);
   parse(input)?.into_iter().for_each(|x| match x {
     RootNode::Lexer(x) => lexers.push(x),
     RootNode::Macro(x) => macros.push(x),
     RootNode::Rules(x) => symbol.push(x),
   });
-  if lexers.is_empty() {
-    Err("Unable to find lexer block!")?;
+  if lexers.len() != 1 {
+    Err(format!("Expected: 1 lexer block; got: {}", lexers.len()))?;
   }
 
   // TODO(skishore): We need to actually construct a lexer here.
@@ -395,7 +398,7 @@ pub fn compile<T: Payload>(input: &str, lexer: Box<Lexer<T>>) -> Result<Grammar<
         Some(x) => format!("Some({})", x.stringify()),
         None => "None".to_string(),
       }),
-      lexer,
+      lexer: f(&lexers[0])?,
       names: vec![],
       rules: vec![],
       start: 0,
@@ -447,6 +450,6 @@ mod tests {
   #[test]
   fn smoke_test() {
     let input = std::fs::read_to_string("src/hindi/hindi.grammar").unwrap();
-    compile(&input, Box::new(DummyLexer::<Lambda>::default())).unwrap();
+    compile(&input, |_| Ok(Box::new(DummyLexer::<Lambda>::default()))).unwrap();
   }
 }

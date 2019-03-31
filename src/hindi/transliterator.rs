@@ -147,7 +147,7 @@ fn viterbi(latin: &str, wx: &str) -> f32 {
 
 // We wrap the transliteration logic in a simple interface.
 
-struct Transliterator {
+pub struct Transliterator {
   dawg: Dawg<u8, String>,
 }
 

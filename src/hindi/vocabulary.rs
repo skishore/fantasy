@@ -309,14 +309,49 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
   Ok(result.into_iter().flatten().collect())
 }
 
+// Our overall entry point calls each of the helpers above.
+
+pub fn build_tense(tense: &HashMap<String, String>) -> Result<Tense> {
+  CATEGORIES.with(|categories| {
+    let mut result = HashMap::default();
+    for (k, v) in tense.iter() {
+      if let Some((key, values)) = categories.iter().filter(|x| x.0 == k).next() {
+        if let Some((_, value)) = values.iter().filter(|x| x.1 == v).next() {
+          result.insert(*key, *value);
+        } else {
+          Err(format!("Invalid value for Hindi category {}: {}", k, v))?
+        }
+      } else {
+        Err(format!("Unknown Hindi category: {}", k))?
+      }
+    }
+    Ok(result)
+  })
+}
+
+pub fn build_vocabulary(text: &str) -> Result<Vec<Entry>> {
+  let mut entries = vec![];
+  let (a, b, c, d, e, f) = (adjectives, nouns, numbers, particles, pronouns, verbs);
+  for_each_table!(text, [adjectives, nouns, noun_plurals, numbers, particles, pronouns, verbs], {
+    entries.extend(a(adjectives)?.into_iter());
+    entries.extend(b(nouns, noun_plurals)?.into_iter());
+    entries.extend(c(numbers)?.into_iter());
+    entries.extend(d(particles)?.into_iter());
+    entries.extend(e(pronouns)?.into_iter());
+    entries.extend(f(verbs)?.into_iter());
+  });
+  Ok(entries)
+}
+
 #[cfg(test)]
 mod test {
   use super::*;
 
   #[test]
   fn test_all_vocabulary_entries() {
-    let vocabulary = vec![
-      adjectives("
+    let text = r#"(
+      $ADJECTIVES:
+
              meaning | word
         -------------|-------------
          quality.bad | kharab/KarAb
@@ -324,8 +359,9 @@ mod test {
         quality.okay | thik/TIk
           size.large | bara/baDZA
           size.small | chota/cotA
-      "),
-      nouns(r#"
+
+      $NOUNS:
+
         # The "role" column encodes gender and declension. Nouns with a "." do not
         # decline while nouns with an "s" decline in the plural and oblique cases.
 
@@ -346,12 +382,15 @@ mod test {
                  ^ | gender.female & type.adult | aurat/Oraw    | fs
         profession | profession.doctor          | daktar/dAktar | m.
                  ^ | profession.lawyer          | vakil/vakIl   | m.
-      "#, "
+
+      $NOUN_PLURALS:
+
           singular | plural
         -----------|-----------
         aurat/Oraw | aurte/Orwe
-      "),
-      numbers("
+
+      $NUMBERS:
+
         meaning | word
         --------|-------------
               1 | ek/ek
@@ -363,8 +402,9 @@ mod test {
               7 | sat/sAw
               8 | ath/AT
               9 | nau/nO
-      "),
-      particles(r#"
+
+      $PARTICLES:
+
         # TODO(skishore): The "temporary" category here contains words that should
         # appear in some part-of-speech list, but for which we don't yet have the
         # proper declension. For example, we haven't implemented the reflective
@@ -389,8 +429,9 @@ mod test {
                  ^ |     why | kyun/kyUM       | n
          temporary |       - | chahie/cAhIe    | n
                  ^ |       - | dijie/dijIe     | n
-      "#),
-      pronouns(r#"
+
+      $PRONOUNS:
+
         # The "role" column encodes person, number, and, for the 2nd person, tone.
         # The tone is either i (intimate), c (casual), or f (formal).
 
@@ -403,8 +444,9 @@ mod test {
          2pc | tum/wum  | tumhara/wumhArA | tumko/wumko  | tumhe/wumhe | ho/ho
          2pf | ap/Ap    | apka/ApkA       | apko/Apko    | <           | ^
          3p. | voh/vah  | uska/uskA       | unko/unko    | usne/usne   | hai/hE
-      "#),
-      verbs("
+
+      $VERBS:
+
         meaning | word
         --------|-------------
           bring | lana/lAnA
@@ -415,8 +457,8 @@ mod test {
           sleep | sona/sonA
            take | lena/lenA
            want | chahna/cAhnA
-      "),
-    ];
-    let _: Vec<_> = vocabulary.into_iter().flat_map(|x| x.unwrap().into_iter()).collect();
+
+    )"#;
+    build_vocabulary(&text[1..text.len() - 1]).unwrap();
   }
 }
