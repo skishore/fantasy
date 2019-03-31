@@ -17,7 +17,8 @@ fn agree(a: &Tense, b: &Tense) -> bool {
 
 fn default_match<T: Payload>(text: &str) -> Rc<Match<T>> {
   let mut texts = HashMap::default();
-  texts.insert("default", text.to_string());
+  texts.insert("hindi", text.to_string());
+  texts.insert("latin", text.to_string());
   Rc::new(Match { tenses: vec![], texts, value: T::base_lex(text) })
 }
 

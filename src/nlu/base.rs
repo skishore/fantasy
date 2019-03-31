@@ -136,4 +136,13 @@ impl<'a, S, T> Derivation<'a, S, T> {
     };
     Derivation { children, rule, value }
   }
+
+  pub fn matches(&self) -> Vec<Rc<Match<T>>> {
+    let mut result = vec![];
+    self.children.iter().for_each(|x| match x {
+      Child::Leaf(x) => result.push(Rc::clone(x)),
+      Child::Node(x) => result.append(&mut x.matches()),
+    });
+    result
+  }
 }
