@@ -44,7 +44,6 @@ impl<T: Payload> Template<T> for DefaultTemplate {
 }
 
 pub struct SlotTemplate<T: Payload> {
-  required: usize,
   reversed: Vec<Option<usize>>,
   slots: Vec<Option<(usize, bool)>>,
   template: Box<Template<T>>,
@@ -52,10 +51,9 @@ pub struct SlotTemplate<T: Payload> {
 
 impl<T: Payload> SlotTemplate<T> {
   pub fn new(n: usize, slots: Vec<Option<(usize, bool)>>, template: Box<Template<T>>) -> Self {
-    let required = slots.iter().filter(|x| x.map_or(false, |y| !y.1)).count();
     let mut reversed = vec![None; n];
     slots.iter().enumerate().for_each(|(i, x)| x.iter().for_each(|y| reversed[y.0] = Some(i)));
-    Self { required, reversed, slots, template }
+    Self { reversed, slots, template }
   }
 }
 
@@ -68,19 +66,17 @@ impl<T: Payload> Template<T> for SlotTemplate<T> {
   fn split(&self, x: &T) -> Vec<Args<T>> {
     let result = self.template.split(x).into_iter().filter_map(|xs| {
       let mut result: Args<T> = vec![];
-      let mut missing = self.required;
       for (k, v) in xs.into_iter() {
         if let Some(slot) = self.slots[k] {
           if v.is_default() && !slot.1 {
             return None;
           }
           result.push((slot.0, v));
-          missing -= if slot.1 { 0 } else { 1 };
         } else if !v.is_default() {
           return None;
         }
       }
-      return if missing > 0 { None } else { Some(result) };
+      Some(result)
     });
     result.collect()
   }

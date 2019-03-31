@@ -84,23 +84,23 @@ impl<'a, 'b, S, T> Memo<'a, 'b, S, T> {
 // Our public interface has a simple "generate" entry point, but also supports
 // generation from a list of rules, which is useful for correction.
 
-struct Generator<'a, S, T> {
+pub struct Generator<'a, S, T> {
   by_name: Vec<Vec<&'a Rule<S, T>>>,
   grammar: &'a Grammar<S, T>,
 }
 
 impl<'a, S, T> Generator<'a, S, T> {
-  fn new(grammar: &'a Grammar<S, T>) -> Self {
+  pub fn new(grammar: &'a Grammar<S, T>) -> Self {
     let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
     grammar.rules.iter().for_each(|x| by_name[x.lhs].push(x));
     Self { by_name, grammar }
   }
 
-  fn generate(&'a self, rng: &mut Rng, value: &S) -> Option<Derivation<'a, S, T>> {
+  pub fn generate(&'a self, rng: &mut Rng, value: &S) -> Option<Derivation<'a, S, T>> {
     self.generate_from_rules(rng, &self.by_name[self.grammar.start], value)
   }
 
-  fn generate_from_rules(
+  pub fn generate_from_rules(
     &'a self,
     rng: &mut Rng,
     rules: &[&'a Rule<S, T>],
@@ -116,10 +116,10 @@ impl<'a, S, T> Generator<'a, S, T> {
     }
   }
 
-  fn key(&self, term: &Term, value: &S) -> String {
+  pub fn key(&self, term: &Term, value: &S) -> String {
     match term {
-      Term::Symbol(x) => format!("%{}: {}", x, (self.grammar.key)(value)),
-      Term::Terminal(x) => format!("${}: {}", x, (self.grammar.key)(value)),
+      Term::Symbol(x) => format!("${}: {}", x, (self.grammar.key)(value)),
+      Term::Terminal(x) => format!("%{}: {}", x, (self.grammar.key)(value)),
     }
   }
 }

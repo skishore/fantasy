@@ -74,7 +74,7 @@ fn split(wx: &str) -> Vec<Bytes> {
     let next_consonant = !next_vowel && !b"zM".contains(byte);
     if ch == b'Z' {
       continue;
-    } else if i + 1 < wx.len() && wx[i] == b'Z' {
+    } else if i + 1 < wx.len() && wx[i + 1] == b'Z' {
       check(&wx[i..i + 2]).or_else(|| check(&wx[i..i + 1])).map(|x| result.push(x));
     } else if ch == b'a' && prev_consonant {
       result.push(b"ax");
@@ -186,6 +186,12 @@ mod tests {
   fn empty_list_returned_without_transliterations() {
     let t = Transliterator::new(&"hE hEM ho hUz".split(' ').collect::<Vec<_>>());
     assert_eq!(t.transliterate("main"), &[] as &[&str]);
+  }
+
+  #[test]
+  fn hard_d_sound_matched_with_latin_r() {
+    let t = Transliterator::new(&"ladZakA ladZakI larkA larkI".split(' ').collect::<Vec<_>>());
+    assert_eq!(t.transliterate("larka"), &["larkA", "ladZakA", "larkI", "ladZakI"] as &[&str]);
   }
 
   #[test]

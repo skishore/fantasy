@@ -109,7 +109,7 @@ fn get_template<T: Payload>(n: usize, rule: &RuleNode) -> Result<Rc<Template<T>>
     None => return Ok(Rc::new(DefaultTemplate {})),
   };
   let terms = rule.rhs.iter().enumerate();
-  let limit = rule.rhs.iter().fold(None, |a, x| x.index.map(|y| std::cmp::max(y, a.unwrap_or(y))));
+  let limit = rule.rhs.iter().filter_map(|x| x.index.clone()).max();
   let slots = if let Some(limit) = limit {
     let mut slots = vec![None; limit + 1];
     terms.for_each(|(i, x)| x.index.iter().for_each(|y| slots[*y] = Some((i, x.optional))));
