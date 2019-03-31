@@ -417,39 +417,38 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
 
 #[cfg(test)]
 mod tests {
-  use super::super::super::nlu::base::{Lexer, Match, Tense, Token};
+  use super::super::super::hindi::lexer::HindiLexer;
+  use super::super::super::nlu::generator::Generator;
+  use super::super::super::nlu::parser::Parser;
   use super::super::super::payload::lambda::Lambda;
   use super::*;
+  use test::Bencher;
 
-  struct DummyLexer<T: Payload>(Rc<Match<T>>);
-
-  impl<T: Payload> Default for DummyLexer<T> {
-    fn default() -> Self {
-      Self(Rc::new(Match { tenses: vec![], texts: HashMap::default(), value: T::default() }))
-    }
-  }
-
-  impl<T: Payload> Lexer<Option<T>, T> for DummyLexer<T> {
-    fn fix(&self, _: &Match<T>, _: &Tense) -> Vec<Rc<Match<T>>> {
-      unimplemented!()
-    }
-
-    fn lex<'a: 'b, 'b>(&'a self, _: &'b str) -> Vec<Token<'b, T>> {
-      unimplemented!()
-    }
-
-    fn tense(&self, _: &HashMap<String, String>) -> Result<Tense> {
-      Ok(Tense::default())
-    }
-
-    fn unlex(&self, _: &str, _: &Option<T>) -> Vec<Rc<Match<T>>> {
-      vec![self.0.clone()]
-    }
+  fn make_grammar() -> Result<Grammar<Lambda>> {
+    let file = "src/hindi/hindi.grammar";
+    let data = std::fs::read_to_string(file).unwrap();
+    let grammar = compile(&data, |x| HindiLexer::new(&x[11..x.len() - 4]));
+    Ok(grammar.map_err(|x| format!("Failed to compile grammar: {}\n\n{:?}", file, x))?)
   }
 
   #[test]
   fn smoke_test() {
-    let input = std::fs::read_to_string("src/hindi/hindi.grammar").unwrap();
-    compile(&input, |_| Ok(Box::new(DummyLexer::<Lambda>::default()))).unwrap();
+    make_grammar().unwrap();
+  }
+
+  #[bench]
+  fn generation_benchmark(b: &mut Bencher) {
+    let grammar = make_grammar().unwrap();
+    let generator = Generator::new(&grammar);
+    let mut rng = rand::SeedableRng::from_seed([17; 32]);
+    let semantics = Some(Lambda::parse("Tell(owner.I & type.child, want.type.water)").unwrap());
+    b.iter(|| generator.generate(&mut rng, &semantics).unwrap());
+  }
+
+  #[bench]
+  fn parsing_benchmark(b: &mut Bencher) {
+    let grammar = make_grammar().unwrap();
+    let parser = Parser::new(&grammar);
+    b.iter(|| parser.parse("meri bacche ko pani chahie").unwrap());
   }
 }
