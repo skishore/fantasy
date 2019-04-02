@@ -17,7 +17,12 @@ thread_local! {
 
   static WX_HASH_KEYS: HashMap<Bytes, Vec<String>> = {
     LOG_FREQUENCY.with(|a| a.iter().map(|(k, v)| {
-      let set: HashSet<_> = v.1.keys().map(|x| disemvowel(coerce(x))).collect();
+      let pieces: Vec<Bytes> = vec![b"ny", b"zy"];
+      let set: HashSet<_> = if pieces.contains(k) {
+        std::iter::once("".to_string()).collect()
+      } else {
+        v.1.keys().map(|x| disemvowel(coerce(x))).collect()
+      };
       (*k, set.into_iter().collect())
     }).collect())
   };
@@ -28,7 +33,7 @@ fn coerce(x: Bytes) -> &'static str {
 }
 
 fn disemvowel(x: &str) -> String {
-  x.replace(|c| "aeiouy".contains(c), "")
+  x.replace(|c| "aeiou".contains(c), "")
 }
 
 fn hash_keys_from_latin(latin: &str) -> Vec<String> {
