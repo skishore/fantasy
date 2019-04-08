@@ -39,6 +39,8 @@ fn rollup(cases: &[Case], class: &str, value: &str) -> Result<Vec<Entry>> {
   for case in cases {
     if result.iter().any(|x| x.hindi == case.hindi) {
       continue;
+    } else if case.latin != case.latin.to_lowercase() {
+      Err(format!("Invalid Latin: {}", case.latin))?;
     }
     wx_to_hindi(&case.hindi)?;
     let (hindi, latin) = (case.hindi.clone(), case.latin.clone());
@@ -313,19 +315,14 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
 
 pub fn build_tense(tense: &HashMap<String, String>) -> Result<Tense> {
   CATEGORIES.with(|categories| {
-    let mut result = HashMap::default();
-    for (k, v) in tense.iter() {
-      if let Some((key, values)) = categories.iter().filter(|x| x.0 == k).next() {
-        if let Some((_, value)) = values.iter().filter(|x| x.1 == v).next() {
-          result.insert(*key, *value);
-        } else {
-          Err(format!("Invalid value for Hindi category {}: {}", k, v))?
-        }
-      } else {
-        Err(format!("Unknown Hindi category: {}", k))?
-      }
-    }
-    Ok(result)
+    let result = tense.iter().map(|(k, v)| {
+      let next = categories.iter().filter(|x| x.0 == k).next();
+      let (key, values) = next.ok_or(format!("Unknown Hindi category: {}", k))?;
+      let next = values.iter().filter(|x| x.1 == v).next();
+      let (_, value) = next.ok_or(format!("Invalid value for Hindi category {}: {}", k, v))?;
+      Ok((*key, *value))
+    });
+    result.collect()
   })
 }
 
@@ -349,116 +346,14 @@ mod test {
 
   #[test]
   fn test_all_vocabulary_entries() {
-    let text = r#"(
-      $ADJECTIVES:
-
-             meaning | word
-        -------------|-------------
-         quality.bad | kharab/KarAb
-        quality.good | accha/acCA
-        quality.okay | thik/TIk
-          size.large | bara/baDZA
-          size.small | chota/cotA
-
-      $NOUNS:
-
-        # The "role" column encodes gender and declension. Nouns with a "." do not
-        # decline while nouns with an "s" decline in the plural and oblique cases.
-
-          category | meaning                    | word          | role
-        -----------|----------------------------|---------------|-----
-          abstract | type.help                  | madad/maxax   | f.
-                 ^ | type.name                  | nam/nAm       | m.
-             drink | type.tea                   | chai/cAy      | f.
-                 ^ | type.water                 | pani/pAnI     | m.
-              food | type.apple                 | seb/seb       | m.
-                 ^ | type.bread                 | roti/rotI     | m.
-                 ^ | type.food                  | khana/KAnA    | m.
-            person | type.child                 | baccha/baccA  | ms
-                 ^ | type.adult                 | log/log       | m.
-                 ^ | gender.male & type.child   | larka/ladZakA | ms
-                 ^ | gender.female & type.child | larki/ladZakI | fs
-                 ^ | gender.male & type.adult   | admi/AxmI     | m.
-                 ^ | gender.female & type.adult | aurat/Oraw    | fs
-        profession | profession.doctor          | daktar/dAktar | m.
-                 ^ | profession.lawyer          | vakil/vakIl   | m.
-
-      $NOUN_PLURALS:
-
-          singular | plural
-        -----------|-----------
-        aurat/Oraw | aurte/Orwe
-
-      $NUMBERS:
-
-        meaning | word
-        --------|-------------
-              1 | ek/ek
-              2 | do/xo
-              3 | tin/wIn
-              4 | char/cAr
-              5 | panch/pAzc
-              6 | chah/Cah
-              7 | sat/sAw
-              8 | ath/AT
-              9 | nau/nO
-
-      $PARTICLES:
-
-        # TODO(skishore): The "temporary" category here contains words that should
-        # appear in some part-of-speech list, but for which we don't yet have the
-        # proper declension. For example, we haven't implemented the reflective
-        # tense "chahie" for "chahna" or the command tense "dijie" for "dena".
-
-          category | meaning | word            | declines
-        -----------|---------|-----------------|---------
-        determiner |    that | voh/vah         | n
-                 ^ |    this | yeh/yah         | n
-          particle |       - | aur/Or          | n
-                 ^ |       - | hello/helo      | n
-                 ^ |       - | ka/kA           | y
-                 ^ |       - | ko/ko           | n
-                 ^ |       - | liye/liye       | n
-                 ^ |       - | namaste/namaswe | n
-                 ^ |       - | sakta/sakwA     | y
-          question |     how | kaisa/kEsA      | y
-                 ^ |    what | kya/kyA         | n
-                 ^ |    when | kab/kab         | n
-                 ^ |   where | kaha/kahA       | n
-                 ^ |     who | kaun/kOn        | n
-                 ^ |     why | kyun/kyUM       | n
-         temporary |       - | chahie/cAhIe    | n
-                 ^ |       - | dijie/dijIe     | n
-
-      $PRONOUNS:
-
-        # The "role" column encodes person, number, and, for the 2nd person, tone.
-        # The tone is either i (intimate), c (casual), or f (formal).
-
-        role | direct   | genitive        | dative_1     | dative_2    | copula
-        -----|----------|-----------------|--------------|-------------|---------
-         1s. | main/mEM | mera/merA       | mujhko/muJko | mujhe/muJe  | hun/hUz
-         2si | tu/wU    | tera/werA       | tujhko/wuJko | tujhe/wuJe  | hai/hE
-         3s. | voh/vah  | uska/uskA       | usko/usko    | use/use     | ^
-         1p. | ham/ham  | hamara/hamArA   | hamko/hamko  | hame/hame   | hain/hEM
-         2pc | tum/wum  | tumhara/wumhArA | tumko/wumko  | tumhe/wumhe | ho/ho
-         2pf | ap/Ap    | apka/ApkA       | apko/Apko    | <           | ^
-         3p. | voh/vah  | uska/uskA       | unko/unko    | usne/usne   | hai/hE
-
-      $VERBS:
-
-        meaning | word
-        --------|-------------
-          bring | lana/lAnA
-             do | karna/karnA
-          drink | pina/pInA
-            eat | khana/KAnA
-           give | dena/xenA
-          sleep | sona/sonA
-           take | lena/lenA
-           want | chahna/cAhnA
-
-    )"#;
-    build_vocabulary(&text[1..text.len() - 1]).unwrap();
+    let file = "src/hindi/hindi.grammar";
+    let data = std::fs::read_to_string(file).unwrap();
+    let base = regex::Regex::new(r#"lexer: ```[\s\S]*```"#).unwrap().find(&data).unwrap();
+    let text = &data[base.start() + 11..base.end() - 4];
+    for word in build_vocabulary(text).unwrap() {
+      for tense in &word.tenses {
+        build_tense(&tense.iter().map(|x| ((*x.0).into(), (*x.1).into())).collect()).unwrap();
+      }
+    }
   }
 }

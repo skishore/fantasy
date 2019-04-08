@@ -255,9 +255,11 @@ impl<T: Payload> State<T> {
     // Throw if a symbol is LHS- or RHS-only, or if a terminal is unknown to the lexer.
     {
       let Grammar { lexer, names, .. } = &self.grammar;
+      let dummy = Some(T::base_lex("dummy"));
+      let check = |x: &str| lexer.unlex(&x, &None).is_empty() && lexer.unlex(&x, &dummy).is_empty();
       let dead_end = rhs.iter().filter(|x| !lhs.contains(*x)).map(|x| names[*x].clone());
       let unreachable = lhs.iter().filter(|x| !rhs.contains(*x)).map(|x| names[*x].clone());
-      let unknown = terminals.into_iter().filter(|x| lexer.unlex(&x, &None).is_empty());
+      let unknown = terminals.into_iter().filter(|x| check(x));
       get_warning(dead_end.collect(), "Dead-end symbols")?;
       get_warning(unreachable.collect(), "Unreachable symbols")?;
       get_warning(unknown.collect(), "Unknown terminals")?;

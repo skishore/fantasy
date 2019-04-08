@@ -107,26 +107,21 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
     if name == "%token" {
       if let Some(value) = value {
         if let Some(text) = T::base_unlex(value) {
-          vec![default_match(text)]
-        } else {
-          vec![]
+          return vec![default_match(text)];
         }
-      } else {
-        // TODO(skishore): This line of code is wrong. All of this file is terrible.
-        vec![default_match("")]
       }
+      vec![]
     } else {
       let mut entries = self.from_name.get(name).map(|x| x.iter().collect()).unwrap_or(vec![]);
       if let Some(value) = value {
         let value_string = T::stringify(&value);
         entries = entries.into_iter().filter(|x| x.value_string == value_string).collect();
       }
-      let max_score = entries.iter().fold(std::f32::NEG_INFINITY, |a, x| {
-        a.max(x.scores.get(name).cloned().unwrap_or(std::f32::NEG_INFINITY))
-      });
+      let min = std::f32::NEG_INFINITY;
+      let max = entries.iter().fold(min, |a, x| a.max(x.scores.get(name).cloned().unwrap_or(min)));
       entries
         .into_iter()
-        .filter(|x| x.scores.get(name).cloned().unwrap_or(std::f32::NEG_INFINITY) == max_score)
+        .filter(|x| x.scores.get(name).cloned().unwrap_or(min) == max)
         .map(|x| Rc::clone(&x.match_rc))
         .collect()
     }
