@@ -352,7 +352,7 @@ impl<'a, 'b, T> Skipped<'a, 'b, T> {
     arena: &mut Arena<State<'a, 'b, T>>,
     columns: &[States<'a, 'b, T>],
   ) -> States<'a, 'b, T> {
-    let capacity = columns.iter().fold(0, |a, x| a + x.len());
+    let capacity = columns.iter().map(|x| x.len()).sum();
     let mut result = Vec::with_capacity(capacity);
     (0..self.ring_size).for_each(|i| {
       let j = (self.ring_last + self.ring_size - i) % self.ring_size;

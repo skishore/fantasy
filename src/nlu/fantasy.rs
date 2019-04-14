@@ -208,11 +208,6 @@ impl<T: Payload> State<T> {
     })
   }
 
-  fn process_lexer(&mut self, _x: String) -> Result<()> {
-    // TODO(skishore): Figure out hos to build a lexer given a string in Rust.
-    Ok(())
-  }
-
   fn process_macro(&mut self, x: MacroNode) -> Result<()> {
     match self.macros.insert(x.name.clone(), Rc::new(x)) {
       Some(x) => Err(format!("Duplicate macro: {}", x.name))?,
@@ -365,7 +360,7 @@ fn parse(input: &str) -> Result<Vec<RootNode>> {
       // Our top-level grammar parser.
       let args = seq3((st("["), separate(binding, commas, 1), st("]")), |x| x.1);
       let update = any(&[
-        regexp(r#"lexer: ```[\s\S]*```"#, |x| RootNode::Lexer(x.to_string())),
+        regexp(r#"lexer: ```[\s\S]*```"#, |x| RootNode::Lexer(x[10..x.len() - 3].to_string())),
         seq4((&id, args, &ws, &rule), |x| RootNode::Macro(MacroNode { name: x.0, args: x.1, rules: x.3 })),
         seq4((&symbol, opt(st("!")), &ws, &rule), |x| RootNode::Rules(SymbolNode { lhs: x.0, root: x.1.is_some(), rules: x.3 })),
       ]);
@@ -380,7 +375,7 @@ fn parse(input: &str) -> Result<Vec<RootNode>> {
 
 pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
   input: &str,
-  f: F,
+  lexer: F,
 ) -> Result<Grammar<T>> {
   let (mut lexers, mut macros, mut symbol) = (vec![], vec![], vec![]);
   parse(input)?.into_iter().for_each(|x| match x {
@@ -392,7 +387,6 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
     Err(format!("Expected: 1 lexer block; got: {}", lexers.len()))?;
   }
 
-  // TODO(skishore): We need to actually construct a lexer here.
   let mut state: State<T> = State {
     binding: HashMap::default(),
     grammar: Grammar {
@@ -400,7 +394,7 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
         Some(x) => format!("Some({})", x.stringify()),
         None => "None".to_string(),
       }),
-      lexer: f(&lexers[0])?,
+      lexer: lexer(&lexers[0])?,
       names: vec![],
       rules: vec![],
       start: 0,
@@ -410,7 +404,6 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
   };
 
   state.get_symbol("$ROOT");
-  lexers.into_iter().try_for_each(|x| state.process_lexer(x))?;
   macros.into_iter().try_for_each(|x| state.process_macro(x))?;
   symbol.iter().try_for_each(|x| state.process_rules(&x.lhs, &x.rules))?;
   symbol.iter().filter(|x| x.root).for_each(|x| state.process_start(&x.lhs));
@@ -429,7 +422,7 @@ mod tests {
   fn make_grammar() -> Result<Grammar<Lambda>> {
     let file = "src/hindi/hindi.grammar";
     let data = std::fs::read_to_string(file).unwrap();
-    let grammar = compile(&data, |x| HindiLexer::new(&x[11..x.len() - 4]));
+    let grammar = compile(&data, HindiLexer::new);
     Ok(grammar.map_err(|x| format!("Failed to compile grammar: {}\n\n{:?}", file, x))?)
   }
 

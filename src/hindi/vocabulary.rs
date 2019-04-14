@@ -349,7 +349,7 @@ mod test {
     let file = "src/hindi/hindi.grammar";
     let data = std::fs::read_to_string(file).unwrap();
     let base = regex::Regex::new(r#"lexer: ```[\s\S]*```"#).unwrap().find(&data).unwrap();
-    let text = &data[base.start() + 11..base.end() - 4];
+    let text = &data[base.start() + 10..base.end() - 3];
     for word in build_vocabulary(text).unwrap() {
       for tense in &word.tenses {
         build_tense(&tense.iter().map(|x| ((*x.0).into(), (*x.1).into())).collect()).unwrap();

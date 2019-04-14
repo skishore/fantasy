@@ -157,7 +157,7 @@ $WantPassive
 
 # The base vocabulary, including several classes of words.
 
-lexer: ```(
+lexer: ```
 
   $ADJECTIVES:
 
@@ -267,4 +267,4 @@ lexer: ```(
        take | lena/lenA
        want | chahna/cAhnA
 
-)```
+```

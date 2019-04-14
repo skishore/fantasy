@@ -85,6 +85,6 @@ pub fn pair_keys_with_values(
 }
 
 pub fn items(items: &[(&'static str, usize)]) -> HashMap<Bytes, f32> {
-  let sum = items.iter().fold(0, |a, x| a + x.1 + 1);
-  items.iter().map(|(k, v)| (k.as_bytes(), ((*v as f32 + 1.0) / (sum as f32)).log2())).collect()
+  let sum: f32 = items.iter().map(|(_, v)| *v as f32 + 1.0).sum();
+  items.iter().map(|(k, v)| (k.as_bytes(), ((*v as f32 + 1.0) / sum).log2())).collect()
 }

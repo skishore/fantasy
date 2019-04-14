@@ -8,11 +8,24 @@ use std::rc::Rc;
 struct XEntry<T: Payload> {
   match_rc: Rc<Match<T>>,
   scores: HashMap<String, f32>,
-  value_string: String,
+  value_str: String,
 }
 
 fn agree(a: &Tense, b: &Tense) -> bool {
   a.iter().all(|(k, v)| b.get(k).map(|x| x == v).unwrap_or(true))
+}
+
+fn common_prefix<'a>(a: &'a str, b: &'a str) -> &'a str {
+  &a[0..a.chars().zip(b.chars()).take_while(|x| x.0 == x.1).map(|x| x.0.len_utf8()).sum()]
+}
+
+fn create_xentry<T: Payload>(entry: Entry) -> Result<XEntry<T>> {
+  let Entry { head, hindi, latin, scores, tenses, value } = entry;
+  let texts = vec![("head", head), ("hindi", hindi), ("latin", latin)].into_iter().collect();
+  let value = T::parse(&value)?;
+  let value_str = T::stringify(&value);
+  let match_rc = Rc::new(Match { tenses, texts, value });
+  Ok(XEntry { match_rc, scores, value_str })
 }
 
 fn default_match<T: Payload>(text: &str) -> Rc<Match<T>> {
@@ -22,7 +35,7 @@ fn default_match<T: Payload>(text: &str) -> Rc<Match<T>> {
   Rc::new(Match { tenses: vec![], texts, value: T::base_lex(text) })
 }
 
-fn update<'a, T: Payload>(
+fn update_scores<'a, T: Payload>(
   entry: &'a XEntry<T>,
   matches: &mut HashMap<&'a str, (f32, Rc<Match<T>>)>,
   offset: f32,
@@ -49,15 +62,8 @@ impl<T: Payload> HindiLexer<T> {
     let mut from_name = HashMap::default();
     let mut from_word = HashMap::default();
     for entry in build_vocabulary(text)? {
-      let Entry { head, hindi, latin, scores, tenses, value } = entry;
-      let value = T::parse(&value)?;
-      let value_string = T::stringify(&value);
-      let mut texts = HashMap::default();
-      texts.insert("head", head.clone());
-      texts.insert("hindi", hindi.clone());
-      texts.insert("latin", latin.clone());
-      let match_rc = Rc::new(Match { tenses, texts, value });
-      let entry = Rc::new(XEntry { match_rc, scores, value_string });
+      let (head, hindi) = (entry.head.clone(), entry.hindi.clone());
+      let entry = Rc::new(create_xentry(entry)?);
       from_head.entry(head).or_insert(vec![]).push(Rc::clone(&entry));
       from_word.entry(hindi).or_insert(vec![]).push(Rc::clone(&entry));
       for name in entry.scores.keys() {
@@ -71,19 +77,23 @@ impl<T: Payload> HindiLexer<T> {
 
 impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
   fn fix(&self, m: &Match<T>, t: &Tense) -> Vec<Rc<Match<T>>> {
-    if let Some(head) = m.texts.get("head") {
-      let entries = self.from_head.get(head).map(|x| x.as_slice()).unwrap_or(&[]);
-      let value_string = T::stringify(&m.value);
-      // TODO(skishore): Return the fixed result closest to the original.
-      // We should always correct "mera" -> "meri" and not to "hamari".
-      entries
-        .iter()
-        .filter(|x| x.value_string == value_string && x.match_rc.tenses.iter().any(|y| agree(y, t)))
-        .map(|x| Rc::clone(&x.match_rc))
-        .collect()
-    } else {
-      vec![]
+    let (head, latin) = (m.texts.get("head"), m.texts.get("latin"));
+    if head.is_none() || latin.is_none() {
+      return vec![];
     }
+    let (head, latin) = (head.unwrap(), latin.unwrap());
+    let value_str = T::stringify(&m.value);
+    let check = |x: &&Rc<XEntry<T>>| {
+      x.value_str == value_str && x.match_rc.tenses.iter().any(|y| agree(y, t))
+    };
+    let score = |x: &&Rc<XEntry<T>>| {
+      x.match_rc.texts.get("latin").map(|x| common_prefix(x, latin).len()).unwrap_or_default()
+    };
+    let by_heads = self.from_head.get(head).map(|x| x.as_slice()).unwrap_or_default();
+    let by_value: Vec<_> = by_heads.iter().filter(check).collect();
+    let max_score = by_value.iter().map(score).max().unwrap_or_default();
+    let by_score: Vec<_> = by_value.iter().filter(|x| score(x) == max_score).collect();
+    by_score.into_iter().map(|x| Rc::clone(&x.match_rc)).collect()
   }
 
   fn lex<'a: 'b, 'b>(&'a self, input: &'b str) -> Vec<Token<'b, T>> {
@@ -91,8 +101,8 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
       let mut matches = HashMap::default();
       matches.insert("%token", (0.0, default_match(x)));
       for (i, option) in self.transliterator.transliterate(x).into_iter().enumerate() {
-        let offset = -(i as f32);
-        self.from_word.get(&option).unwrap().iter().for_each(|x| update(x, &mut matches, offset));
+        let entries = self.from_word.get(&option).unwrap();
+        entries.iter().for_each(|x| update_scores(x, &mut matches, -(i as f32)));
       }
       Token { matches: matches.into_iter().collect(), text: x }
     });
@@ -114,8 +124,8 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
     } else {
       let mut entries = self.from_name.get(name).map(|x| x.iter().collect()).unwrap_or(vec![]);
       if let Some(value) = value {
-        let value_string = T::stringify(&value);
-        entries = entries.into_iter().filter(|x| x.value_string == value_string).collect();
+        let value_str = T::stringify(&value);
+        entries = entries.into_iter().filter(|x| x.value_str == value_str).collect();
       }
       let min = std::f32::NEG_INFINITY;
       let max = entries.iter().fold(min, |a, x| a.max(x.scores.get(name).cloned().unwrap_or(min)));

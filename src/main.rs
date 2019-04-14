@@ -32,13 +32,12 @@ use std::time::SystemTime;
 
 fn main() -> Result<()> {
   let args: Vec<_> = std::env::args().collect();
-  if args.len() != 4 || !(args[1] == "generate" || args[1] == "parse")   {
+  if args.len() != 4 || !(args[1] == "generate" || args[1] == "parse") {
     Err("Usage: ./main [generate|parse] $grammar $input")?;
   }
   let (generate, file, input) = (args[1] == "generate", &args[2], &args[3]);
   let data = read_to_string(file).map_err(|x| format!("Failed to read file {}: {}", file, x))?;
-  // TODO(skishore): This operation may panic and is a complete hack.
-  let grammar = compile(&data, |x| HindiLexer::<Lambda>::new(&x[11..x.len() - 4]))
+  let grammar = compile(&data, HindiLexer::new)
     .map_err(|x| format!("Failed to compile grammar: {}\n\n{:?}", file, x))?;
   if generate {
     let generator = Generator::new(&grammar);
