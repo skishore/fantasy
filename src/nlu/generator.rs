@@ -19,7 +19,7 @@ type Rng = rand::rngs::StdRng;
 type Tree<'a, S, T> = Option<Child<'a, S, T>>;
 
 struct Memo<'a, 'b, S: Split, T> {
-  generator: &'a Generator<'a, S, T>,
+  generator: &'b Generator<'a, S, T>,
   memo: HashMap<(&'a Term, S), Tree<'a, S, T>>,
   rng: &'b mut Rng,
 }
@@ -103,12 +103,12 @@ impl<'a, S: Split, T> Generator<'a, S, T> {
     Self { by_name, grammar }
   }
 
-  pub fn generate(&'a self, rng: &mut Rng, value: &S) -> Option<Derivation<'a, S, T>> {
+  pub fn generate(&self, rng: &mut Rng, value: &S) -> Option<Derivation<'a, S, T>> {
     self.generate_from_rules(rng, &self.by_name[self.grammar.start], value)
   }
 
   pub fn generate_from_rules(
-    &'a self,
+    &self,
     rng: &mut Rng,
     rules: &[&'a Rule<S, T>],
     value: &S,

@@ -29,7 +29,7 @@ $AskFood! (= 'Ask(R[want].$0)')
 
 $AskName! (= 'Ask(R[name].$0)')
 = $Person^ kaun hai^
-= $PersonKa^ nam* kya hai^
+= $PersonKa^ nam* kya hai^ (? count singular)
 
 $Hello! (= 'Hello()')
 = hello
@@ -40,7 +40,7 @@ $Mention! (= 'Mention($0)')
 
 $TellName! (= 'Tell($0, name.$1)')
 = $Person:0^ %token:1 hai^ (< -10)
-= $PersonKa:0^ nam* %token:1 hai^ (< -10)
+= $PersonKa:0^ nam* %token:1 hai^ (< -10) (? count singular)
 
 $TellWant! (= 'Tell($0, want.$1)')
 = I[$Person]^ $Noun $WantActive^
