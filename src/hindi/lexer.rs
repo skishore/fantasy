@@ -23,7 +23,7 @@ fn create_xentry<T: Payload>(entry: Entry) -> Result<XEntry<T>> {
   let Entry { head, hindi, latin, scores, tenses, value } = entry;
   let texts = vec![("head", head), ("hindi", hindi), ("latin", latin)].into_iter().collect();
   let value = T::parse(&value)?;
-  let value_str = T::stringify(&value);
+  let value_str = value.to_string();
   let match_rc = Rc::new(Match { tenses, texts, value });
   Ok(XEntry { match_rc, scores, value_str })
 }
@@ -82,7 +82,7 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
       return vec![];
     }
     let (head, latin) = (head.unwrap(), latin.unwrap());
-    let value_str = T::stringify(&m.value);
+    let value_str = m.value.to_string();
     let check = |x: &&Rc<XEntry<T>>| {
       x.value_str == value_str && x.match_rc.tenses.iter().any(|y| agree(y, t))
     };
@@ -124,7 +124,7 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
     } else {
       let mut entries = self.from_name.get(name).map(|x| x.iter().collect()).unwrap_or(vec![]);
       if let Some(value) = value {
-        let value_str = T::stringify(&value);
+        let value_str = format!("{}", value);
         entries = entries.into_iter().filter(|x| x.value_str == value_str).collect();
       }
       let min = std::f32::NEG_INFINITY;

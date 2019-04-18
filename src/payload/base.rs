@@ -1,13 +1,13 @@
 use super::super::lib::base::Result;
+use std::fmt::Display;
 
 pub type Args<T> = Vec<(usize, T)>;
 
-pub trait Payload: 'static + Clone + Default {
+pub trait Payload: 'static + Clone + Default + Display {
   fn base_lex(&str) -> Self;
   fn base_unlex(&self) -> Option<&str>;
   fn is_default(&self) -> bool;
   fn parse(&str) -> Result<Self>;
-  fn stringify(&self) -> String;
   fn template(&str) -> Result<Box<Template<Self>>>;
 }
 

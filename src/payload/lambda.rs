@@ -1,6 +1,7 @@
 use super::super::lib::base::Result;
 use super::base::{append, Args, Payload, Template, VariableTemplate};
 use std::cell::RefCell;
+use std::fmt::Display;
 use std::rc::Rc;
 
 // The core lambda DCS expression type.
@@ -30,7 +31,7 @@ pub enum Expr {
 // The Lambda type caches an Expr's string representation.
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Lambda(Rc<(Expr, RefCell<Option<String>>)>);
+pub struct Lambda(Rc<(Expr, RefCell<String>)>);
 
 impl Lambda {
   fn new(expr: Expr) -> Self {
@@ -46,6 +47,15 @@ impl Default for Lambda {
   fn default() -> Self {
     thread_local! { static DEFAULT: Lambda = Lambda::new(Expr::Unknown) };
     DEFAULT.with(|x| x.clone())
+  }
+}
+
+impl Display for Lambda {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if (self.0).1.borrow().is_empty() {
+      std::mem::drop((self.0).1.replace(stringify_expr(self.expr())));
+    }
+    write!(f, "{}", (self.0).1.borrow())
   }
 }
 
@@ -68,14 +78,6 @@ impl Payload for Lambda {
     }
     let base = template(input)?.merge(&vec![]);
     return if base.is_default() { Err("Empty lambda expression!")? } else { Ok(base) };
-  }
-
-  fn stringify(&self) -> String {
-    // TODO(skishore): We can optimize further by returning &str and implementing Display.
-    if (self.0).1.borrow().is_none() {
-      std::mem::drop((self.0).1.replace(Some(stringify_expr(self.expr()))));
-    }
-    (self.0).1.borrow().as_ref().unwrap().clone()
   }
 
   fn template(input: &str) -> Result<Box<Template<Self>>> {
@@ -121,7 +123,7 @@ fn stringify_expr(lambda: &Expr) -> String {
       base.join(&text)
     }
     Expr::Custom(name, children) => {
-      let base: Vec<_> = children.into_iter().map(|x| x.stringify()).collect();
+      let base: Vec<_> = children.into_iter().map(|x| x.to_string()).collect();
       format!("{}({})", name, base.join(", "))
     }
     Expr::Terminal(name) => name.to_string(),
@@ -138,13 +140,12 @@ fn stringify_expr(lambda: &Expr) -> String {
 }
 
 fn stringify_wrap(lambda: &Lambda, context: u32) -> String {
-  let base = lambda.stringify();
   let parens = match lambda.expr() {
     Expr::Binary(op, _) => op.data().precedence >= context,
     Expr::Unary(op, _) => op.data().precedence >= context,
     _ => false,
   };
-  return if parens { format!("({})", base) } else { base };
+  return if parens { format!("({})", lambda ) } else { lambda.to_string() };
 }
 
 fn template(input: &str) -> Result<Box<Template<Lambda>>> {
@@ -482,7 +483,7 @@ mod tests {
   #[test]
   fn stringify_sorts_terms() {
     let lambda = l("Tell(x) & f.e & (d.c | b.a)");
-    assert_eq!(lambda.stringify(), "(b.a | d.c) & Tell(x) & f.e");
+    assert_eq!(lambda.to_string(), "(b.a | d.c) & Tell(x) & f.e");
   }
 
   #[bench]
@@ -493,7 +494,7 @@ mod tests {
   #[bench]
   fn stringify_benchmark(b: &mut Bencher) {
     let lambda = Lambda::parse("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap();
-    b.iter(|| lambda.stringify());
+    b.iter(|| lambda.to_string());
   }
 
   #[bench]

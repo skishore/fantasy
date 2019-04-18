@@ -391,7 +391,7 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
     binding: HashMap::default(),
     grammar: Grammar {
       key: Box::new(|x| match x {
-        Some(x) => format!("Some({})", x.stringify()),
+        Some(x) => format!("Some({})", x),
         None => "None".to_string(),
       }),
       lexer: lexer(&lexers[0])?,

@@ -2,12 +2,13 @@ use super::super::lib::base::Result;
 use super::super::lib::base::{HashMap, HashSet};
 use super::base::{append, cross, Args, Payload, Template, VariableTemplate};
 use std::cell::RefCell;
+use std::fmt::Display;
 use std::rc::Rc;
 
 // A JSON type used for utterance semantics.
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct Json(Rc<(Value, RefCell<Option<String>>)>);
+pub struct Json(Rc<(Value, RefCell<String>)>);
 
 #[derive(Debug, PartialEq)]
 pub enum Value {
@@ -36,6 +37,15 @@ impl Default for Json {
   }
 }
 
+impl Display for Json {
+  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    if (self.0).1.borrow().is_empty() {
+      std::mem::drop((self.0).1.replace(stringify(&self.value())));
+    }
+    write!(f, "{}", (self.0).1.borrow())
+  }
+}
+
 impl Payload for Json {
   fn base_lex(input: &str) -> Self {
     Json::new(Value::String(input.to_string()))
@@ -53,14 +63,6 @@ impl Payload for Json {
     Ok(template(input)?.merge(&vec![]))
   }
 
-  fn stringify(&self) -> String {
-    // TODO(skishore): We can optimize further by returning &str and implementing Display.
-    if (self.0).1.borrow().is_none() {
-      std::mem::drop((self.0).1.replace(Some(stringify(&self.value()))));
-    }
-    (self.0).1.borrow().as_ref().unwrap().clone()
-  }
-
   fn template(input: &str) -> Result<Box<Template<Self>>> {
     template(input)
   }
@@ -75,12 +77,12 @@ fn stringify(value: &Value) -> String {
     Value::Number(x) => x.to_string(),
     Value::String(x) => x.clone(),
     Value::Dict(x) => {
-      let mut terms: Vec<_> = x.iter().map(|(k, v)| format!("{}: {}", k, v.stringify())).collect();
+      let mut terms: Vec<_> = x.iter().map(|(k, v)| format!("{}: {}", k, v)).collect();
       terms.sort();
       format!("{{{}}}", terms.join(", "))
     }
     Value::List(x) => {
-      let terms: Vec<_> = x.iter().map(|y| y.stringify()).collect();
+      let terms: Vec<_> = x.iter().map(|y| y.to_string()).collect();
       format!("[{}]", terms.join(", "))
     }
   }
@@ -562,6 +564,12 @@ mod tests {
     );
   }
 
+  #[test]
+  fn stringify_sorts_keys() {
+    let json = j("{c: 1, b: 5, a: 3}");
+    assert_eq!(json.to_string(), "{a: 3, b: 5, c: 1}");
+  }
+
   #[bench]
   fn parse_benchmark(b: &mut Bencher) {
     b.iter(|| Json::parse("{num: 17, str: 'is', bool: false, list: [3, 5, 7]}").unwrap());
@@ -570,7 +578,7 @@ mod tests {
   #[bench]
   fn stringify_benchmark(b: &mut Bencher) {
     let x = Json::parse("{num: 17, str: 'is', bool: false, list: [3, 5, 7]}").unwrap();
-    b.iter(|| x.stringify());
+    b.iter(|| x.to_string());
   }
 
   #[bench]
