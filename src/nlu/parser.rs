@@ -170,8 +170,7 @@ impl<'a, 'b, T> Chart<'a, 'b, T> {
     let start = self.column.token_index;
 
     while i < self.column.states.len() {
-      let state = unsafe { &*self.column.states[i] };
-      let state_mutable = unsafe { &mut *self.column.states[i] };
+      let state = unsafe { &mut *self.column.states[i] };
       let rule = state.rule.base;
       i += 1;
       if state.cursor() == rule.rhs.len() {
@@ -204,7 +203,7 @@ impl<'a, 'b, T> Chart<'a, 'b, T> {
                 self.column.states.push(self.states.alloc(State::new(0, rule, start)));
               }
             }
-            state_mutable.next = *entry;
+            state.next = *entry;
             *entry = state;
           }
           Term::Terminal(_) => self.column.scannable.push(state),
