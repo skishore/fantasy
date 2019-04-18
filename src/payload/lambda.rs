@@ -1,10 +1,9 @@
 use super::super::lib::base::Result;
 use super::base::{append, Args, Payload, Template, VariableTemplate};
+use std::cell::RefCell;
 use std::rc::Rc;
 
-// A lambda DCS type used for utterance semantics.
-
-pub type Lambda = Option<Rc<Expr>>;
+// The core lambda DCS expression type.
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Binary {
@@ -21,35 +20,62 @@ pub enum Unary {
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
-  Binary(Binary, Vec<Rc<Expr>>),
-  Custom(String, Vec<Rc<Expr>>),
+  Binary(Binary, Vec<Lambda>),
+  Custom(String, Vec<Lambda>),
   Terminal(String),
-  Unary(Unary, Rc<Expr>),
+  Unary(Unary, Lambda),
+  Unknown,
+}
+
+// The Lambda type caches an Expr's string representation.
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Lambda(Rc<(Expr, RefCell<Option<String>>)>);
+
+impl Lambda {
+  fn new(expr: Expr) -> Self {
+    Lambda(Rc::new((expr, RefCell::default())))
+  }
+
+  fn expr(&self) -> &Expr {
+    &(self.0).0
+  }
+}
+
+impl Default for Lambda {
+  fn default() -> Self {
+    thread_local! { static DEFAULT: Lambda = Lambda::new(Expr::Unknown) };
+    DEFAULT.with(|x| x.clone())
+  }
 }
 
 impl Payload for Lambda {
   fn base_lex(input: &str) -> Self {
-    Some(Rc::new(Expr::Terminal(input.to_string())))
+    Lambda::new(Expr::Terminal(input.to_string()))
   }
 
   fn base_unlex(&self) -> Option<&str> {
-    return if let Expr::Terminal(x) = &**self.as_ref()? { Some(x.as_str()) } else { None };
+    return if let Expr::Terminal(x) = self.expr() { Some(x.as_str()) } else { None };
   }
 
   fn is_default(&self) -> bool {
-    self.is_none()
+    *self.expr() == Expr::Unknown
   }
 
   fn parse(input: &str) -> Result<Self> {
     if input == "-" {
-      return Ok(None);
+      return Ok(Self::default());
     }
     let base = template(input)?.merge(&vec![]);
-    Ok(Some(base.ok_or("Empty lambda expression!")?))
+    return if base.is_default() { Err("Empty lambda expression!")? } else { Ok(base) };
   }
 
   fn stringify(&self) -> String {
-    self.as_ref().map_or("-".into(), |x| stringify(x, std::u32::MAX))
+    // TODO(skishore): We can optimize further by returning &str and implementing Display.
+    if (self.0).1.borrow().is_none() {
+      std::mem::drop((self.0).1.replace(Some(stringify_expr(self.expr()))));
+    }
+    (self.0).1.borrow().as_ref().unwrap().clone()
   }
 
   fn template(input: &str) -> Result<Box<Template<Self>>> {
@@ -57,7 +83,7 @@ impl Payload for Lambda {
   }
 }
 
-// Helpers used to implement the Payload trait.
+// Helpers used to implement the Payload trait for Lambda.
 
 struct Operator {
   commutes: bool,
@@ -84,37 +110,41 @@ impl Unary {
   }
 }
 
-fn stringify(lambda: &Expr, context: u32) -> String {
+fn stringify_expr(lambda: &Expr) -> String {
   match lambda {
     Expr::Binary(op, children) => {
       let Operator { commutes, precedence, text } = op.data();
-      let mut base: Vec<_> = children.into_iter().map(|x| stringify(x, precedence)).collect();
+      let mut base: Vec<_> = children.into_iter().map(|x| stringify_wrap(x, precedence)).collect();
       if commutes {
         base.sort();
       }
-      if precedence < context {
-        base.join(&text)
-      } else {
-        format!("({})", base.join(&text))
-      }
+      base.join(&text)
     }
     Expr::Custom(name, children) => {
-      let base: Vec<_> = children.into_iter().map(|x| stringify(x, std::u32::MAX)).collect();
+      let base: Vec<_> = children.into_iter().map(|x| x.stringify()).collect();
       format!("{}({})", name, base.join(", "))
     }
     Expr::Terminal(name) => name.to_string(),
     Expr::Unary(op, child) => {
       let Operator { precedence, text, .. } = op.data();
-      let base = stringify(child, precedence);
-      if let Unary::Reverse = op {
-        format!("{}[{}]", text, base)
-      } else if precedence < context {
-        format!("{}{}", text, base)
-      } else {
-        format!("({}{})", text, base)
+      let base = stringify_wrap(child, precedence);
+      match op {
+        Unary::Reverse => format!("{}[{}]", text, base),
+        _ => format!("{}{}", text, base),
       }
     }
+    Expr::Unknown => "-".to_string(),
   }
+}
+
+fn stringify_wrap(lambda: &Lambda, context: u32) -> String {
+  let base = lambda.stringify();
+  let parens = match lambda.expr() {
+    Expr::Binary(op, _) => op.data().precedence >= context,
+    Expr::Unary(op, _) => op.data().precedence >= context,
+    _ => false,
+  };
+  return if parens { format!("({})", base) } else { base };
 }
 
 fn template(input: &str) -> Result<Box<Template<Lambda>>> {
@@ -140,7 +170,7 @@ fn template(input: &str) -> Result<Box<Template<Lambda>>> {
             (&id, opt(seq3((st("("), separate(&x, st(","), 0), st(")")), |x| x.1))),
             |x| match x.1 {
               Some(xs) => wrap(CustomTemplate(x.0, xs)),
-              None => wrap(TerminalTemplate(x.0.clone(), Some(Rc::new(Expr::Terminal(x.0))))),
+              None => wrap(TerminalTemplate(x.0.clone(), Lambda::new(Expr::Terminal(x.0)))),
             },
           ),
           seq3((st("("), &x, st(")")), |x| x.1),
@@ -191,21 +221,22 @@ struct BinaryTemplate(Binary, Box<Template<Lambda>>, Box<Template<Lambda>>);
 
 impl Template<Lambda> for BinaryTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
-    let mut x1 = expand(self.0, self.1.merge(xs));
-    let mut x2 = expand(self.0, self.2.merge(xs));
+    let mut x1 = expand(self.0, &self.1.merge(xs));
+    let mut x2 = expand(self.0, &self.2.merge(xs));
     if self.0.data().commutes || (!x1.is_empty() && !x2.is_empty()) {
       x1.append(&mut x2);
       collapse(self.0, x1)
     } else {
-      None
+      Lambda::default()
     }
   }
   fn split(&self, x: &Lambda) -> Vec<Args<Lambda>> {
-    let base = expand(self.0, x.clone());
+    let base = expand(self.0, x);
     let commutes = self.0.data().commutes;
     if !commutes && base.is_empty() {
-      let mut x1 = self.1.split(&None);
-      let mut x2 = self.2.split(&None);
+      let default = Lambda::default();
+      let mut x1 = self.1.split(&default);
+      let mut x2 = self.2.split(&default);
       return x1.drain(..).chain(x2.drain(..)).collect();
     }
     let bits: Vec<_> = if commutes {
@@ -235,32 +266,29 @@ struct CustomTemplate(String, Vec<Box<Template<Lambda>>>);
 
 impl Template<Lambda> for CustomTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
-    let xs: Vec<_> = self.1.iter().filter_map(|x| x.merge(xs)).collect();
+    let xs: Vec<_> = self.1.iter().map(|x| x.merge(xs)).filter(|x| !x.is_default()).collect();
     if xs.len() < self.1.len() {
-      None
+      Lambda::default()
     } else {
-      Some(Rc::new(Expr::Custom(self.0.clone(), xs)))
+      Lambda::new(Expr::Custom(self.0.clone(), xs))
     }
   }
   fn split(&self, x: &Lambda) -> Vec<Args<Lambda>> {
-    match x {
-      Some(x) => {
-        if let Expr::Custom(ref y, ref ys) = **x {
-          if *y == self.0 && ys.len() == self.1.len() {
-            return self.1.iter().enumerate().fold(vec![vec![]], |acc, (i, x)| {
-              let mut result = vec![];
-              append(&acc, &x.split(&Some(ys[i].clone())), &mut result);
-              result
-            });
-          }
-        }
-        vec![]
+    match x.expr() {
+      Expr::Custom(name, children) if *name == self.0 && children.len() == self.1.len() => {
+        self.1.iter().enumerate().fold(vec![vec![]], |acc, (i, x)| {
+          let mut result = vec![];
+          append(&acc, &x.split(&children[i]), &mut result);
+          result
+        })
       }
-      None => {
+      Expr::Unknown => {
+        let default = Lambda::default();
         let mut result = Vec::with_capacity(self.1.len());
-        self.1.iter().for_each(|x| result.append(&mut x.split(&None)));
+        self.1.iter().for_each(|x| result.append(&mut x.split(&default)));
         result
       }
+      _ => vec![],
     }
   }
 }
@@ -272,11 +300,10 @@ impl Template<Lambda> for TerminalTemplate {
     self.1.clone()
   }
   fn split(&self, x: &Lambda) -> Vec<Args<Lambda>> {
-    let matched = x.as_ref().map_or(false, |y| match **y {
-      Expr::Terminal(ref z) => *z == self.0,
-      _ => false,
-    });
-    return if matched { vec![vec![]] } else { vec![] };
+    match x.expr() {
+      Expr::Terminal(name) if *name == self.0 => vec![vec![]],
+      _ => vec![],
+    }
   }
 }
 
@@ -284,45 +311,36 @@ struct UnaryTemplate(Unary, Box<Template<Lambda>>);
 
 impl Template<Lambda> for UnaryTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
-    involute(self.0, self.1.merge(xs))
+    involute(self.0, &self.1.merge(xs))
   }
   fn split(&self, x: &Lambda) -> Vec<Args<Lambda>> {
-    self.1.split(&involute(self.0, x.clone()))
+    self.1.split(&involute(self.0, x))
   }
 }
 
 // Internal helpers for the templates above.
 
-fn collapse(op: Binary, mut x: Vec<Rc<Expr>>) -> Lambda {
+fn collapse(op: Binary, mut x: Vec<Lambda>) -> Lambda {
   match x.len() {
-    0 | 1 => x.pop(),
-    _ => Some(Rc::new(Expr::Binary(op, x))),
+    0 | 1 => x.pop().unwrap_or_default(),
+    _ => Lambda::new(Expr::Binary(op, x)),
   }
 }
 
-fn expand(op: Binary, x: Lambda) -> Vec<Rc<Expr>> {
-  match x {
-    Some(x) => {
-      if let Expr::Binary(y, ref ys) = *x {
-        if y == op {
-          return ys.to_vec();
-        }
-      }
-      vec![x]
-    }
-    None => vec![],
+fn expand(x: Binary, y: &Lambda) -> Vec<Lambda> {
+  match y.expr() {
+    Expr::Binary(op, children) if *op == x => children.to_vec(),
+    Expr::Unknown => vec![],
+    _ => vec![y.clone()],
   }
 }
 
-fn involute(op: Unary, x: Lambda) -> Lambda {
-  x.map(|x| {
-    if let Expr::Unary(y, ref ys) = *x {
-      if y == op {
-        return ys.clone();
-      }
-    }
-    Rc::new(Expr::Unary(op, x))
-  })
+fn involute(x: Unary, y: &Lambda) -> Lambda {
+  match y.expr() {
+    Expr::Unary(op, child) if *op == x => child.clone(),
+    Expr::Unknown => y.clone(),
+    _ => Lambda::new(Expr::Unary(x, y.clone())),
+  }
 }
 
 #[cfg(test)]
@@ -346,20 +364,24 @@ mod tests {
     template.merge(&args.into_iter().enumerate().collect())
   }
 
+  fn none() -> Lambda {
+    Lambda::default()
+  }
+
   #[test]
   fn merging_joins_works() {
     let template = t("color.$0");
     assert_eq!(merge(&*template, vec![l("red")]), l("color.red"));
-    assert_eq!(merge(&*template, vec![None]), None);
+    assert_eq!(merge(&*template, vec![none()]), none());
   }
 
   #[test]
   fn merging_binary_operators_works() {
     let template = t("$0 & country.$1");
     assert_eq!(merge(&*template, vec![l("I"), l("US")]), l("I & country.US"));
-    assert_eq!(merge(&*template, vec![l("I"), None]), l("I"));
-    assert_eq!(merge(&*template, vec![None, l("US")]), l("country.US"));
-    assert_eq!(merge(&*template, vec![None, None]), None);
+    assert_eq!(merge(&*template, vec![l("I"), none()]), l("I"));
+    assert_eq!(merge(&*template, vec![none(), l("US")]), l("country.US"));
+    assert_eq!(merge(&*template, vec![none(), none()]), none());
   }
 
   #[test]
@@ -369,18 +391,18 @@ mod tests {
     assert_eq!(merge(&*template, vec![l("R[name]"), l("X")]), l("name.I & ~X"));
     assert_eq!(merge(&*template, vec![l("name"), l("~X")]), l("R[name].I & X"));
     assert_eq!(merge(&*template, vec![l("R[name]"), l("~X")]), l("name.I & X"));
-    assert_eq!(merge(&*template, vec![l("name"), None]), l("R[name].I"));
-    assert_eq!(merge(&*template, vec![None, l("~X")]), l("X"));
-    assert_eq!(merge(&*template, vec![None, None]), None);
+    assert_eq!(merge(&*template, vec![l("name"), none()]), l("R[name].I"));
+    assert_eq!(merge(&*template, vec![none(), l("~X")]), l("X"));
+    assert_eq!(merge(&*template, vec![none(), none()]), none());
   }
 
   #[test]
   fn merging_custom_functions_works() {
     let template = t("Tell($0, name.$1)");
     assert_eq!(merge(&*template, vec![l("I"), l("X")]), l("Tell(I, name.X)"));
-    assert_eq!(merge(&*template, vec![l("I"), None]), None);
-    assert_eq!(merge(&*template, vec![None, l("X")]), None);
-    assert_eq!(merge(&*template, vec![None, None]), None);
+    assert_eq!(merge(&*template, vec![l("I"), none()]), none());
+    assert_eq!(merge(&*template, vec![none(), l("X")]), none());
+    assert_eq!(merge(&*template, vec![none(), none()]), none());
   }
 
   #[test]
@@ -388,7 +410,7 @@ mod tests {
     let template = t("color.$0");
     assert_eq!(template.split(&l("type.food")), empty());
     assert_eq!(template.split(&l("color.red")), [[(0, l("red"))]]);
-    assert_eq!(template.split(&None), [[(0, None)]]);
+    assert_eq!(template.split(&none()), [[(0, none())]]);
   }
 
   #[test]
@@ -405,18 +427,18 @@ mod tests {
     let template = t("$0 & country.$1");
     assert_eq!(
       template.split(&l("I & country.US")),
-      [[(0, l("I")), (1, l("US"))], [(0, l("I & country.US")), (1, None)]]
+      [[(0, l("I")), (1, l("US"))], [(0, l("I & country.US")), (1, none())]]
     );
     assert_eq!(
       template.split(&l("country.US & I")),
-      [[(0, l("I")), (1, l("US"))], [(0, l("country.US & I")), (1, None)]]
+      [[(0, l("I")), (1, l("US"))], [(0, l("country.US & I")), (1, none())]]
     );
     assert_eq!(
       template.split(&l("country.US")),
-      [[(0, None), (1, l("US"))], [(0, l("country.US")), (1, None)]]
+      [[(0, none()), (1, l("US"))], [(0, l("country.US")), (1, none())]]
     );
-    assert_eq!(template.split(&l("I")), [[(0, l("I")), (1, None)]]);
-    assert_eq!(template.split(&None), [[(0, None), (1, None)]]);
+    assert_eq!(template.split(&l("I")), [[(0, l("I")), (1, none())]]);
+    assert_eq!(template.split(&none()), [[(0, none()), (1, none())]]);
   }
 
   #[test]
@@ -424,7 +446,7 @@ mod tests {
     let template = t("R[$0].I & ~$1");
     assert_eq!(
       template.split(&l("R[name].I & ~Ann")),
-      [[(0, None), (1, l("~(R[name].I & ~Ann)"))], [(0, l("name")), (1, l("Ann"))]]
+      [[(0, none()), (1, l("~(R[name].I & ~Ann)"))], [(0, l("name")), (1, l("Ann"))]]
     );
   }
 
@@ -433,7 +455,7 @@ mod tests {
     let template = t("Tell($0, name.$1)");
     assert_eq!(template.split(&l("Ask(you.name)")), empty());
     assert_eq!(template.split(&l("Tell(I, name.X)")), [[(0, l("I")), (1, l("X"))]]);
-    assert_eq!(template.split(&None), [[(0, None)], [(1, None)]]);
+    assert_eq!(template.split(&none()), [[(0, none())], [(1, none())]]);
   }
 
   #[test]
@@ -441,7 +463,7 @@ mod tests {
     let template = t("$0 & country.$1");
     assert_eq!(
       template.split(&l("country.US & I")),
-      [[(0, l("I")), (1, l("US"))], [(0, l("country.US & I")), (1, None)]]
+      [[(0, l("I")), (1, l("US"))], [(0, l("country.US & I")), (1, none())]]
     );
   }
 
@@ -482,7 +504,8 @@ mod tests {
   #[bench]
   fn template_merge_benchmark(b: &mut Bencher) {
     let template = Lambda::template("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap();
-    b.iter(|| template.merge(&vec![]).unwrap());
+    assert!(!template.merge(&vec![]).is_default());
+    b.iter(|| template.merge(&vec![]));
   }
 
   #[bench]
