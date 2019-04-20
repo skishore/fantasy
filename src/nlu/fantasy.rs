@@ -389,16 +389,7 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
 
   let mut state: State<T> = State {
     binding: HashMap::default(),
-    grammar: Grammar {
-      key: Box::new(|x| match x {
-        Some(x) => format!("Some({})", x),
-        None => "None".to_string(),
-      }),
-      lexer: lexer(&lexers[0])?,
-      names: vec![],
-      rules: vec![],
-      start: 0,
-    },
+    grammar: Grammar { lexer: lexer(&lexers[0])?, names: vec![], rules: vec![], start: 0 },
     macros: HashMap::default(),
     symbol: HashMap::default(),
   };

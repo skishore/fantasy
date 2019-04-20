@@ -79,7 +79,6 @@ pub struct Token<'a, T> {
 // subject and verb must agree, but its object is only checked internally.
 
 pub struct Grammar<S, T> {
-  pub key: Box<Fn(&S) -> String>,
   pub lexer: Box<Lexer<S, T>>,
   pub names: Vec<String>,
   pub rules: Vec<Rule<S, T>>,
@@ -100,6 +99,7 @@ pub struct Semantics<F: ?Sized> {
   pub score: f32,
 }
 
+#[derive(Eq, Hash, PartialEq)]
 pub enum Term {
   Symbol(usize),
   Terminal(String),

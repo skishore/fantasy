@@ -534,7 +534,6 @@ mod tests {
   #[test]
   fn scoring_works() {
     let grammar = Grammar {
-      key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $As $Bs $Neither $A $B".split(' ').map(|x| x.into()).collect(),
       rules: vec![
@@ -566,7 +565,6 @@ mod tests {
   #[test]
   fn skipping_works() {
     let grammar = Grammar {
-      key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $Add $Num $Whitespace".split(' ').map(|x| x.into()).collect(),
       rules: vec![
@@ -598,7 +596,6 @@ mod tests {
   #[bench]
   fn parsing_benchmark(b: &mut Bencher) {
     let grammar = Grammar {
-      key: Box::new(|_| unimplemented!()),
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $Add $Mul $Num".split(' ').map(|x| x.into()).collect(),
       rules: vec![

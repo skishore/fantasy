@@ -52,6 +52,6 @@ fn main() -> Result<()> {
   } else {
     let maybe = Parser::new(&grammar).set_debug(true).parse(input);
     let value = maybe.ok_or_else(|| format!("Failed to parse input: {:?}", input))?.value;
-    Ok(println!("{}", value))
+    Ok(println!("{}", value.repr()))
   }
 }

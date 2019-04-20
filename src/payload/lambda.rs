@@ -1,25 +1,25 @@
 use super::super::lib::base::Result;
 use super::base::{append, Args, Payload, Template, VariableTemplate};
-use std::cell::RefCell;
-use std::fmt::Display;
+use std::cell::UnsafeCell;
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
 // The core lambda DCS expression type.
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Binary {
   Conjunction,
   Disjunction,
   Join,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Unary {
   Not,
   Reverse,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum Expr {
   Binary(Binary, Vec<Lambda>),
   Custom(String, Vec<Lambda>),
@@ -30,16 +30,24 @@ pub enum Expr {
 
 // The Lambda type caches an Expr's string representation.
 
-#[derive(Clone, Debug, PartialEq)]
-pub struct Lambda(Rc<(Expr, RefCell<String>)>);
+#[derive(Clone, Debug)]
+pub struct Lambda(Rc<(Expr, UnsafeCell<String>)>);
 
 impl Lambda {
   fn new(expr: Expr) -> Self {
-    Lambda(Rc::new((expr, RefCell::default())))
+    Lambda(Rc::new((expr, UnsafeCell::default())))
   }
 
-  fn expr(&self) -> &Expr {
+  pub fn expr(&self) -> &Expr {
     &(self.0).0
+  }
+
+  pub fn repr(&self) -> &str {
+    let x = unsafe { &mut *(self.0).1.get() };
+    if x.is_empty() {
+      *x = stringify(self.expr());
+    }
+    x
   }
 }
 
@@ -50,12 +58,17 @@ impl Default for Lambda {
   }
 }
 
-impl Display for Lambda {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    if (self.0).1.borrow().is_empty() {
-      std::mem::drop((self.0).1.replace(stringify_expr(self.expr())));
-    }
-    write!(f, "{}", (self.0).1.borrow())
+impl Eq for Lambda {}
+
+impl Hash for Lambda {
+  fn hash<H: Hasher>(&self, h: &mut H) {
+    self.repr().hash(h);
+  }
+}
+
+impl PartialEq for Lambda {
+  fn eq(&self, other: &Self) -> bool {
+    self.repr() == other.repr()
   }
 }
 
@@ -68,7 +81,7 @@ impl Payload for Lambda {
     return if let Expr::Terminal(x) = self.expr() { Some(x.as_str()) } else { None };
   }
 
-  fn is_default(&self) -> bool {
+  fn empty(&self) -> bool {
     *self.expr() == Expr::Unknown
   }
 
@@ -77,7 +90,7 @@ impl Payload for Lambda {
       return Ok(Self::default());
     }
     let base = template(input)?.merge(&vec![]);
-    return if base.is_default() { Err("Empty lambda expression!")? } else { Ok(base) };
+    return if base.empty() { Err("Empty lambda expression!")? } else { Ok(base) };
   }
 
   fn template(input: &str) -> Result<Box<Template<Self>>> {
@@ -112,7 +125,7 @@ impl Unary {
   }
 }
 
-fn stringify_expr(lambda: &Expr) -> String {
+fn stringify(lambda: &Expr) -> String {
   match lambda {
     Expr::Binary(op, children) => {
       let Operator { commutes, precedence, text } = op.data();
@@ -123,7 +136,7 @@ fn stringify_expr(lambda: &Expr) -> String {
       base.join(&text)
     }
     Expr::Custom(name, children) => {
-      let base: Vec<_> = children.into_iter().map(|x| x.to_string()).collect();
+      let base: Vec<_> = children.into_iter().map(|x| x.repr()).collect();
       format!("{}({})", name, base.join(", "))
     }
     Expr::Terminal(name) => name.to_string(),
@@ -145,7 +158,7 @@ fn stringify_wrap(lambda: &Lambda, context: u32) -> String {
     Expr::Unary(op, _) => op.data().precedence >= context,
     _ => false,
   };
-  return if parens { format!("({})", lambda ) } else { lambda.to_string() };
+  return if parens { format!("({})", lambda.repr()) } else { lambda.repr().to_string() };
 }
 
 fn template(input: &str) -> Result<Box<Template<Lambda>>> {
@@ -267,7 +280,7 @@ struct CustomTemplate(String, Vec<Box<Template<Lambda>>>);
 
 impl Template<Lambda> for CustomTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
-    let xs: Vec<_> = self.1.iter().map(|x| x.merge(xs)).filter(|x| !x.is_default()).collect();
+    let xs: Vec<_> = self.1.iter().map(|x| x.merge(xs)).filter(|x| !x.empty()).collect();
     if xs.len() < self.1.len() {
       Lambda::default()
     } else {
@@ -481,9 +494,9 @@ mod tests {
   }
 
   #[test]
-  fn stringify_sorts_terms() {
+  fn repr_sorts_terms() {
     let lambda = l("Tell(x) & f.e & (d.c | b.a)");
-    assert_eq!(lambda.to_string(), "(b.a | d.c) & Tell(x) & f.e");
+    assert_eq!(lambda.repr(), "(b.a | d.c) & Tell(x) & f.e");
   }
 
   #[bench]
@@ -494,7 +507,7 @@ mod tests {
   #[bench]
   fn stringify_benchmark(b: &mut Bencher) {
     let lambda = Lambda::parse("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap();
-    b.iter(|| lambda.to_string());
+    b.iter(|| stringify(lambda.expr()));
   }
 
   #[bench]
@@ -505,7 +518,7 @@ mod tests {
   #[bench]
   fn template_merge_benchmark(b: &mut Bencher) {
     let template = Lambda::template("Tell(abc & def.ghi, jkl | (mno & pqr))").unwrap();
-    assert!(!template.merge(&vec![]).is_default());
+    assert!(!template.merge(&vec![]).empty());
     b.iter(|| template.merge(&vec![]));
   }
 

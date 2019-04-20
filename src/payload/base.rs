@@ -1,12 +1,12 @@
 use super::super::lib::base::Result;
-use std::fmt::Display;
+use std::hash::Hash;
 
 pub type Args<T> = Vec<(usize, T)>;
 
-pub trait Payload: 'static + Clone + Default + Display {
+pub trait Payload: 'static + Clone + Default + Eq + Hash {
   fn base_lex(&str) -> Self;
   fn base_unlex(&self) -> Option<&str>;
-  fn is_default(&self) -> bool;
+  fn empty(&self) -> bool;
   fn parse(&str) -> Result<Self>;
   fn template(&str) -> Result<Box<Template<Self>>>;
 }
@@ -39,7 +39,7 @@ impl<T: Payload> Template<T> for DefaultTemplate {
     T::default()
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
-    return if x.is_default() { vec![vec![]] } else { vec![] };
+    return if x.empty() { vec![vec![]] } else { vec![] };
   }
 }
 
@@ -68,11 +68,11 @@ impl<T: Payload> Template<T> for SlotTemplate<T> {
       let mut result: Args<T> = vec![];
       for (k, v) in xs.into_iter() {
         if let Some(slot) = self.slots[k] {
-          if v.is_default() && !slot.1 {
+          if v.empty() && !slot.1 {
             return None;
           }
           result.push((slot.0, v));
-        } else if !v.is_default() {
+        } else if !v.empty() {
           return None;
         }
       }

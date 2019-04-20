@@ -1,62 +1,77 @@
 use super::super::lib::base::Result;
 use super::super::lib::base::{HashMap, HashSet};
 use super::base::{append, cross, Args, Payload, Template, VariableTemplate};
-use std::cell::RefCell;
-use std::fmt::Display;
+use std::cell::UnsafeCell;
+use std::hash::Hash;
 use std::rc::Rc;
 
-// A JSON type used for utterance semantics.
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct Json(Rc<(Value, RefCell<String>)>);
+// The core JSON expression type.
 
 #[derive(Debug, PartialEq)]
-pub enum Value {
-  Null,
+pub enum Expr {
   Boolean(bool),
   Number(f32),
   String(String),
   Dict(Vec<(String, Json)>),
   List(Vec<Json>),
+  Unknown,
 }
 
+// The Json type caches an Expr's string representation.
+
+#[derive(Clone, Debug)]
+pub struct Json(Rc<(Expr, UnsafeCell<String>)>);
+
 impl Json {
-  fn new(value: Value) -> Self {
-    Self(Rc::new((value, RefCell::default())))
+  fn new(expr: Expr) -> Self {
+    Self(Rc::new((expr, UnsafeCell::default())))
   }
 
-  fn value(&self) -> &Value {
+  pub fn expr(&self) -> &Expr {
     &(self.0).0
+  }
+
+  pub fn repr(&self) -> &str {
+    let x = unsafe { &mut *(self.0).1.get() };
+    if x.is_empty() {
+      *x = stringify(self.expr());
+    }
+    x
   }
 }
 
 impl Default for Json {
   fn default() -> Self {
-    thread_local! { static DEFAULT: Json = Json::new(Value::Null) };
+    thread_local! { static DEFAULT: Json = Json::new(Expr::Unknown) };
     DEFAULT.with(|x| x.clone())
   }
 }
 
-impl Display for Json {
-  fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-    if (self.0).1.borrow().is_empty() {
-      std::mem::drop((self.0).1.replace(stringify(&self.value())));
-    }
-    write!(f, "{}", (self.0).1.borrow())
+impl Eq for Json {}
+
+impl Hash for Json {
+  fn hash<H: std::hash::Hasher>(&self, h: &mut H) {
+    self.repr().hash(h);
+  }
+}
+
+impl PartialEq for Json {
+  fn eq(&self, other: &Self) -> bool {
+    self.repr() == other.repr()
   }
 }
 
 impl Payload for Json {
   fn base_lex(input: &str) -> Self {
-    Json::new(Value::String(input.to_string()))
+    Json::new(Expr::String(input.to_string()))
   }
 
   fn base_unlex(&self) -> Option<&str> {
-    return if let Value::String(x) = self.value() { Some(x.as_str()) } else { None };
+    return if let Expr::String(x) = self.expr() { Some(x.as_str()) } else { None };
   }
 
-  fn is_default(&self) -> bool {
-    *self.value() == Value::Null
+  fn empty(&self) -> bool {
+    *self.expr() == Expr::Unknown
   }
 
   fn parse(input: &str) -> Result<Self> {
@@ -70,19 +85,19 @@ impl Payload for Json {
 
 // Helpers used to implement the Payload trait.
 
-fn stringify(value: &Value) -> String {
-  match value {
-    Value::Null => "null".to_string(),
-    Value::Boolean(x) => x.to_string(),
-    Value::Number(x) => x.to_string(),
-    Value::String(x) => x.clone(),
-    Value::Dict(x) => {
-      let mut terms: Vec<_> = x.iter().map(|(k, v)| format!("{}: {}", k, v)).collect();
+fn stringify(expr: &Expr) -> String {
+  match expr {
+    Expr::Unknown => "null".to_string(),
+    Expr::Boolean(x) => x.to_string(),
+    Expr::Number(x) => x.to_string(),
+    Expr::String(x) => format!(r#"'{}'"#, x.escape_default()),
+    Expr::Dict(x) => {
+      let mut terms: Vec<_> = x.iter().map(|(k, v)| format!("{}: {}", k, v.repr())).collect();
       terms.sort();
       format!("{{{}}}", terms.join(", "))
     }
-    Value::List(x) => {
-      let terms: Vec<_> = x.iter().map(|y| y.to_string()).collect();
+    Expr::List(x) => {
+      let terms: Vec<_> = x.iter().map(|y| y.repr()).collect();
       format!("[{}]", terms.join(", "))
     }
   }
@@ -137,10 +152,10 @@ fn template(input: &str) -> Result<Box<Template<Json>>> {
       // Helpers needed to parse primitives.
       let primitive = any(&[
         map(st("null"), |_| wrap(BaseTemplate(Json::default()))),
-        map(st("true"), |_| wrap(BaseTemplate(Json::new(Value::Boolean(true))))),
-        map(st("false"), |_| wrap(BaseTemplate(Json::new(Value::Boolean(false))))),
-        map(number, |x| wrap(BaseTemplate(Json::new(Value::Number(x))))),
-        map(string, |x| wrap(BaseTemplate(Json::new(Value::String(x))))),
+        map(st("true"), |_| wrap(BaseTemplate(Json::new(Expr::Boolean(true))))),
+        map(st("false"), |_| wrap(BaseTemplate(Json::new(Expr::Boolean(false))))),
+        map(number, |x| wrap(BaseTemplate(Json::new(Expr::Number(x))))),
+        map(string, |x| wrap(BaseTemplate(Json::new(Expr::String(x))))),
       ]);
 
       cell.replace(any(&[dict, list, primitive, variable]));
@@ -154,19 +169,19 @@ fn template(input: &str) -> Result<Box<Template<Json>>> {
 // Implementations of specific JSON templates.
 
 fn coerce_dict(json: &Json) -> &[(String, Json)] {
-  return if let Value::Dict(y) = json.value() { y.as_slice() } else { &[] };
+  return if let Expr::Dict(y) = json.expr() { y.as_slice() } else { &[] };
 }
 
 fn coerce_list(json: &Json) -> &[Json] {
-  return if let Value::List(y) = json.value() { y.as_slice() } else { &[] };
+  return if let Expr::List(y) = json.expr() { y.as_slice() } else { &[] };
 }
 
 fn dict_to_null(xs: Vec<(String, Json)>) -> Json {
-  return if xs.is_empty() { Json::default() } else { Json::new(Value::Dict(xs)) };
+  return if xs.is_empty() { Json::default() } else { Json::new(Expr::Dict(xs)) };
 }
 
 fn list_to_null(xs: Vec<Json>) -> Json {
-  return if xs.is_empty() { Json::default() } else { Json::new(Value::List(xs)) };
+  return if xs.is_empty() { Json::default() } else { Json::new(Expr::List(xs)) };
 }
 
 struct DictBaseTemplate(Vec<(String, Box<Template<Json>>)>, HashSet<String>);
@@ -174,8 +189,8 @@ struct DictBaseTemplate(Vec<(String, Box<Template<Json>>)>, HashSet<String>);
 impl Template<Json> for DictBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
     let iter = self.0.iter().filter_map(|(k, v)| {
-      let value = v.merge(xs);
-      return if value.is_default() { None } else { Some((k.clone(), value)) }
+      let expr = v.merge(xs);
+      return if expr.empty() { None } else { Some((k.clone(), expr)) };
     });
     dict_to_null(iter.collect::<Vec<_>>())
   }
@@ -231,7 +246,7 @@ impl Template<Json> for DictWrapTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    return if !x.is_default() && coerce_dict(x).is_empty() { vec![] } else { self.0.split(x) };
+    return if !x.empty() && coerce_dict(x).is_empty() { vec![] } else { self.0.split(x) };
   }
 }
 
@@ -240,7 +255,7 @@ struct ListBaseTemplate(Box<Template<Json>>);
 impl Template<Json> for ListBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
     let base = self.0.merge(xs);
-    return if base.is_default() { base } else { Json::new(Value::List(vec![base])) };
+    return if base.empty() { base } else { Json::new(Expr::List(vec![base])) };
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
@@ -283,7 +298,7 @@ impl Template<Json> for ListWrapTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    return if !x.is_default() && coerce_list(x).is_empty() { vec![] } else { self.0.split(x) };
+    return if !x.empty() && coerce_list(x).is_empty() { vec![] } else { self.0.split(x) };
   }
 }
 
@@ -368,23 +383,23 @@ mod tests {
     assert_eq!(j("[]"), none);
     assert_eq!(j("{}"), none);
     assert_eq!(j("null"), none);
-    assert_eq!(j("false"), Json::new(Value::Boolean(false)));
-    assert_eq!(j("17.5"), Json::new(Value::Number(17.5)));
-    assert_eq!(j("'1000'"), Json::new(Value::String("1000".into())));
+    assert_eq!(j("false"), Json::new(Expr::Boolean(false)));
+    assert_eq!(j("17.5"), Json::new(Expr::Number(17.5)));
+    assert_eq!(j("'1000'"), Json::new(Expr::String("1000".into())));
     assert_eq!(
       j("{num: 17, str: 'is', bool: false}"),
-      Json::new(Value::Dict(vec![
-        ("num".into(), Json::new(Value::Number(17.0))),
-        ("str".into(), Json::new(Value::String("is".into()))),
-        ("bool".into(), Json::new(Value::Boolean(false))),
+      Json::new(Expr::Dict(vec![
+        ("num".into(), Json::new(Expr::Number(17.0))),
+        ("str".into(), Json::new(Expr::String("is".into()))),
+        ("bool".into(), Json::new(Expr::Boolean(false))),
       ]))
     );
     assert_eq!(
       j("[17, 'is', false]"),
-      Json::new(Value::List(vec![
-        Json::new(Value::Number(17.0)),
-        Json::new(Value::String("is".into())),
-        Json::new(Value::Boolean(false)),
+      Json::new(Expr::List(vec![
+        Json::new(Expr::Number(17.0)),
+        Json::new(Expr::String("is".into())),
+        Json::new(Expr::Boolean(false)),
       ]))
     );
   }
@@ -566,8 +581,8 @@ mod tests {
 
   #[test]
   fn stringify_sorts_keys() {
-    let json = j("{c: 1, b: 5, a: 3}");
-    assert_eq!(json.to_string(), "{a: 3, b: 5, c: 1}");
+    let json = j("{c: 1.5, b: 5.0, a: '3'}");
+    assert_eq!(json.repr(), "{a: '3', b: 5, c: 1.5}");
   }
 
   #[bench]
@@ -578,7 +593,7 @@ mod tests {
   #[bench]
   fn stringify_benchmark(b: &mut Bencher) {
     let x = Json::parse("{num: 17, str: 'is', bool: false, list: [3, 5, 7]}").unwrap();
-    b.iter(|| x.to_string());
+    b.iter(|| stringify(x.expr()));
   }
 
   #[bench]
@@ -589,7 +604,7 @@ mod tests {
   #[bench]
   fn template_merge_benchmark(b: &mut Bencher) {
     let template = Json::template("{num: 17, str: 'is', bool: false, list: [3, 5, 7]}").unwrap();
-    assert!(!template.merge(&vec![]).is_default());
+    assert!(!template.merge(&vec![]).empty());
     b.iter(|| template.merge(&vec![]));
   }
 

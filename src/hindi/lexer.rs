@@ -8,7 +8,6 @@ use std::rc::Rc;
 struct XEntry<T: Payload> {
   match_rc: Rc<Match<T>>,
   scores: HashMap<String, f32>,
-  value_str: String,
 }
 
 fn agree(a: &Tense, b: &Tense) -> bool {
@@ -23,9 +22,8 @@ fn create_xentry<T: Payload>(entry: Entry) -> Result<XEntry<T>> {
   let Entry { head, hindi, latin, scores, tenses, value } = entry;
   let texts = vec![("head", head), ("hindi", hindi), ("latin", latin)].into_iter().collect();
   let value = T::parse(&value)?;
-  let value_str = value.to_string();
   let match_rc = Rc::new(Match { tenses, texts, value });
-  Ok(XEntry { match_rc, scores, value_str })
+  Ok(XEntry { match_rc, scores })
 }
 
 fn default_match<T: Payload>(text: &str) -> Rc<Match<T>> {
@@ -82,9 +80,8 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
       return vec![];
     }
     let (head, latin) = (head.unwrap(), latin.unwrap());
-    let value_str = m.value.to_string();
     let check = |x: &&Rc<XEntry<T>>| {
-      x.value_str == value_str && x.match_rc.tenses.iter().any(|y| agree(y, t))
+      x.match_rc.value == m.value && x.match_rc.tenses.iter().any(|y| agree(y, t))
     };
     let score = |x: &&Rc<XEntry<T>>| {
       x.match_rc.texts.get("latin").map(|x| common_prefix(x, latin).len()).unwrap_or_default()
@@ -124,8 +121,7 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
     } else {
       let mut entries = self.from_name.get(name).map(|x| x.iter().collect()).unwrap_or(vec![]);
       if let Some(value) = value {
-        let value_str = format!("{}", value);
-        entries = entries.into_iter().filter(|x| x.value_str == value_str).collect();
+        entries = entries.into_iter().filter(|x| x.match_rc.value == *value).collect();
       }
       let min = std::f32::NEG_INFINITY;
       let max = entries.iter().fold(min, |a, x| a.max(x.scores.get(name).cloned().unwrap_or(min)));

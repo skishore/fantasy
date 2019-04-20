@@ -2,7 +2,14 @@ use super::super::lib::base::HashMap;
 use super::base::{Child, Derivation, Grammar, Rule, Term};
 use rand::Rng as RngTrait;
 use std::collections::hash_map::Entry;
+use std::hash::Hash;
 use std::rc::Rc;
+
+// We only support generation for types implementing three utility traits.
+
+pub trait Split: Clone + Eq + Hash {}
+
+impl<T: Clone + Eq + Hash> Split for T {}
 
 // We use a memo both to speed up generation and to avoid an infinite loop on
 // recursive rules, such as the left-recursive "repeat" rules.
@@ -11,13 +18,13 @@ type Rng = rand::rngs::StdRng;
 
 type Tree<'a, S, T> = Option<Child<'a, S, T>>;
 
-struct Memo<'a, 'b, S, T> {
+struct Memo<'a, 'b, S: Split, T> {
   generator: &'a Generator<'a, S, T>,
-  memo: HashMap<String, Tree<'a, S, T>>,
+  memo: HashMap<(&'a Term, S), Tree<'a, S, T>>,
   rng: &'b mut Rng,
 }
 
-impl<'a, 'b, S, T> Memo<'a, 'b, S, T> {
+impl<'a, 'b, S: Split, T> Memo<'a, 'b, S, T> {
   fn generate_from_list(&mut self, rules: &[&'a Rule<S, T>], value: &S) -> Tree<'a, S, T> {
     let scores: Vec<_> = {
       let f = |x: &&'a Rule<S, T>| {
@@ -37,7 +44,7 @@ impl<'a, 'b, S, T> Memo<'a, 'b, S, T> {
   }
 
   fn generate_from_memo(&mut self, term: &'a Term, value: &S) -> Tree<'a, S, T> {
-    let key = self.generator.key(term, value);
+    let key = (term, value.clone());
     match self.memo.entry(key.clone()) {
       Entry::Occupied(x) => return x.get().clone(),
       Entry::Vacant(x) => x.insert(None),
@@ -84,12 +91,12 @@ impl<'a, 'b, S, T> Memo<'a, 'b, S, T> {
 // Our public interface has a simple "generate" entry point, but also supports
 // generation from a list of rules, which is useful for correction.
 
-pub struct Generator<'a, S, T> {
+pub struct Generator<'a, S: Split, T> {
   by_name: Vec<Vec<&'a Rule<S, T>>>,
   grammar: &'a Grammar<S, T>,
 }
 
-impl<'a, S, T> Generator<'a, S, T> {
+impl<'a, S: Split, T> Generator<'a, S, T> {
   pub fn new(grammar: &'a Grammar<S, T>) -> Self {
     let mut by_name: Vec<_> = grammar.names.iter().map(|_| vec![]).collect();
     grammar.rules.iter().for_each(|x| by_name[x.lhs].push(x));
@@ -113,13 +120,6 @@ impl<'a, S, T> Generator<'a, S, T> {
     match result {
       Some(Child::Node(x)) => Rc::try_unwrap(x).ok(),
       _ => None,
-    }
-  }
-
-  pub fn key(&self, term: &Term, value: &S) -> String {
-    match term {
-      Term::Symbol(x) => format!("${}: {}", x, (self.grammar.key)(value)),
-      Term::Terminal(x) => format!("%{}: {}", x, (self.grammar.key)(value)),
     }
   }
 }
@@ -189,18 +189,18 @@ mod tests {
     }
   }
 
-  fn split_number(n: usize) -> Split<f32> {
-    Box::new(move |x| if *x == n as f32 { vec![vec![0.0]] } else { vec![] })
+  fn split_number(n: i32) -> Split<i32> {
+    Box::new(move |x| if *x == n { vec![vec![0]] } else { vec![] })
   }
 
-  fn split_operator(f: Box<Fn(f32, f32) -> f32>) -> Split<f32> {
+  fn split_operator(f: Box<Fn(f32, f32) -> f32>) -> Split<i32> {
     Box::new(move |x| {
       let mut result = vec![];
       for a in 0..10 {
         for b in 0..10 {
-          let (a, b) = (a as f32, b as f32);
-          if f(a, b) == *x {
-            result.push(vec![a, 0.0, b]);
+          let (ax, bx) = (a as f32, b as f32);
+          if f(ax, bx) == *x as f32 {
+            result.push(vec![a, 0, b]);
           }
         }
       }
@@ -208,9 +208,8 @@ mod tests {
     })
   }
 
-  fn make_grammar(deepness: f32) -> Grammar<f32, String> {
+  fn make_grammar(deepness: f32) -> Grammar<i32, String> {
     Grammar {
-      key: Box::new(|x| format!("{}", x)),
       lexer: Box::new(CharacterLexer::default()),
       names: "$Root $Add $Mul $Num".split(' ').map(|x| x.into()).collect(),
       rules: vec![
@@ -221,7 +220,7 @@ mod tests {
         make_rule(2, "$3     ", Box::new(|x| vec![vec![*x]])).score(-deepness),
         make_rule(2, "$2 * $3", split_operator(Box::new(|a, b| a * b))),
         make_rule(2, "$2 / $3", split_operator(Box::new(|a, b| a / b))),
-        make_rule(3, "( $1 ) ", Box::new(|x| vec![vec![0.0, *x, 0.0]])),
+        make_rule(3, "( $1 ) ", Box::new(|x| vec![vec![0, *x, 0]])),
         make_rule(3, "0      ", split_number(0)),
         make_rule(3, "1      ", split_number(1)),
         make_rule(3, "2      ", split_number(2)),
@@ -245,7 +244,7 @@ mod tests {
     for (index, expected) in tests {
       let rules = [&grammar.rules[index]];
       let mut rng = rand::SeedableRng::from_seed([17; 32]);
-      let result = generator.generate_from_rules(&mut rng, &rules, &2.0).map(|x| x.value.clone());
+      let result = generator.generate_from_rules(&mut rng, &rules, &2).map(|x| x.value.clone());
       assert_eq!(result.unwrap(), expected);
     }
   }
@@ -257,7 +256,7 @@ mod tests {
       let grammar = make_grammar(deepness);
       let generator = Generator::new(&grammar);
       let mut rng = rand::SeedableRng::from_seed([17; 32]);
-      let result = generator.generate(&mut rng, &2.0).map(|x| x.value.clone());
+      let result = generator.generate(&mut rng, &2).map(|x| x.value.clone());
       assert_eq!(result.unwrap(), expected);
     }
   }
@@ -267,6 +266,6 @@ mod tests {
     let grammar = make_grammar(0.0);
     let generator = Generator::new(&grammar);
     let mut rng = rand::SeedableRng::from_seed([17; 32]);
-    b.iter(|| generator.generate(&mut rng, &2.0));
+    b.iter(|| generator.generate(&mut rng, &2));
   }
 }
