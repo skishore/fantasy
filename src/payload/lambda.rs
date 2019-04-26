@@ -1,10 +1,10 @@
 use super::super::lib::base::Result;
 use super::base::{append, Args, Payload, Template, VariableTemplate};
-use std::cell::UnsafeCell;
-use std::hash::{Hash, Hasher};
-use std::rc::Rc;
+use std::fmt::{Display, Formatter};
 
 // The core lambda DCS expression type.
+
+pub type Lambda = super::cached::Cached<Expr>;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Binary {
@@ -28,72 +28,35 @@ pub enum Expr {
   Unknown,
 }
 
-// The Lambda type caches an Expr's string representation.
+// The base Payload implementation for Lambda types.
 
-#[derive(Clone, Debug)]
-pub struct Lambda(Rc<(Expr, UnsafeCell<String>)>);
-
-impl Lambda {
-  fn new(expr: Expr) -> Self {
-    Lambda(Rc::new((expr, UnsafeCell::default())))
-  }
-
-  pub fn expr(&self) -> &Expr {
-    &(self.0).0
-  }
-
-  pub fn repr(&self) -> &str {
-    let x = unsafe { &mut *(self.0).1.get() };
-    if x.is_empty() {
-      *x = stringify(self.expr());
-    }
-    x
-  }
-}
-
-impl Default for Lambda {
+impl Default for Expr {
   fn default() -> Self {
-    thread_local! { static DEFAULT: Lambda = Lambda::new(Expr::Unknown) };
-    DEFAULT.with(|x| x.clone())
+    Expr::Unknown
   }
 }
 
-impl Eq for Lambda {}
-
-impl Hash for Lambda {
-  fn hash<H: Hasher>(&self, h: &mut H) {
-    self.repr().hash(h);
+impl Display for Expr {
+  fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    write!(f, "{}", stringify(self))
   }
 }
 
-impl PartialEq for Lambda {
-  fn eq(&self, other: &Self) -> bool {
-    self.repr() == other.repr()
-  }
-}
-
-impl Payload for Lambda {
+impl super::cached::Base for Expr {
   fn base_lex(input: &str) -> Self {
-    Lambda::new(Expr::Terminal(input.to_string()))
+    Expr::Terminal(input.to_string())
   }
 
   fn base_unlex(&self) -> Option<&str> {
-    return if let Expr::Terminal(x) = self.expr() { Some(x.as_str()) } else { None };
+    return if let Expr::Terminal(x) = self { Some(x.as_str()) } else { None };
   }
 
-  fn empty(&self) -> bool {
-    *self.expr() == Expr::Unknown
+  fn default_static() -> Lambda {
+    thread_local! { static DEFAULT: Lambda = Lambda::new(Expr::default()); }
+    DEFAULT.with(|x| x.clone())
   }
 
-  fn parse(input: &str) -> Result<Self> {
-    if input == "-" {
-      return Ok(Self::default());
-    }
-    let base = template(input)?.merge(&vec![]);
-    return if base.empty() { Err("Empty lambda expression!")? } else { Ok(base) };
-  }
-
-  fn template(input: &str) -> Result<Box<Template<Self>>> {
+  fn template(input: &str) -> Result<Box<Template<Lambda>>> {
     template(input)
   }
 }
@@ -479,6 +442,12 @@ mod tests {
       template.split(&l("country.US & I")),
       [[(0, l("I")), (1, l("US"))], [(0, l("country.US & I")), (1, none())]]
     );
+  }
+
+  #[test]
+  fn parse_handles_empty_payloads() {
+    assert_eq!(l("-"), Lambda::default());
+    assert_eq!(Lambda::parse("$0"), Err("Empty payload: $0".into()));
   }
 
   #[test]

@@ -1,11 +1,11 @@
 use super::super::lib::base::Result;
 use super::super::lib::base::{HashMap, HashSet};
 use super::base::{append, cross, Args, Payload, Template, VariableTemplate};
-use std::cell::UnsafeCell;
-use std::hash::Hash;
-use std::rc::Rc;
+use std::fmt::{Display, Formatter};
 
 // The core JSON expression type.
+
+pub type Json = super::cached::Cached<Expr>;
 
 #[derive(Debug, PartialEq)]
 pub enum Expr {
@@ -17,68 +17,35 @@ pub enum Expr {
   Unknown,
 }
 
-// The Json type caches an Expr's string representation.
+// The base Payload implementation for Json types.
 
-#[derive(Clone, Debug)]
-pub struct Json(Rc<(Expr, UnsafeCell<String>)>);
-
-impl Json {
-  fn new(expr: Expr) -> Self {
-    Self(Rc::new((expr, UnsafeCell::default())))
-  }
-
-  pub fn expr(&self) -> &Expr {
-    &(self.0).0
-  }
-
-  pub fn repr(&self) -> &str {
-    let x = unsafe { &mut *(self.0).1.get() };
-    if x.is_empty() {
-      *x = stringify(self.expr());
-    }
-    x
-  }
-}
-
-impl Default for Json {
+impl Default for Expr {
   fn default() -> Self {
-    thread_local! { static DEFAULT: Json = Json::new(Expr::Unknown) };
-    DEFAULT.with(|x| x.clone())
+    Expr::Unknown
   }
 }
 
-impl Eq for Json {}
-
-impl Hash for Json {
-  fn hash<H: std::hash::Hasher>(&self, h: &mut H) {
-    self.repr().hash(h);
+impl Display for Expr {
+  fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+    write!(f, "{}", stringify(self))
   }
 }
 
-impl PartialEq for Json {
-  fn eq(&self, other: &Self) -> bool {
-    self.repr() == other.repr()
-  }
-}
-
-impl Payload for Json {
+impl super::cached::Base for Expr {
   fn base_lex(input: &str) -> Self {
-    Json::new(Expr::String(input.to_string()))
+    Expr::String(input.to_string())
   }
 
   fn base_unlex(&self) -> Option<&str> {
-    return if let Expr::String(x) = self.expr() { Some(x.as_str()) } else { None };
+    return if let Expr::String(x) = self { Some(x.as_str()) } else { None };
   }
 
-  fn empty(&self) -> bool {
-    *self.expr() == Expr::Unknown
+  fn default_static() -> Json {
+    thread_local! { static DEFAULT: Json = Json::new(Expr::default()); }
+    DEFAULT.with(|x| x.clone())
   }
 
-  fn parse(input: &str) -> Result<Self> {
-    Ok(template(input)?.merge(&vec![]))
-  }
-
-  fn template(input: &str) -> Result<Box<Template<Self>>> {
+  fn template(input: &str) -> Result<Box<Template<Json>>> {
     template(input)
   }
 }
@@ -378,10 +345,8 @@ mod tests {
   }
 
   #[test]
-  fn parsing_works() {
+  fn parse_works() {
     let none = Json::default();
-    assert_eq!(j("[]"), none);
-    assert_eq!(j("{}"), none);
     assert_eq!(j("null"), none);
     assert_eq!(j("false"), Json::new(Expr::Boolean(false)));
     assert_eq!(j("17.5"), Json::new(Expr::Number(17.5)));
@@ -402,6 +367,13 @@ mod tests {
         Json::new(Expr::Boolean(false)),
       ]))
     );
+  }
+
+  #[test]
+  fn parse_handles_empty_payloads() {
+    assert_eq!(Json::parse("[]"), Err("Empty payload: []".into()));
+    assert_eq!(Json::parse("{}"), Err("Empty payload: {}".into()));
+    assert_eq!(Json::parse("$0"), Err("Empty payload: $0".into()));
   }
 
   #[test]
