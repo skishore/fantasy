@@ -1,4 +1,5 @@
-use super::super::lib::base::{HashMap, Result};
+use super::super::lib::base::HashMap;
+pub use super::tense::Tense;
 use std::rc::Rc;
 
 // Parsing, generation, and correction all return derivations. These methods
@@ -38,12 +39,9 @@ pub struct Derivation<'a, S, T> {
 
 pub type Entry<T> = (f32, Rc<Match<T>>);
 
-pub type Tense = HashMap<&'static str, &'static str>;
-
 pub trait Lexer<S, T> {
   fn fix(&self, &Match<T>, &Tense) -> Vec<Rc<Match<T>>>;
   fn lex<'a: 'b, 'b>(&'a self, &'b str) -> Vec<Token<'b, T>>;
-  fn tense(&self, &HashMap<String, String>) -> Result<Tense>;
   fn unlex(&self, &str, &S) -> Vec<Rc<Match<T>>>;
 }
 

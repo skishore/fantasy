@@ -1,6 +1,6 @@
 use super::super::lib::base::{HashMap, HashSet, Result};
 use super::super::payload::base::{DefaultTemplate, Payload, SlotTemplate, Template, UnitTemplate};
-use super::base::Term;
+use super::base::{Tense, Term};
 use std::rc::Rc;
 
 // We parse our grammar files into this AST, rooted at a list of RootNodes.
@@ -71,7 +71,7 @@ fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
   let template: Rc<Template<T>> =
     if n == 1 { Rc::new(UnitTemplate {}) } else { Rc::new(DefaultTemplate {}) };
   let (merge, split) = get_semantics(n, &RuleNode::default(), template);
-  Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: HashMap::default() }
+  Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: Tense::default() }
 }
 
 fn get_semantics<T: Payload>(n: usize, rule: &RuleNode, template: Rc<Template<T>>) -> Pair<T> {
@@ -222,7 +222,7 @@ impl<T: Payload> State<T> {
       let precedence = get_precedence(&y.rhs);
       let (merge, split) = get_semantics(n, y, get_template(n, y)?);
       let rhs = y.rhs.iter().map(|z| self.build_term(z)).collect::<Result<Vec<_>>>()?;
-      let tense = self.grammar.lexer.tense(&y.tense)?;
+      let tense = Tense::new(&y.tense)?;
       self.grammar.rules.push(Rule { lhs, rhs, merge, split, precedence, tense });
       Ok(())
     })
@@ -267,7 +267,6 @@ impl<T: Payload> State<T> {
 
 fn parse(input: &str) -> Result<Vec<RootNode>> {
   use lib::combine::*;
-  use std::thread_local;
 
   enum DataNode {
     Merge(f32),

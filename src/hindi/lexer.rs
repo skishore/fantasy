@@ -1,5 +1,5 @@
 use hindi::transliterator::Transliterator;
-use hindi::vocabulary::{build_tense, build_vocabulary, Entry};
+use hindi::vocabulary::{vocabulary, Entry};
 use lib::base::{HashMap, Result};
 use nlu::base::{Lexer, Match, Tense, Token};
 use payload::base::Payload;
@@ -8,10 +8,6 @@ use std::rc::Rc;
 struct XEntry<T: Payload> {
   match_rc: Rc<Match<T>>,
   scores: HashMap<String, f32>,
-}
-
-fn agree(a: &Tense, b: &Tense) -> bool {
-  a.iter().all(|(k, v)| b.get(k).map(|x| x == v).unwrap_or(true))
 }
 
 fn common_prefix<'a>(a: &'a str, b: &'a str) -> &'a str {
@@ -59,7 +55,7 @@ impl<T: Payload> HindiLexer<T> {
     let mut from_head = HashMap::default();
     let mut from_name = HashMap::default();
     let mut from_word = HashMap::default();
-    for entry in build_vocabulary(text)? {
+    for entry in vocabulary(text)? {
       let (head, hindi) = (entry.head.clone(), entry.hindi.clone());
       let entry = Rc::new(create_xentry(entry)?);
       from_head.entry(head).or_insert(vec![]).push(Rc::clone(&entry));
@@ -81,7 +77,7 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
     }
     let (head, latin) = (head.unwrap(), latin.unwrap());
     let check = |x: &&Rc<XEntry<T>>| {
-      x.match_rc.value == m.value && x.match_rc.tenses.iter().any(|y| agree(y, t))
+      x.match_rc.value == m.value && x.match_rc.tenses.iter().any(|y| y.agree(t))
     };
     let score = |x: &&Rc<XEntry<T>>| {
       x.match_rc.texts.get("latin").map(|x| common_prefix(x, latin).len()).unwrap_or_default()
@@ -104,10 +100,6 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
       Token { matches: matches.into_iter().collect(), text: x }
     });
     xs.collect()
-  }
-
-  fn tense(&self, tense: &HashMap<String, String>) -> Result<Tense> {
-    build_tense(tense)
   }
 
   fn unlex(&self, name: &str, value: &Option<T>) -> Vec<Rc<Match<T>>> {

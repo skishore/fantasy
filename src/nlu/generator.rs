@@ -126,7 +126,6 @@ impl<'a, S: Split, T> Generator<'a, S, T> {
 
 #[cfg(test)]
 mod tests {
-  use super::super::super::lib::base::Result;
   use super::super::base::{Lexer, Match, Semantics, Tense, Token};
   use super::*;
   use std::marker::PhantomData;
@@ -145,10 +144,6 @@ mod tests {
     }
 
     fn lex<'a: 'b, 'b>(&'a self, _: &'b str) -> Vec<Token<'b, String>> {
-      unimplemented!()
-    }
-
-    fn tense(&self, _: &HashMap<String, String>) -> Result<Tense> {
       unimplemented!()
     }
 
@@ -178,7 +173,7 @@ mod tests {
       Semantics { callback: Box::new(|x| x.join("")), score: 0.0 };
     let split: Semantics<Fn(&S) -> Vec<Vec<S>>> = Semantics { callback: f, score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
-    Rule { lhs, rhs, merge, split, precedence: vec![], tense: HashMap::default() }
+    Rule { lhs, rhs, merge, split, precedence: vec![], tense: Tense::default() }
   }
 
   fn make_term(term: &str) -> Term {

@@ -1,7 +1,6 @@
 use super::super::lib::base::{HashMap, Result};
 use super::super::nlu::base::Tense;
 use super::wx::wx_to_hindi;
-use std::iter::once;
 
 pub struct Entry {
   pub head: String,
@@ -64,14 +63,14 @@ fn tense(code: &str) -> Result<Tense> {
     if code.len() != categories.len() {
       Err(format!("Invalid tense code: {}", code))?
     }
-    let mut result = Tense::default();
+    let mut result = HashMap::default();
     for (i, ch) in code.as_bytes().iter().cloned().enumerate().filter(|x| x.1 != b'.') {
       let (category, values) = &categories[i];
       let maybe = values.iter().filter(|x| x.0 == ch).next();
       let value = maybe.ok_or_else(|| format!("Invalid tense code: {}", code))?;
-      result.insert(category, value.1);
+      result.insert(*category, value.1);
     }
-    Ok(result)
+    Tense::new(&result)
   })
 }
 
@@ -106,6 +105,7 @@ pub fn nouns(main: &str, supplement: &str) -> Result<Vec<Entry>> {
     plurals.insert(singular, plural);
   });
   let mut result = vec![];
+  let default_counts = vec!["singular".to_string(), "plural".to_string()];
   for_each_row!(main, [category, meaning, word, role], {
     let (hindi, latin) = split(word)?;
     let (gender, declines) = match role {
@@ -138,8 +138,8 @@ pub fn nouns(main: &str, supplement: &str) -> Result<Vec<Entry>> {
     let last = result.last_mut().unwrap();
     last.iter_mut().for_each(|x| {
       x.scores.insert(format!("%{}", category), 0.0);
-      let counts: Vec<_> = x.tenses.iter().filter_map(|y| y.get("count").cloned()).collect();
-      let nonempty = if counts.is_empty() { vec!["singular", "plural"] } else { counts };
+      let counts: Vec<_> = x.tenses.iter().filter_map(|y| y.get("count")).collect();
+      let nonempty = if counts.is_empty() { &default_counts } else { &counts };
       nonempty.iter().for_each(|y| {
         x.scores.insert(format!("%noun_{}", y), 0.0);
         x.scores.insert(format!("%{}_{}", category, y), 0.0);
@@ -254,6 +254,8 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
   let mut result = vec![];
   let base_forms = [("", "", "stem"), ("ne", "ne", "gerund"), ("nA", "na", "infinitive")];
   let time_forms = [("", "", "past", true), ("w", "t", "present", false)];
+  let (male, female) = (tense(".m...").unwrap(), tense(".f...").unwrap());
+
   for_each_row!(table, [meaning, word], {
     let (hindi, latin) = split(word)?;
     if !(hindi.ends_with('A') && latin.ends_with('a')) {
@@ -273,11 +275,12 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
 
     // For each temporal type, add declined entries for the verb.
     for (h, l, time, prefix) in &time_forms {
+      let base = Tense::new(&vec![("time", *time)].into_iter().collect()).unwrap();
       let y = if vowel && *prefix { "y" } else { "" };
       let h: Vec<_> = ['A', 'e', 'I'].iter().map(|x| format!("{}{}{}{}", hstem, h, y, x)).collect();
       let l: Vec<_> = ['a', 'e', 'i'].iter().map(|x| format!("{}{}{}{}", lstem, l, y, x)).collect();
       let mut t: Vec<_> = ["sm...", "pm...", ".f..."].iter().map(|x| tense(x).unwrap()).collect();
-      t.iter_mut().for_each(|x| std::mem::drop(x.insert("time", time)));
+      t.iter_mut().for_each(|x| x.union(&base));
       result.push(rollup(&zip(h, l, t), "verb", meaning)?);
       let last = result.last_mut().unwrap();
       last.iter_mut().for_each(|x| std::mem::drop(x.scores.insert(format!("%verb_{}", time), 0.0)));
@@ -285,7 +288,6 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
 
     // The future tense is special: it has different forms based on person.
     for time in &["future"] {
-      let (male, female) = (("gender", "male"), ("gender", "female"));
       let hs: Vec<_> = "UngA  egA   egA   enge  ogA   enge  enge".split_whitespace().collect();
       let ls: Vec<_> = "unga  ega   ega   enge  oga   enge  enge".split_whitespace().collect();
       let ts: Vec<_> = "s.1.. s.2.i s.3.. p.1.. p.2.c p.2.f p.3..".split_whitespace().collect();
@@ -298,11 +300,10 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
         .chain(ls.iter().map(|x| format!("{}i", &x[..x.len() - 1])))
         .map(|x| format!("{}{}", lstem, x));
       let tenses = ts.iter().map(|x| tense(x)).collect::<Result<Vec<_>>>()?;
-      let tenses = tenses
-        .iter()
-        .map(|x| x.clone().into_iter().chain(once(male)).collect())
-        .chain(tenses.iter().map(|x| x.clone().into_iter().chain(once(female)).collect()))
-        .collect();
+      let (mut m, mut f) = (tenses.clone(), tenses);
+      m.iter_mut().for_each(|x| x.union(&male));
+      f.iter_mut().for_each(|x| x.union(&female));
+      let tenses = m.into_iter().chain(f.into_iter()).collect();
       result.push(rollup(&zip(hindis.collect(), latins.collect(), tenses), "verb", meaning)?);
       let last = result.last_mut().unwrap();
       last.iter_mut().for_each(|x| std::mem::drop(x.scores.insert(format!("%verb_{}", time), 0.0)));
@@ -313,20 +314,7 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
 
 // Our overall entry point calls each of the helpers above.
 
-pub fn build_tense(tense: &HashMap<String, String>) -> Result<Tense> {
-  CATEGORIES.with(|categories| {
-    let result = tense.iter().map(|(k, v)| {
-      let next = categories.iter().filter(|x| x.0 == k).next();
-      let (key, values) = next.ok_or(format!("Unknown Hindi category: {}", k))?;
-      let next = values.iter().filter(|x| x.1 == v).next();
-      let (_, value) = next.ok_or(format!("Invalid value for Hindi category {}: {}", k, v))?;
-      Ok((*key, *value))
-    });
-    result.collect()
-  })
-}
-
-pub fn build_vocabulary(text: &str) -> Result<Vec<Entry>> {
+pub fn vocabulary(text: &str) -> Result<Vec<Entry>> {
   let mut entries = vec![];
   let (a, b, c, d, e, f) = (adjectives, nouns, numbers, particles, pronouns, verbs);
   for_each_table!(text, [adjectives, nouns, noun_plurals, numbers, particles, pronouns, verbs], {
@@ -350,10 +338,6 @@ mod test {
     let data = std::fs::read_to_string(file).unwrap();
     let base = regex::Regex::new(r#"lexer: ```[\s\S]*```"#).unwrap().find(&data).unwrap();
     let text = &data[base.start() + 10..base.end() - 3];
-    for word in build_vocabulary(text).unwrap() {
-      for tense in &word.tenses {
-        build_tense(&tense.iter().map(|x| ((*x.0).into(), (*x.1).into())).collect()).unwrap();
-      }
-    }
+    vocabulary(text).unwrap();
   }
 }
