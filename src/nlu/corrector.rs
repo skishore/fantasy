@@ -1,6 +1,7 @@
+use super::super::lib::base::HashMap;
 use super::super::payload::base::Payload;
 use super::base::Child::{Leaf, Node};
-use super::base::{Match, Tense};
+use super::base::{Match, Tense, Term};
 use rand::Rng as RngTrait;
 use std::borrow::Borrow;
 use std::rc::Rc;
@@ -17,6 +18,8 @@ type Grammar<T> = super::base::Grammar<Option<T>, T>;
 type Lexer<T> = super::base::Lexer<Option<T>, T>;
 type Rule<T> = super::base::Rule<Option<T>, T>;
 
+type Memo<'a, T> = HashMap<(&'a Term, T), Child<'a, T>>;
+
 struct State<'a, 'b, T: Payload> {
   diff: Vec<Diff<T>>,
   generator: &'b Generator<'a, T>,
@@ -25,15 +28,43 @@ struct State<'a, 'b, T: Payload> {
   tense: Tense,
 }
 
-// Simple methods for checking tenses at a particular tree node.
-
 impl<'a, 'b, T: Payload> State<'a, 'b, T> {
-  // The subtree-rebuilding logic. TODO(skishore): Reuse as much as possible.
+  // Some simple static helpers.
 
   fn clone_tree(tree: &Derivation<'a, T>) -> Derivation<'a, T> {
     let Derivation { children, rule, value } = tree;
     Derivation { children: children.clone(), rule, value: value.clone() }
   }
+
+  fn clone_value(child: &Child<'a, T>) -> T {
+    match child {
+      Leaf(x) => x.value.clone(),
+      Node(x) => x.value.clone(),
+    }
+  }
+
+  fn get_memo(tree: &Derivation<'a, T>, memo: &mut Memo<'a, T>) {
+    tree.children.iter().enumerate().for_each(|(i, x)| {
+      memo.insert((&tree.rule.rhs[i], State::clone_value(x)), x.clone());
+      if let Node(x) = x {
+        State::get_memo(x, memo);
+      }
+    });
+  }
+
+  fn use_memo(memo: &Memo<'a, T>, tree: &mut Derivation<'a, T>) {
+    for i in 0..tree.children.len() {
+      if let Some(x) = memo.get(&(&tree.rule.rhs[i], State::clone_value(&tree.children[i]))) {
+        tree.children[i] = x.clone();
+      } else if let Node(ref mut x) = &mut tree.children[i] {
+        let mut subtree = State::clone_tree(&x);
+        State::use_memo(memo, &mut subtree);
+        *x = Rc::new(subtree);
+      }
+    }
+  }
+
+  // The subtree rebuilding logic: first, regenerate; then, reuse old subtrees.
 
   fn check_rules(&self, rule: &Rule<T>) -> Vec<String> {
     let ok = rule.split.score != std::f32::NEG_INFINITY;
@@ -53,7 +84,13 @@ impl<'a, 'b, T: Payload> State<'a, 'b, T> {
     };
     let new = self.generator.generate_from_rules(&mut self.rng, &rules, &value);
     std::mem::forget(value);
-    new.map(Rc::new).unwrap_or(old)
+    if let Some(mut new) = new {
+      let mut memo = HashMap::default();
+      State::get_memo(&old, &mut memo);
+      State::use_memo(&memo, &mut new);
+      return Rc::new(new);
+    }
+    old
   }
 
   // The core recursive correction algorithm.
