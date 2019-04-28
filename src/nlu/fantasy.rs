@@ -403,6 +403,7 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
 #[cfg(test)]
 mod tests {
   use super::super::super::hindi::lexer::HindiLexer;
+  use super::super::super::nlu::corrector::Corrector;
   use super::super::super::nlu::generator::Generator;
   use super::super::super::nlu::parser::Parser;
   use super::super::super::payload::lambda::Lambda;
@@ -419,6 +420,15 @@ mod tests {
   #[test]
   fn smoke_test() {
     make_grammar().unwrap();
+  }
+
+  #[bench]
+  fn correction_benchmark(b: &mut Bencher) {
+    let grammar = make_grammar().unwrap();
+    let tree = Parser::new(&grammar).parse("do accha acche larki ko pani chahie").unwrap();
+    let mut rng = rand::SeedableRng::from_seed([17; 32]);
+    let corrector = Corrector::new(&grammar);
+    b.iter(|| corrector.correct(&mut rng, &tree));
   }
 
   #[bench]
