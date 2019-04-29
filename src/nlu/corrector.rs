@@ -195,3 +195,156 @@ impl<'a, T: Payload> Corrector<'a, T> {
     Correction { diff: state.diff, tree: State::clone_tree(&new) }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::super::super::payload::json::Json;
+  use super::super::base::{Lexer, Semantics, Token};
+  use super::super::parser::Parser;
+  use super::*;
+  use test::Bencher;
+
+  struct WordLexer();
+
+  impl Lexer<Option<Json>, Json> for WordLexer {
+    fn fix(&self, _: &Match<Json>, _: &Tense) -> Vec<Rc<Match<Json>>> {
+      unimplemented!()
+    }
+
+    fn lex<'a: 'b, 'b>(&'a self, input: &'b str) -> Vec<Token<'b, Json>> {
+      let iter = input.split(' ').into_iter().map(|x| {
+        let mut matches = HashMap::default();
+        let texts = vec![("latin", x.into())].into_iter().collect::<HashMap<_, _>>();
+        matches.insert(x, (0.0, Rc::new(Match { tenses: vec![], texts, value: Json::default() })));
+        Token { matches, text: x.into() }
+      });
+      iter.collect()
+    }
+
+    fn unlex(&self, name: &str, value: &Option<Json>) -> Vec<Rc<Match<Json>>> {
+      if value.as_ref().map(|x| x.empty()).unwrap_or(true) {
+        let texts = vec![("latin", name.into())].into_iter().collect::<HashMap<_, _>>();
+        vec![Rc::new(Match { tenses: vec![], texts, value: Json::default() })]
+      } else {
+        vec![]
+      }
+    }
+  }
+
+  fn make_rule(lhs: usize, rhs: &str, template: &str, is: &[usize], tense: Tense) -> Rule<Json> {
+    let rhs: Vec<_> = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
+    let n = rhs.len();
+    let template = Rc::new(Json::template(template).unwrap());
+    let (merge, split) = (template.clone(), template.clone());
+    let merge: Semantics<Fn(&[Json]) -> Json> = Semantics {
+      callback: Box::new(move |x| merge.merge(&x.iter().cloned().enumerate().collect())),
+      score: 0.0,
+    };
+    let split: Semantics<Fn(&Option<Json>) -> Vec<Vec<Option<Json>>>> = Semantics {
+      callback: Box::new(move |x| {
+        let mut result = vec![];
+        for option in x.as_ref().map(|y| split.split(y)).unwrap_or(vec![vec![]]) {
+          let mut entry = vec![None; n];
+          option.into_iter().filter(|(i, _)| *i < n).for_each(|(i, y)| entry[i] = Some(y));
+          result.push(entry);
+        }
+        result
+      }),
+      score: 0.0,
+    };
+    let precedence = if is.is_empty() { (0..n).into_iter().collect() } else { is.to_owned() };
+    Rule { lhs, rhs, merge, split, precedence, tense }
+  }
+
+  fn make_term(term: &str) -> Term {
+    if term.starts_with("$") {
+      Term::Symbol(term[1..].parse().unwrap())
+    } else {
+      Term::Terminal(term.into())
+    }
+  }
+
+  fn render<T>(matches: &[Rc<Match<T>>]) -> String {
+    let texts = matches.iter().map(|x| x.texts.get("latin").map(|y| y.as_str()).unwrap_or("?"));
+    texts.collect::<Vec<_>>().join(" ")
+  }
+
+  fn tense(code: &str) -> Tense {
+    assert!(code.len() == 2);
+    let mut result = HashMap::default();
+    match &code[0..1] {
+      "p" => result.insert("count", "plural"),
+      "s" => result.insert("count", "singular"),
+      "." => None,
+      x => Err(format!("Invalid count: {}", x)).unwrap(),
+    };
+    match &code[1..2] {
+      "f" => result.insert("gender", "female"),
+      "m" => result.insert("gender", "male"),
+      "." => None,
+      x => Err(format!("Invalid gender: {}", x)).unwrap(),
+    };
+    Tense::new(&result).unwrap()
+  }
+
+  fn make_grammar() -> Grammar<Json> {
+    Grammar {
+      lexer: Box::new(WordLexer {}),
+      names: "$Root $Num $Adjs $Noun $Adj $Extra".split(' ').map(|x| x.into()).collect(),
+      rules: vec![
+        make_rule(0, "$1 $2 $3 ", "{adjs: $1, count: $0, noun: $2}", &[0, 2, 1], tense("..")),
+        make_rule(1, "ek       ", "1", &[], tense("s.")),
+        make_rule(1, "do       ", "2", &[], tense("p.")),
+        make_rule(2, "$2 $4    ", "[...$0, $1]", &[], tense("..")),
+        make_rule(2, "         ", "null", &[], tense("..")),
+        make_rule(3, "admi $5  ", "'man'", &[], tense("sm")),
+        make_rule(3, "admiyo $5", "'man'", &[], tense("pm")),
+        make_rule(3, "aurat $5 ", "'woman'", &[], tense("sf")),
+        make_rule(3, "aurte $5 ", "'woman'", &[], tense("pf")),
+        make_rule(4, "bara     ", "'big'", &[], tense("sm")),
+        make_rule(4, "bare     ", "'big'", &[], tense("pm")),
+        make_rule(4, "bari     ", "'big'", &[], tense(".f")),
+        make_rule(4, "chota    ", "'small'", &[], tense("sm")),
+        make_rule(4, "chote    ", "'small'", &[], tense("pm")),
+        make_rule(4, "choti    ", "'small'", &[], tense(".f")),
+        make_rule(5, "huh      ", "null", &[], tense("..")),
+        make_rule(5, "um       ", "null", &[], tense("..")),
+        make_rule(5, "         ", "null", &[], tense("..")),
+      ],
+      start: 0,
+    }
+  }
+
+  #[test]
+  fn correction_works() {
+    let grammar = make_grammar();
+    let tree = Parser::new(&grammar).parse("do chota bari admi huh").unwrap();
+    assert_eq!(render(&tree.matches()), "do chota bari admi huh");
+
+    let corrector = Corrector::new(&grammar);
+    let mut rng = rand::SeedableRng::from_seed([17; 32]);
+    for _ in 0..10 {
+      let correction = corrector.correct(&mut rng, &tree);
+      assert_eq!(render(&correction.tree.matches()), "do chote bare admiyo huh");
+      let iter = correction.diff.into_iter().map(|x| match x {
+        Diff::Right(_) => vec![],
+        Diff::Wrong(x) => x.errors,
+      });
+      assert_eq!(iter.collect::<Vec<_>>(), vec![
+        vec![],
+        vec!["count should be plural (was: singular)"],
+        vec!["gender should be male (was: female)"],
+        vec!["count should be plural (was: singular)"],
+      ]);
+    }
+  }
+
+  #[bench]
+  fn correction_benchmark(b: &mut Bencher) {
+    let grammar = make_grammar();
+    let tree = Parser::new(&grammar).parse("do chota bari admi huh").unwrap();
+    let corrector = Corrector::new(&grammar);
+    let mut rng = rand::SeedableRng::from_seed([17; 32]);
+    b.iter(|| corrector.correct(&mut rng, &tree));
+  }
+}
