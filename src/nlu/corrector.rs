@@ -1,7 +1,6 @@
-use super::super::lib::base::HashMap;
 use super::super::payload::base::Payload;
 use super::base::Child::{Leaf, Node};
-use super::base::{Match, Tense, Term};
+use super::base::{Match, Tense};
 use rand::Rng as RngTrait;
 use std::borrow::Borrow;
 use std::rc::Rc;
@@ -13,12 +12,11 @@ type Rng = rand::rngs::StdRng;
 type Child<'a, T> = super::base::Child<'a, Option<T>, T>;
 type Derivation<'a, T> = super::base::Derivation<'a, Option<T>, T>;
 type Generator<'a, T> = super::generator::Generator<'a, Option<T>, T>;
+type Memo<'a, T> = super::generator::Memo<'a, Option<T>, T>;
 
 type Grammar<T> = super::base::Grammar<Option<T>, T>;
 type Lexer<T> = super::base::Lexer<Option<T>, T>;
 type Rule<T> = super::base::Rule<Option<T>, T>;
-
-type Memo<'a, T> = HashMap<(&'a Term, T), Child<'a, T>>;
 
 struct State<'a, 'b, T: Payload> {
   diff: Vec<Diff<T>>,
@@ -36,35 +34,19 @@ impl<'a, 'b, T: Payload> State<'a, 'b, T> {
     Derivation { children: children.clone(), rule, value: value.clone() }
   }
 
-  fn clone_value(child: &Child<'a, T>) -> T {
-    match child {
-      Leaf(x) => x.value.clone(),
-      Node(x) => x.value.clone(),
-    }
-  }
-
-  fn get_memo(tree: &Derivation<'a, T>, memo: &mut Memo<'a, T>) {
+  fn fill_memo(tree: &Derivation<'a, T>, memo: &mut Memo<'a, T>) {
     tree.children.iter().enumerate().for_each(|(i, x)| {
-      memo.insert((&tree.rule.rhs[i], State::clone_value(x)), x.clone());
-      if let Node(x) = x {
-        State::get_memo(x, memo);
-      }
+      let value = match x {
+        Leaf(y) => y.value.clone(),
+        Node(y) => y.value.clone(),
+      };
+      memo.insert((&tree.rule.rhs[i], None), Some(x.clone()));
+      memo.insert((&tree.rule.rhs[i], Some(value)), Some(x.clone()));
+      return if let Node(x) = x { State::fill_memo(x, memo) } else { () };
     });
   }
 
-  fn use_memo(memo: &Memo<'a, T>, tree: &mut Derivation<'a, T>) {
-    for i in 0..tree.children.len() {
-      if let Some(x) = memo.get(&(&tree.rule.rhs[i], State::clone_value(&tree.children[i]))) {
-        tree.children[i] = x.clone();
-      } else if let Node(ref mut x) = &mut tree.children[i] {
-        let mut subtree = State::clone_tree(&x);
-        State::use_memo(memo, &mut subtree);
-        *x = Rc::new(subtree);
-      }
-    }
-  }
-
-  // The subtree rebuilding logic: first, regenerate; then, reuse old subtrees.
+  // The tree rebuilding logic: first, memoize all subtrees; then, call the generator.
 
   fn check_rules(&self, rule: &Rule<T>) -> Vec<String> {
     let ok = rule.split.score != std::f32::NEG_INFINITY;
@@ -72,25 +54,16 @@ impl<'a, 'b, T: Payload> State<'a, 'b, T> {
   }
 
   fn rebuild(&mut self, old: Rc<Derivation<'a, T>>) -> Rc<Derivation<'a, T>> {
-    let value = unsafe {
-      let mut value = std::mem::uninitialized();
-      std::ptr::copy(&old.value, &mut value, 1);
-      Some(value)
-    };
+    let mut memo = Memo::default();
+    State::fill_memo(&old, &mut memo);
     let rules: Vec<_> = {
       let lhs = old.rule.lhs;
       let valid = |x: &&Rule<T>| x.lhs == lhs && self.check_rules(*x).is_empty();
       self.grammar.rules.iter().filter(valid).collect()
     };
-    let new = self.generator.generate_from_rules(&mut self.rng, &rules, &value);
-    std::mem::forget(value);
-    if let Some(mut new) = new {
-      let mut memo = HashMap::default();
-      State::get_memo(&old, &mut memo);
-      State::use_memo(&memo, &mut new);
-      return Rc::new(new);
-    }
-    old
+    let value = Some(old.value.clone());
+    let new = self.generator.generate_from_rules(memo, &mut self.rng, &rules, &value);
+    new.map(Rc::new).unwrap_or(old)
   }
 
   // The core recursive correction algorithm.
@@ -106,13 +79,13 @@ impl<'a, 'b, T: Payload> State<'a, 'b, T> {
     let errors = self.tense.union_checked(&old.tenses);
     if errors.is_empty() {
       self.diff.push(Diff::Right(old.clone()));
-      return old.clone();
+      return old;
     }
     let mut new = old.clone();
     let options = self.grammar.lexer.fix(&*old, &self.tense);
     if !options.is_empty() {
       new = options[self.rng.gen::<usize>() % options.len()].clone();
-      assert!(self.tense.union_checked(&new.tenses).is_empty());
+      debug_assert!(self.tense.union_checked(&new.tenses).is_empty());
     }
     let (old_matches, new_matches) = (vec![old.clone()], vec![new.clone()]);
     self.diff.push(Diff::Wrong(Wrong { errors, old_matches, new_matches }));
@@ -198,8 +171,9 @@ impl<'a, T: Payload> Corrector<'a, T> {
 
 #[cfg(test)]
 mod tests {
+  use super::super::super::lib::base::HashMap;
   use super::super::super::payload::json::Json;
-  use super::super::base::{Lexer, Semantics, Token};
+  use super::super::base::{Lexer, Semantics, Term, Token};
   use super::super::parser::Parser;
   use super::*;
   use test::Bencher;
@@ -330,12 +304,15 @@ mod tests {
         Diff::Right(_) => vec![],
         Diff::Wrong(x) => x.errors,
       });
-      assert_eq!(iter.collect::<Vec<_>>(), vec![
-        vec![],
-        vec!["count should be plural (was: singular)"],
-        vec!["gender should be male (was: female)"],
-        vec!["count should be plural (was: singular)"],
-      ]);
+      assert_eq!(
+        iter.collect::<Vec<_>>(),
+        vec![
+          vec![],
+          vec!["count should be plural (was: singular)"],
+          vec!["gender should be male (was: female)"],
+          vec!["count should be plural (was: singular)"],
+        ]
+      );
     }
   }
 

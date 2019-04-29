@@ -14,17 +14,19 @@ impl<T: Clone + Eq + Hash> Split for T {}
 // We use a memo both to speed up generation and to avoid an infinite loop on
 // recursive rules, such as the left-recursive "repeat" rules.
 
+pub type Memo<'a, S, T> = HashMap<(&'a Term, S), Tree<'a, S, T>>;
+
 type Rng = rand::rngs::StdRng;
 
 type Tree<'a, S, T> = Option<Child<'a, S, T>>;
 
-struct Memo<'a, 'b, S: Split, T> {
+struct State<'a, 'b, S: Split, T> {
   generator: &'b Generator<'a, S, T>,
   memo: HashMap<(&'a Term, S), Tree<'a, S, T>>,
   rng: &'b mut Rng,
 }
 
-impl<'a, 'b, S: Split, T> Memo<'a, 'b, S, T> {
+impl<'a, 'b, S: Split, T> State<'a, 'b, S, T> {
   fn generate_from_list(&mut self, rules: &[&'a Rule<S, T>], value: &S) -> Tree<'a, S, T> {
     let scores: Vec<_> = {
       let f = |x: &&'a Rule<S, T>| {
@@ -104,18 +106,19 @@ impl<'a, S: Split, T> Generator<'a, S, T> {
   }
 
   pub fn generate(&self, rng: &mut Rng, value: &S) -> Option<Derivation<'a, S, T>> {
-    self.generate_from_rules(rng, &self.by_name[self.grammar.start], value)
+    self.generate_from_rules(Memo::default(), rng, &self.by_name[self.grammar.start], value)
   }
 
   pub fn generate_from_rules(
     &self,
+    memo: Memo<'a, S, T>,
     rng: &mut Rng,
     rules: &[&'a Rule<S, T>],
     value: &S,
   ) -> Option<Derivation<'a, S, T>> {
     let result = {
-      let mut memo = Memo { generator: self, memo: HashMap::default(), rng };
-      memo.generate_from_list(rules, value)
+      let mut state = State { generator: self, memo, rng };
+      state.generate_from_list(rules, value)
     };
     match result {
       Some(Child::Node(x)) => Rc::try_unwrap(x).ok(),
@@ -239,8 +242,8 @@ mod tests {
     for (index, expected) in tests {
       let rules = [&grammar.rules[index]];
       let mut rng = rand::SeedableRng::from_seed([17; 32]);
-      let result = generator.generate_from_rules(&mut rng, &rules, &2).map(|x| x.value.clone());
-      assert_eq!(result.unwrap(), expected);
+      let result = generator.generate_from_rules(Memo::default(), &mut rng, &rules, &2).unwrap();
+      assert_eq!(result.value, expected);
     }
   }
 
@@ -251,8 +254,8 @@ mod tests {
       let grammar = make_grammar(deepness);
       let generator = Generator::new(&grammar);
       let mut rng = rand::SeedableRng::from_seed([17; 32]);
-      let result = generator.generate(&mut rng, &2).map(|x| x.value.clone());
-      assert_eq!(result.unwrap(), expected);
+      let result = generator.generate(&mut rng, &2).unwrap();
+      assert_eq!(result.value, expected);
     }
   }
 
@@ -261,6 +264,6 @@ mod tests {
     let grammar = make_grammar(0.0);
     let generator = Generator::new(&grammar);
     let mut rng = rand::SeedableRng::from_seed([17; 32]);
-    b.iter(|| generator.generate(&mut rng, &2));
+    b.iter(|| generator.generate(&mut rng, &2).unwrap());
   }
 }
