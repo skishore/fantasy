@@ -39,7 +39,7 @@ fn flip_dict(dict: &Dict) -> Dict {
 }
 
 fn make_dict(keys: &str, values: &str) -> Dict {
-  assert_eq!(keys.chars().count(), values.chars().count());
+  assert!(keys.chars().count() == values.chars().count());
   let mut result = HashMap::default();
   keys.chars().zip(values.chars()).for_each(|(k, v)| std::mem::drop(result.insert(k, v)));
   result
