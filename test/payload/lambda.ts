@@ -91,7 +91,7 @@ const lambda: Test = {
   },
   printing_returns_sorted_results: () => {
     const lambda = l`Tell(x) & f.e & (d.c | b.a)`;
-    Test.assert_eq(nonnull(lambda).repr, '(b.a | d.c) & Tell(x) & f.e');
+    Test.assert_eq(Lambda.stringify(lambda), '(b.a | d.c) & Tell(x) & f.e');
   },
 };
 
