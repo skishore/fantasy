@@ -403,6 +403,7 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
 #[cfg(test)]
 mod tests {
   use super::super::super::hindi::lexer::HindiLexer;
+  use super::super::super::lib::alloc::BUMP;
   use super::super::super::nlu::corrector::Corrector;
   use super::super::super::nlu::generator::Generator;
   use super::super::super::nlu::parser::Parser;
@@ -437,6 +438,7 @@ mod tests {
     let generator = Generator::new(&grammar);
     let mut rng = rand::SeedableRng::from_seed([17; 32]);
     let semantics = Some(Lambda::parse("Tell(owner.I & type.child, want.type.water)").unwrap());
+    unsafe { BUMP.start(1 << 32); }
     b.iter(|| generator.generate(&mut rng, &semantics).unwrap());
   }
 
@@ -444,6 +446,7 @@ mod tests {
   fn parsing_benchmark(b: &mut Bencher) {
     let grammar = make_grammar().unwrap();
     let parser = Parser::new(&grammar);
+    unsafe { BUMP.start(1 << 32); }
     b.iter(|| parser.parse("meri bacche ko pani chahie").unwrap());
   }
 }
