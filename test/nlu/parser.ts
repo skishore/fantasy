@@ -1,6 +1,6 @@
 import {range} from '../../src/lib/base';
-import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/base';
-import {Parser} from '../../src/parsing/parser';
+import {Grammar, Lexer, Match, Term, Token} from '../../src/nlu/base';
+import {Parser} from '../../src/nlu/parser';
 import {Test} from '../test';
 
 type Spec<T> = {lhs: string; rhs: string[]; fn: (xs: T[]) => T; score?: number};

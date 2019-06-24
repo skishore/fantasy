@@ -1,13 +1,13 @@
 import {Transliterator} from '../src/hindi/transliterator';
 import {assert, nonnull, range, RNG} from '../src/lib/base';
-import {Grammar, Match, Term} from '../src/parsing/base';
-import {Corrector} from '../src/parsing/corrector';
-import {Fantasy} from '../src/parsing/fantasy';
-import {Generator} from '../src/parsing/generator';
-import {Parser} from '../src/parsing//parser';
-import {Lambda} from '../src/template/lambda';
-import {Value} from '../src/template/value';
-import {arithmetic} from './parsing/generator';
+import {Grammar, Match, Term} from '../src/nlu/base';
+import {Corrector} from '../src/nlu/corrector';
+import {Fantasy} from '../src/nlu/fantasy';
+import {Generator} from '../src/nlu/generator';
+import {Parser} from '../src/nlu/parser';
+import {Json} from '../src/payload/json';
+import {Lambda} from '../src/payload/lambda';
+import {arithmetic} from './nlu/generator';
 
 /* tslint:disable-next-line:no-any */
 declare const process: any;
@@ -63,7 +63,7 @@ const bench = (n: number) => {
     console.log(`  Lambda split 2: ${elapsed_time(time, n)}`);
   }
   {
-    const template = Value.template(
+    const template = Json.template(
       '{num: 17, str: "is", bool: false, list: [3, 5, 7]}');
     const time = Date.now();
     for (let i = 0; i < n; i++) {
@@ -72,8 +72,8 @@ const bench = (n: number) => {
     console.log(`      Json merge: ${elapsed_time(time, n)}`);
   }
   {
-    const lambda = Value.parse('{x: 3, y: 5, z: 7}');
-    const template = Value.template('{x: $0, y: $1, z: $2}');
+    const lambda = Json.parse('{x: 3, y: 5, z: 7}');
+    const template = Json.template('{x: $0, y: $1, z: $2}');
     if (template.split(lambda).length !== 1) throw Error();
     const time = Date.now();
     for (let i = 0; i < n; i++) {
@@ -82,8 +82,8 @@ const bench = (n: number) => {
     console.log(`JsonDict split 1: ${elapsed_time(time, n)}`);
   }
   {
-    const lambda = Value.parse('{x: 3, y: 5, z: 7}');
-    const template = Value.template('{x: $0, y: $1, ...$2}');
+    const lambda = Json.parse('{x: 3, y: 5, z: 7}');
+    const template = Json.template('{x: $0, y: $1, ...$2}');
     if (template.split(lambda).length !== 4) throw Error();
     const time = Date.now();
     for (let i = 0; i < n; i++) {
@@ -92,8 +92,8 @@ const bench = (n: number) => {
     console.log(`JsonDict split 2: ${elapsed_time(time, n)}`);
   }
   {
-    const lambda = Value.parse('[3, 4, 5]');
-    const template = Value.template('[$0, ...$1]');
+    const lambda = Json.parse('[3, 4, 5]');
+    const template = Json.template('[$0, ...$1]');
     if (template.split(lambda).length !== 2) throw Error();
     const time = Date.now();
     for (let i = 0; i < n; i++) {
@@ -102,8 +102,8 @@ const bench = (n: number) => {
     console.log(`JsonList split 1: ${elapsed_time(time, n)}`);
   }
   {
-    const lambda = Value.parse('[3, 4, 5]');
-    const template = Value.template('[$0, ...$1, ...$2]');
+    const lambda = Json.parse('[3, 4, 5]');
+    const template = Json.template('[$0, ...$1, ...$2]');
     if (template.split(lambda).length !== 7) throw Error();
     const time = Date.now();
     for (let i = 0; i < n; i++) {

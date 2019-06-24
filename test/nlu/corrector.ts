@@ -1,10 +1,10 @@
 import {Option, RNG, flatten, nonnull, range} from '../../src/lib/base';
-import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/base';
-import {Tense, Tree, XGrammar, XRule} from '../../src/parsing/extensions';
-import {Corrector} from '../../src/parsing/corrector';
-import {Parser} from '../../src/parsing/parser';
-import {Template} from '../../src/template/base';
-import {Value} from '../../src/template/value';
+import {Grammar, Lexer, Match, Term, Token} from '../../src/nlu/base';
+import {Tense, Tree, XGrammar, XRule} from '../../src/nlu/extensions';
+import {Corrector} from '../../src/nlu/corrector';
+import {Parser} from '../../src/nlu/parser';
+import {Template} from '../../src/payload/base';
+import {Json} from '../../src/payload/json';
 import {Test} from '../test';
 
 // Basic helpers for constructing a generative grammar.
@@ -17,12 +17,12 @@ type Spec = {
   tense?: Tense;
 };
 
-const kDefaultTemplate: Template<Value> = {
+const kDefaultTemplate: Template<Json> = {
   merge: xs => null,
   split: x => (x === null ? [{}] : []),
 };
 
-const make_grammar = (specs: Spec[]): XGrammar<Value> => {
+const make_grammar = (specs: Spec[]): XGrammar<Json> => {
   // Construct the lexer. For the purposes of this text, we will never have to
   // call the "fix" method of the lexer. TODO(skishore): Test a call to fix.
   const fix = () => [];
@@ -32,7 +32,7 @@ const make_grammar = (specs: Spec[]): XGrammar<Value> => {
       const match = {data, score: 0, value: x};
       return {matches: {[x]: match}, text: x};
     });
-  const unlex = (name: string, value: Option<Value>) => {
+  const unlex = (name: string, value: Option<Json>) => {
     if (value && name !== value.some) return [];
     const data = {tenses: [{}], text: {latin: name}};
     return [{data, score: 0, value: name}];
@@ -44,12 +44,12 @@ const make_grammar = (specs: Spec[]): XGrammar<Value> => {
   return Tree.lift({key: JSON.stringify, lexer, rules, start: '$ROOT'});
 };
 
-const make_rule = (spec: Spec): XRule<Value, 0> => {
+const make_rule = (spec: Spec): XRule<Json, 0> => {
   const data = {
     precedence: spec.precedence || range(spec.rhs.length),
     tense: spec.tense || {},
   };
-  const template = spec.fn ? Value.template(spec.fn) : kDefaultTemplate;
+  const template = spec.fn ? Json.template(spec.fn) : kDefaultTemplate;
   const merge = {fn: template.merge.bind(template), score: 0};
   const split = {fn: split_fn(template, spec.rhs.length), score: 0};
   const rhs = spec.rhs.map(make_term);

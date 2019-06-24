@@ -1,5 +1,5 @@
 import {nonnull} from '../../src/lib/base';
-import {Lambda} from '../../src/template/lambda';
+import {Lambda} from '../../src/payload/lambda';
 import {Test} from '../test';
 
 const dsl = <T>(fn: (x: string) => T) => (x: TemplateStringsArray): T => {

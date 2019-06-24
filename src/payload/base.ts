@@ -12,7 +12,7 @@ interface Arguments<T> {
   [i: number]: T | void;
 }
 
-interface DataType<T> {
+interface Payload<T> {
   is_base: (x: T) => string | null;
   is_null: (x: T) => boolean;
   make_base: (x: string) => T;
@@ -35,7 +35,7 @@ const cross = <T>(xs: Arguments<T>[], ys: Arguments<T>[]): Arguments<T>[] =>
   flatten(xs.map(x => ys.map(y => ({...x, ...y}))));
 
 const reindex = <T>(
-  data_type: DataType<T>,
+  data_type: Payload<T>,
   slots: Slot[],
   template: Template<T>,
 ): Template<T> => ({
@@ -64,4 +64,4 @@ const reindex = <T>(
 
 const Template = {cross, reindex};
 
-export {Arguments, DataType, Slot, Template};
+export {Arguments, Payload, Slot, Template};

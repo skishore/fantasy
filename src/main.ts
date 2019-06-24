@@ -1,10 +1,10 @@
 import {nonnull, RNG} from './lib/base';
-import {Corrector} from './parsing/corrector';
-import {Tree} from './parsing/extensions';
-import {Fantasy} from './parsing/fantasy';
-import {Generator} from './parsing/generator';
-import {Parser} from './parsing/parser';
-import {Lambda} from './template/lambda';
+import {Corrector} from './nlu/corrector';
+import {Tree} from './nlu/extensions';
+import {Fantasy} from './nlu/fantasy';
+import {Generator} from './nlu/generator';
+import {Parser} from './nlu/parser';
+import {Lambda} from './payload/lambda';
 
 /* tslint:disable-next-line:no-any */
 declare const process: any;

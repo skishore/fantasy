@@ -1,5 +1,5 @@
-import {Template} from '../../src/template/base';
-import {Value} from '../../src/template/value';
+import {Template} from '../../src/payload/base';
+import {Json} from '../../src/payload/json';
 import {Test} from '../test';
 
 const reindex_trial = (input: string) => {
@@ -8,7 +8,7 @@ const reindex_trial = (input: string) => {
     {index: 4, optional: false},
     {index: 5, optional: true},
   ];
-  const template = Template.reindex(Value, slots, Value.template(input));
+  const template = Template.reindex(Json, slots, Json.template(input));
   Test.assert_eq(template.merge(['a', ['b', 'c'], null]), null);
   Test.assert_eq(template.merge([null, null, null, 'a', ['b', 'c']]), [
     'a',
@@ -34,8 +34,8 @@ const base: Test = {
       {index: -1, optional: true},
       {index: 4, optional: true},
     ];
-    const original = Value.template('[...$0, ...$1, ...$2]');
-    const template = Template.reindex(Value, slots, original);
+    const original = Json.template('[...$0, ...$1, ...$2]');
+    const template = Template.reindex(Json, slots, original);
     Test.assert_eq(template.split(['a', 'b']), [
       {3: null, 4: ['a', 'b']},
       {3: ['a'], 4: ['b']},

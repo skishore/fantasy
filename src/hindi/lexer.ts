@@ -1,7 +1,7 @@
 import {Option, RNG} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Tense, Term, XLexer, XMatch, XToken} from '../parsing/extensions';
-import {DataType} from '../template/base';
+import {Tense, Term, XLexer, XMatch, XToken} from '../nlu/extensions';
+import {Payload} from '../payload/base';
 import {Transliterator} from './transliterator';
 import {Entry} from './vocabulary';
 
@@ -37,12 +37,12 @@ const group = <T>(xs: T[], fn: (x: T) => string[]): Map<string, T[]> => {
   return result;
 };
 
-const match = <T>(data_type: DataType<T>, text: string): XMatch<T, 0> => {
+const match = <T>(data_type: Payload<T>, text: string): XMatch<T, 0> => {
   const data = {tenses: [], text: {head: '', hindi: text, latin: text}};
   return {data, score: 0, value: data_type.make_base(text)};
 };
 
-const parse = <T>(data_type: DataType<T>, entry: Entry): XEntry<T> => {
+const parse = <T>(data_type: Payload<T>, entry: Entry): XEntry<T> => {
   const parsed_value = data_type.parse(entry.value);
   return {...entry, parsed_value, value: data_type.stringify(parsed_value)};
 };
@@ -71,12 +71,12 @@ const update = <T>(entry: XEntry<T>, offset: number, token: XToken<T, 0>) => {
 };
 
 class HindiLexer<T> implements XLexer<T, 0> {
-  private data_type: DataType<T>;
+  private data_type: Payload<T>;
   private from_head: Map<string, XEntry<T>[]>;
   private from_name: Map<string, XEntry<T>[]>;
   private from_word: Map<string, XEntry<T>[]>;
   private transliterator: Transliterator;
-  constructor(data_type: DataType<T>, entries: Entry[]) {
+  constructor(data_type: Payload<T>, entries: Entry[]) {
     const xentries = entries.map(x => parse(data_type, x));
     this.data_type = data_type;
     this.from_head = group(xentries, x => [x.head]);

@@ -1,4 +1,4 @@
-import {Arguments as BA, DataType, Template as BT} from './base';
+import {Arguments as BA, Payload, Template as BT} from './base';
 import {Lambda as Expr} from './expr';
 
 // Lambda is a simple wrapper around Expr that makes typing easier to read.
@@ -39,7 +39,7 @@ const template = (x: string): BT<Lambda | null> => {
 
 // The DataType type class implementation for this type.
 
-const Lambda: DataType<Lambda | null> = {
+const Lambda: Payload<Lambda | null> = {
   is_base: x => Expr.is_base(unwrap(x)),
   is_null: x => Expr.is_null(unwrap(x)),
   make_base: x => wrap(Expr.make_base(x)),

@@ -1,6 +1,6 @@
 import {Option, assert, flatten, nonnull, quote, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Arguments, DataType, Slot, Template} from '../template/base';
+import {Arguments, Payload, Slot, Template} from '../payload/base';
 import {Tense, Term, Tree, XGrammar, XLexer, XRule} from './extensions';
 
 interface Macro {
@@ -25,7 +25,7 @@ interface RHS {
 
 interface State<T> {
   bindings: Map<string, Term>;
-  data_type: DataType<T>;
+  data_type: Payload<T>;
   grammar: XGrammar<T, 0>;
   macros: Map<string, Macro>;
   symbols: Set<string>;
@@ -56,7 +56,7 @@ const kRootSymbol = '$Root';
 
 const kSignData = {'<': {split: -Infinity}, '>': {merge: -Infinity}, '=': {}};
 
-const coalesce = <T>(dt: DataType<T>, value: T | void): T =>
+const coalesce = <T>(dt: Payload<T>, value: T | void): T =>
   value == null ? dt.make_null() : value;
 
 // TODO(skishore): We're using an optimization here by trying to mark slots
@@ -89,19 +89,19 @@ const lift_template = <T>(n: number, template: Template<T>): Transform<T> => ({
   },
 });
 
-const make_template = <T>(dt: DataType<T>, rule: Rule) => {
+const make_template = <T>(dt: Payload<T>, rule: Rule) => {
   const fn = rule.fn;
   const slots = get_slots(rule.rhs);
   const template = fn ? dt.template(fn) : null_template(dt, slots.length);
   return Template.reindex(dt, slots, template);
 };
 
-const null_template = <T>(dt: DataType<T>, n: number): Template<T> => ({
+const null_template = <T>(dt: Payload<T>, n: number): Template<T> => ({
   merge: x => dt.make_null(),
   split: x => (dt.is_null(x) ? [{}] : []),
 });
 
-const unit_template = <T>(dt: DataType<T>): Template<T> => ({
+const unit_template = <T>(dt: Payload<T>): Template<T> => ({
   merge: x => coalesce(dt, x[0]),
   split: x => [[x]],
 });
@@ -168,7 +168,7 @@ const get_precedence = (rhs: RHS[]): number[] => {
   return result.length === 0 ? range(rhs.length) : result;
 };
 
-const get_rule = <T>(dt: DataType<T>, l: string, r: Term[]): XRule<T, 0> => {
+const get_rule = <T>(dt: Payload<T>, l: string, r: Term[]): XRule<T, 0> => {
   const n = r.length;
   const data = {precedence: range(n), tense: {}};
   const template = n === 1 ? unit_template(dt) : null_template(dt, n);
@@ -298,7 +298,7 @@ const parser = (() => {
 
 // Our public interface includes two main methods for creating grammars.
 
-const parse = <T>(data_type: DataType<T>, input: string): XGrammar<T> => {
+const parse = <T>(data_type: Payload<T>, input: string): XGrammar<T> => {
   // tslint:disable-next-line:no-any
   const lexer: XLexer<T, 0> = null as any;
   const state: State<T> = {

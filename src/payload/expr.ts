@@ -1,6 +1,6 @@
 import {flatten, nonnull, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Arguments as BA, DataType, Template as BT} from './base';
+import {Arguments as BA, Payload, Template as BT} from './base';
 
 interface Arguments extends BA<Lambda | null> {}
 interface Template extends BT<Lambda | null> {}
@@ -185,7 +185,7 @@ const parser: Node<Template> = (() => {
 
 // The DataType type class implementation for this type.
 
-const Lambda: DataType<Lambda | null> = {
+const Lambda: Payload<Lambda | null> = {
   is_base: x => (x && x.type === 'single' ? x.base : null),
   is_null: x => x === null,
   make_base: x => ({type: 'single', base: x}),

@@ -1,16 +1,16 @@
 import {flatten, nonnull, quote, range} from '../lib/base';
 import {Node, Parser} from '../lib/combinators';
-import {Arguments as BA, DataType, Template as BT} from './base';
+import {Arguments as BA, Payload, Template as BT} from './base';
 
-interface Arguments extends BA<Value> {}
-interface Template extends BT<Value> {}
+interface Arguments extends BA<Json> {}
+interface Template extends BT<Json> {}
 
 type Primitive = boolean | null | number | string;
-type Value = Primitive | ValueDict | ValueList;
-interface ValueDict {
-  [key: string]: Value;
+type Json = Primitive | JsonDict | JsonList;
+interface JsonDict {
+  [key: string]: Json;
 }
-interface ValueList extends Array<Value> {}
+interface JsonList extends Array<Json> {}
 
 // Private implementation details of some complex templates.
 
@@ -18,35 +18,35 @@ type Dict = {[key: string]: Template};
 
 type Item = {spread: false; dict: Dict} | {spread: true; template: Template};
 
-const empty = (x: ValueDict): boolean => Object.keys(x).length === 0;
+const empty = (x: JsonDict): boolean => Object.keys(x).length === 0;
 
-const coerce_dict = (x: Value): ValueDict => {
+const coerce_dict = (x: Json): JsonDict => {
   if (!dict_or_null(x)) throw new Error(`Expected: dict; got: ${x}`);
   return x || {};
 };
 
-const coerce_list = (x: Value): ValueList => {
+const coerce_list = (x: Json): JsonList => {
   if (!list_or_null(x)) throw new Error(`Expected: list; got: ${x}`);
   return x || [];
 };
 
-const dict_or_null = (x: Value): x is null | ValueDict =>
+const dict_or_null = (x: Json): x is null | JsonDict =>
   x === null || typeof x === 'object';
 
-const list_or_null = (x: Value): x is null | ValueList =>
+const list_or_null = (x: Json): x is null | JsonList =>
   x === null || x instanceof Array;
 
-const dict_to_null = (x: ValueDict): Value => (empty(x) ? null : x);
+const dict_to_null = (x: JsonDict): Json => (empty(x) ? null : x);
 
-const list_to_null = (x: ValueList): Value => (x.length === 0 ? null : x);
+const list_to_null = (x: JsonList): Json => (x.length === 0 ? null : x);
 
-const void_to_null = (x: Value | void): Value => (x == null ? null : x);
+const void_to_null = (x: Json | void): Json => (x == null ? null : x);
 
 const concat = (a: Template, b: Template): Template => ({
   merge: (args: Arguments) => {
     return flatten([a, b].map(x => coerce_list(x.merge(args))));
   },
-  split: (x: Value) => {
+  split: (x: Json) => {
     const xs = coerce_list(x);
     return flatten(
       range(xs.length + 1).map(i => {
@@ -59,7 +59,7 @@ const concat = (a: Template, b: Template): Template => ({
 
 const map = (dict: Dict): Template => ({
   merge: (args: Arguments) => {
-    const result: ValueDict = {};
+    const result: JsonDict = {};
     for (const key in dict) {
       /* tslint:disable-next-line:forin */
       const value = dict[key].merge(args);
@@ -67,7 +67,7 @@ const map = (dict: Dict): Template => ({
     }
     return result;
   },
-  split: (x: Value) => {
+  split: (x: Json) => {
     const xs = coerce_dict(x);
     for (const key in xs) if (!dict[key]) return [];
     const keys = Object.keys(dict).sort();
@@ -82,13 +82,13 @@ const merge = (a: Template, b: Template): Template => ({
     const [ax, bx] = [a, b].map(x => coerce_dict(x.merge(args)));
     return {...ax, ...bx};
   },
-  split: (x: Value) => {
+  split: (x: Json) => {
     const xs = coerce_dict(x);
     const keys = Object.keys(xs).sort();
     return flatten(
       /* tslint:disable-next-line:no-bitwise */
       range(1 << keys.length).map(i => {
-        const items: ValueDict[] = [{}, {}];
+        const items: JsonDict[] = [{}, {}];
         /* tslint:disable-next-line:no-bitwise */
         keys.forEach((k, j) => (items[(1 << j) & i ? 1 : 0][k] = xs[k]));
         const [ax, bx] = items.map(dict_to_null);
@@ -100,7 +100,7 @@ const merge = (a: Template, b: Template): Template => ({
 
 const singleton = (a: Template): Template => ({
   merge: (args: Arguments) => [a.merge(args)].filter(x => x !== null),
-  split: (x: Value) => {
+  split: (x: Json) => {
     const xs = coerce_list(x);
     return xs.length <= 1 ? a.split(void_to_null(xs[0])) : [];
   },
@@ -113,7 +113,7 @@ const dict = (xs: Item[]): Template => {
   const base = list.reduce(merge);
   return {
     merge: (args: Arguments) => dict_to_null(coerce_dict(base.merge(args))),
-    split: (x: Value) =>
+    split: (x: Json) =>
       dict_or_null(x) && !(x && empty(x)) ? base.split(x) : [],
   };
 };
@@ -123,19 +123,19 @@ const list = (xs: {spread: boolean; template: Template}[]): Template => {
   const base = list.reduce(concat);
   return {
     merge: (args: Arguments) => list_to_null(coerce_list(base.merge(args))),
-    split: (x: Value) =>
+    split: (x: Json) =>
       list_or_null(x) && !(x && x.length === 0) ? base.split(x) : [],
   };
 };
 
 const primitive = (value: Primitive): Template => ({
   merge: (args: Arguments) => value,
-  split: (x: Value) => (x === value ? [{}] : []),
+  split: (x: Json) => (x === value ? [{}] : []),
 });
 
 const variable = (index: number): Template => ({
   merge: (args: Arguments) => void_to_null(args[index]),
-  split: (x: Value) => [{[index]: x}],
+  split: (x: Json) => [{[index]: x}],
 });
 
 // Helpers needed to parse a template.
@@ -187,7 +187,7 @@ const parser: Node<Template> = (() => {
 
 // The DataType type class implementation for this type.
 
-const Value: DataType<Value> = {
+const Json: Payload<Json> = {
   is_base: x => (typeof x === 'string' ? x : null),
   is_null: x => x === null,
   make_base: x => x,
@@ -197,4 +197,4 @@ const Value: DataType<Value> = {
   template: x => parser.parse(x),
 };
 
-export {Value};
+export {Json};

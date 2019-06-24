@@ -162,7 +162,7 @@ lexer: ```
 const {flatten} = require('../lib/base');
 const {HindiLexer} = require('../hindi/lexer');
 const {Vocabulary} = require('../hindi/vocabulary');
-const {Lambda} = require('../template/lambda');
+const {Lambda} = require('../payload/lambda');
 
 const {adjectives, nouns, numbers, particles, pronouns, verbs} = Vocabulary;
 

@@ -1,6 +1,6 @@
 import {RNG, nonnull, range} from '../../src/lib/base';
-import {Grammar, Lexer, Match, Term, Token} from '../../src/parsing/base';
-import {Generator} from '../../src/parsing/generator';
+import {Grammar, Lexer, Match, Term, Token} from '../../src/nlu/base';
+import {Generator} from '../../src/nlu/generator';
 import {Test} from '../test';
 
 // Basic helpers for constructing a generative grammar.

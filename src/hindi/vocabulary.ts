@@ -1,5 +1,5 @@
 import {assert, flatten} from '../lib/base';
-import {Tense} from '../parsing/extensions';
+import {Tense} from '../nlu/extensions';
 
 interface Entry {
   head: string;
