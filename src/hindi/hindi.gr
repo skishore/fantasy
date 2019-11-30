@@ -2,7 +2,7 @@
 # drawing a semantic distinction between singulars and plurals, but as a
 # result text-generation can be strange. However, if we have to create a new
 # "$NounType -> %noun_singular | %noun_plural" rule for each type, it will
-# interact badly with the already redundant problem above.
+# increase the size of the grammar significantly.
 #
 # TODO(skishore): Deal with relations. On their own, "larka" has the semantics
 # of a "boy", but "mera larka" means "my son", not "my boy". We can add
@@ -17,6 +17,9 @@
 # TODO(skishore): Create a way to pass hints to the lexer, like the gender of
 # "I" and of "you", the tone, and the current pronoun categories in scope.
 # This step is probably relatively easy, as long as we can define the API.
+#
+# TODO(skishore): When we correct a word, pick a replacement that's as close
+# to the original word as possible (either in spelling, or in tenses).
 
 # Top-level intents.
 
