@@ -235,7 +235,7 @@ const parser = (() => {
   const macro = id.and(args(binding));
 
   // Parsers for binding, macro, or term expressions which appear on the RHS.
-  const term: Node<Term> = Parser.any(
+  const term: Node<Term> = Parser.any<Term>(
     symbol.map(x => ({name: x, terminal: false})),
     id.map(x => ({name: x, terminal: true})),
     terminal.map(x => ({name: x, terminal: true})),

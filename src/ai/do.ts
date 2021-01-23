@@ -1,4 +1,4 @@
-import {Option, assert, clone} from '../lib/base';
+import {Option, assert, clone, flatten} from '../lib/base';
 import {Agent, Response, Signals, Update} from './agent';
 
 // Our type-safe "Do" agent framework is based on the treating agents as a
@@ -89,7 +89,7 @@ const respond = (state: State<any>): Response[] => {
     if (event.type === 'fork') return respond(event.value);
     return [];
   });
-  return [].concat.apply([], responses);
+  return flatten(responses);
 }
 
 const typeguard = <U>(value: any): value is Block<U> => {

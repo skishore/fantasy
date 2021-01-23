@@ -97,6 +97,6 @@ const registry = {
   WaitOneTurn,
 };
 
-const register = <S>(): Registry<S> => registry;
+const register = <S>(): Registry<S> => registry as any;
 
 export {register};
