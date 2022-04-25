@@ -111,7 +111,7 @@ impl<T: Payload> Lexer<Option<T>, T> for HindiLexer<T> {
       }
       vec![]
     } else {
-      let mut entries = self.from_name.get(name).map(|x| x.iter().collect()).unwrap_or(vec![]);
+      let mut entries: Vec<_> = self.from_name.get(name).map(|x| x.iter().collect()).unwrap_or_default();
       if let Some(value) = value {
         entries = entries.into_iter().filter(|x| x.match_rc.value == *value).collect();
       }

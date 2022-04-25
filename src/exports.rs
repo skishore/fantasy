@@ -340,7 +340,7 @@ lexer: ```
        want | chahna/cAhnA
 
 ```"#;
-  let grammar = compile(&data, HindiLexer::new);
+  let grammar = compile(data, HindiLexer::new);
   Ok(grammar.map_err(|x| format!("Failed to compile grammar:\n\n{:?}", x))?)
 }
 

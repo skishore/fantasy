@@ -21,7 +21,7 @@ pub trait Template<T> {
 pub fn append<T: Clone>(xs: &[Args<T>], ys: &[Args<T>], zs: &mut Vec<Args<T>>) {
   for x in xs {
     for y in ys {
-      zs.push(x.iter().chain(y.iter()).map(|z| z.clone()).collect());
+      zs.push(x.iter().chain(y.iter()).cloned().collect());
     }
   }
 }
@@ -39,7 +39,7 @@ impl<T: Payload> Template<T> for DefaultTemplate {
     T::default()
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
-    return if x.empty() { vec![vec![]] } else { vec![] };
+    if x.empty() { vec![vec![]] } else { vec![] }
   }
 }
 
@@ -86,7 +86,7 @@ pub struct UnitTemplate {}
 
 impl<T: Payload> Template<T> for UnitTemplate {
   fn merge(&self, xs: &Args<T>) -> T {
-    xs.iter().filter(|(i, _)| *i == 0).next().map(|(_, x)| x.clone()).unwrap_or_default()
+    xs.iter().find(|(i, _)| *i == 0).map(|(_, x)| x.clone()).unwrap_or_default()
   }
   fn split(&self, x: &T) -> Vec<Args<T>> {
     vec![vec![(0, x.clone())]]

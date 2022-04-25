@@ -7,10 +7,10 @@ use super::super::lib::base::Result;
 
 type Dict = HashMap<char, char>;
 
-static EXTRA: &'static str = "\u{902}\u{903}\u{901}\u{93c}";
-static HINDI: &'static str =
+static EXTRA: &str = "\u{902}\u{903}\u{901}\u{93c}";
+static HINDI: &str =
   "अआइईउऊएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसहऋॠऌ\u{902}\u{903}\u{901}\u{93c}";
-static LATIN: &'static str = "aAiIuUeEoOkKgGfcCjJFtTdDNwWxXnpPbBmyrlvSRshqQLMHzZ";
+static LATIN: &str = "aAiIuUeEoOkKgGfcCjJFtTdDNwWxXnpPbBmyrlvSRshqQLMHzZ";
 
 static NUKTA: char = '\u{93c}';
 static SCHWA: char = '\u{905}';
@@ -18,10 +18,10 @@ static VIRAMA: char = '\u{94d}';
 
 thread_local! {
   static HINDI_TO_WX: Dict = make_dict(HINDI, LATIN);
-  static WX_TO_HINDI: Dict = HINDI_TO_WX.with(|x| flip_dict(x));
+  static WX_TO_HINDI: Dict = HINDI_TO_WX.with(flip_dict);
 
   static NUKTA_TO_CHAR: Dict = make_dict("कखगजडढफ", "क़ख़ग़ज़ड़ढ़फ़");
-  static CHAR_TO_NUKTA: Dict = NUKTA_TO_CHAR.with(|x| flip_dict(x));
+  static CHAR_TO_NUKTA: Dict = NUKTA_TO_CHAR.with(flip_dict);
 
   static VOWEL_TO_CHAR: Dict = {
     let mut base = make_dict("आइईउऊऋऌऍएऐऑओऔॠॡ", "\u{93e}\u{93f}\u{940}\u{941}\u{942}\u{943}\u{962}\u{946}\u{947}\u{948}\u{94a}\u{94b}\u{94c}\u{944}\u{963}");
@@ -29,12 +29,12 @@ thread_local! {
     base.remove(&NUKTA);
     base
   };
-  static CHAR_TO_VOWEL: Dict = VOWEL_TO_CHAR.with(|x| flip_dict(x));
+  static CHAR_TO_VOWEL: Dict = VOWEL_TO_CHAR.with(flip_dict);
 }
 
 fn flip_dict(dict: &Dict) -> Dict {
   let mut result = HashMap::default();
-  dict.iter().for_each(|(k, v)| std::mem::drop(result.insert(v.clone(), k.clone())));
+  dict.iter().for_each(|(k, v)| std::mem::drop(result.insert(*v, *k)));
   result
 }
 

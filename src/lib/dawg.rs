@@ -59,7 +59,7 @@ impl<K: Item, V: Item> Dawg<K, V> {
       }
     }
     let nodes = &self.data[prev].nodes;
-    nodes.as_ref().map(|x| x.iter().map(|x| x.clone()).collect()).unwrap_or_default()
+    nodes.as_ref().map(|x| x.iter().cloned().collect()).unwrap_or_default()
   }
 
   pub fn size(&self) -> usize {
@@ -68,7 +68,7 @@ impl<K: Item, V: Item> Dawg<K, V> {
 
   fn add_helper(&mut self, i: usize, keys: &[K], value: &V) -> usize {
     if keys.is_empty() {
-      if self.data[i].nodes.as_ref().map_or(false, |x| x.contains(&value)) {
+      if self.data[i].nodes.as_ref().map_or(false, |x| x.contains(value)) {
         return i;
       }
       let mut entry = self.data[i].clone();
@@ -101,7 +101,7 @@ impl<K: Item, V: Item> Dawg<K, V> {
       let nodes = entry.nodes.as_ref().map(|x| x.iter().map(g).collect()).unwrap_or_default();
       (edges, nodes)
     };
-    (edges.sort(), nodes.sort());
+    edges.sort();nodes.sort();
     let new_index = memo.dawg.data.len();
     let result = *memo.memo.entry((edges.clone(), nodes.clone())).or_insert(new_index);
     if result == new_index {
@@ -156,7 +156,7 @@ mod tests {
       return vec![vec![]];
     }
     let (head, tail) = xs.split_at(1);
-    let ys = subsets(&tail);
+    let ys = subsets(tail);
     ys.iter().map(|y| head.iter().chain(y).cloned().collect()).chain(ys.clone()).collect()
   }
 
@@ -164,7 +164,7 @@ mod tests {
   fn all_entries_included() {
     let keys = subsets(b"abcde").into_iter().map(|x| (x, true)).collect();
     let dawg = dawg(&keys);
-    keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(&k), vec![true]));
+    keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(k), vec![true]));
     assert_eq!(dawg.entries().len(), 32);
     assert_eq!(dawg.get(b"ac"), vec![true]);
     assert_eq!(dawg.get(b"ca"), vec![]);
@@ -177,7 +177,7 @@ mod tests {
   fn compression_yields_fewer_nodes() {
     let keys = subsets(b"abcde").into_iter().map(|x| (x, true)).collect();
     let dawg = dawg(&keys).compress();
-    keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(&k), vec![true]));
+    keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(k), vec![true]));
     assert_eq!(dawg.entries().len(), 32);
     assert_eq!(dawg.get(b"ac"), vec![true]);
     assert_eq!(dawg.get(b"ca"), vec![]);
@@ -190,7 +190,7 @@ mod tests {
   fn compression_handles_varied_values() {
     let keys = subsets(b"abcde").into_iter().map(|x| (x.clone(), x.len() % 2)).collect();
     let dawg = dawg(&keys).compress();
-    keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(&k), vec![k.len() % 2]));
+    keys.iter().for_each(|(k, _)| assert_eq!(dawg.get(k), vec![k.len() % 2]));
     assert_eq!(dawg.entries().len(), 32);
     assert_eq!(dawg.get(b"ac"), vec![0]);
     assert_eq!(dawg.get(b"ca"), vec![]);

@@ -42,7 +42,7 @@ impl<'a, 'b, T: Payload> State<'a, 'b, T> {
       };
       memo.insert((&tree.rule.rhs[i], None), Some(x.clone()));
       memo.insert((&tree.rule.rhs[i], Some(value)), Some(x.clone()));
-      return if let Node(x) = x { State::fill_memo(x, memo) } else { () };
+      if let Node(x) = x { State::fill_memo(x, memo) } else {  }
     });
   }
 
@@ -50,7 +50,7 @@ impl<'a, 'b, T: Payload> State<'a, 'b, T> {
 
   fn check_rules(&self, rule: &Rule<T>) -> Vec<String> {
     let ok = rule.split.score != std::f32::NEG_INFINITY;
-    return if ok { self.tense.check(&rule.tense) } else { vec!["Invalid phrasing.".to_string()] };
+    if ok { self.tense.check(&rule.tense) } else { vec!["Invalid phrasing.".to_string()] }
   }
 
   fn rebuild(&mut self, old: Rc<Derivation<'a, T>>) -> Rc<Derivation<'a, T>> {
@@ -62,7 +62,7 @@ impl<'a, 'b, T: Payload> State<'a, 'b, T> {
       self.grammar.rules.iter().filter(valid).collect()
     };
     let value = Some(old.value.clone());
-    let new = self.generator.generate_from_rules(memo, &mut self.rng, &rules, &value);
+    let new = self.generator.generate_from_rules(memo, self.rng, &rules, &value);
     new.map(Rc::new).unwrap_or(old)
   }
 
@@ -190,7 +190,7 @@ mod tests {
         let mut matches = HashMap::default();
         let texts = vec![("latin", x.into())].into_iter().collect::<HashMap<_, _>>();
         matches.insert(x, (0.0, Rc::new(Match { tenses: vec![], texts, value: Json::default() })));
-        Token { matches, text: x.into() }
+        Token { matches, text: x }
       });
       iter.collect()
     }
@@ -231,7 +231,7 @@ mod tests {
   }
 
   fn make_term(term: &str) -> Term {
-    if term.starts_with("$") {
+    if term.starts_with('$') {
       Term::Symbol(term[1..].parse().unwrap())
     } else {
       Term::Terminal(term.into())

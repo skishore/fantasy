@@ -80,17 +80,15 @@ fn split(wx: &str) -> Vec<Bytes> {
     if ch == b'Z' {
       continue;
     } else if i + 1 < wx.len() && wx[i + 1] == b'Z' {
-      check(&wx[i..i + 2]).or_else(|| check(&wx[i..i + 1])).map(|x| result.push(x));
+      if let Some(x) = check(&wx[i..i + 2]).or_else(|| check(&wx[i..i + 1])) { result.push(x) }
     } else if ch == b'a' && prev_consonant {
       result.push(b"ax");
     } else if ch == b'z' || ch == b'M' {
       result.push(b"nx");
     } else if prev_vowel && next_vowel {
       result.push(b"yx");
-      check(&wx[i..i + 1]).map(|x| result.push(x));
-    } else {
-      check(&wx[i..i + 1]).map(|x| result.push(x));
-    }
+      if let Some(x) = check(&wx[i..i + 1]) { result.push(x) }
+    } else if let Some(x) = check(&wx[i..i + 1]) { result.push(x) }
     prev_vowel = next_vowel;
     prev_consonant = next_consonant;
   }

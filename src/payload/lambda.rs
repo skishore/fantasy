@@ -92,14 +92,14 @@ fn stringify(lambda: &Expr) -> String {
   match lambda {
     Expr::Binary(op, children) => {
       let Operator { commutes, precedence, text } = op.data();
-      let mut base: Vec<_> = children.into_iter().map(|x| stringify_wrap(x, precedence)).collect();
+      let mut base: Vec<_> = children.iter().map(|x| stringify_wrap(x, precedence)).collect();
       if commutes {
         base.sort();
       }
       base.join(&text)
     }
     Expr::Custom(name, children) => {
-      let base: Vec<_> = children.into_iter().map(|x| x.repr()).collect();
+      let base: Vec<_> = children.iter().map(|x| x.repr()).collect();
       format!("{}({})", name, base.join(", "))
     }
     Expr::Terminal(name) => name.to_string(),
@@ -159,7 +159,7 @@ fn template(input: &str) -> Result<Box<dyn Template<Lambda>>> {
         move |x: Parser<Node>| {
           let mut options = Vec::with_capacity(ops.len() + 1);
           for (name, op) in ops.iter() {
-            let op = op.clone();
+            let op = *op;
             options.push(map(repeat(seq2((st(name), &x), |x| x.1), 1), move |x| Some((op, x))));
           }
           options.push(succeed(|| None));

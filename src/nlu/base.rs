@@ -127,7 +127,7 @@ impl<'a, S, T> Derivation<'a, S, T> {
           Child::Leaf(x) => &x.value,
           Child::Node(x) => &x.value,
         };
-        unsafe { std::ptr::copy(source, target.offset(i as isize), 1) };
+        unsafe { std::ptr::copy(source, target.add(i), 1) };
       }
       let slice = unsafe { std::slice::from_raw_parts(target, n) };
       (rule.merge.callback)(slice)

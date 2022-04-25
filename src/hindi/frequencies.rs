@@ -3,7 +3,7 @@ use super::super::lib::base::HashMap;
 pub type Bytes = &'static [u8];
 
 thread_local! {
-  pub static VOWEL_SKIP_LOG_FREQUENCY: f32 = (0.1 as f32).log2();
+  pub static VOWEL_SKIP_LOG_FREQUENCY: f32 = 0.1_f32.log2();
 
   pub static LOG_FREQUENCY: HashMap<Bytes, (Bytes, HashMap<Bytes, f32>)> = {
     let mut result = HashMap::default();

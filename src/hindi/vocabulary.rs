@@ -66,7 +66,7 @@ fn tense(code: &str) -> Result<Tense> {
     let mut result = HashMap::default();
     for (i, ch) in code.as_bytes().iter().cloned().enumerate().filter(|x| x.1 != b'.') {
       let (category, values) = &categories[i];
-      let maybe = values.iter().filter(|x| x.0 == ch).next();
+      let maybe = values.iter().find(|x| x.0 == ch);
       let value = maybe.ok_or_else(|| format!("Invalid tense code: {}", code))?;
       result.insert(*category, value.1);
     }
@@ -118,7 +118,7 @@ pub fn nouns(main: &str, supplement: &str) -> Result<Vec<Entry>> {
 
     // Create singular and plural forms for nouns that decline.
     if declines {
-      let (hp, lp) = plurals.remove(word).map(|x| split(x)).unwrap_or_else(|| {
+      let (hp, lp) = plurals.remove(word).map(split).unwrap_or_else(|| {
         if gender == 'm' && hindi.ends_with('A') && latin.ends_with('a') {
           let (hstem, lstem) = (&hindi[..hindi.len() - 1], &latin[..latin.len() - 1]);
           return Ok((format!("{}e", hstem), format!("{}e", lstem)));
@@ -199,7 +199,7 @@ pub fn particles(table: &str) -> Result<Vec<Entry>> {
 pub fn pronouns(table: &str) -> Result<Vec<Entry>> {
   let mut groups = HashMap::default();
   for_each_row!(table, [role, direct, genitive, dative_1, dative_2, copula], {
-    if !(role.len() == 3 && role.is_ascii() && role.find(|c| '1' <= c && c <= '3') == Some(0)) {
+    if !(role.len() == 3 && role.is_ascii() && role.find(|c| ('1'..='3').contains(&c)) == Some(0)) {
       Err(format!("Invalid pronoun role: {}", role))?
     }
     let (person, count, tone) = (&role[..1], &role[1..2], &role[2..]);
@@ -287,7 +287,8 @@ pub fn verbs(table: &str) -> Result<Vec<Entry>> {
     }
 
     // The future tense is special: it has different forms based on person.
-    for time in &["future"] {
+    {
+      let time = &"future";
       let hs: Vec<_> = "UngA  egA   egA   enge  ogA   enge  enge".split_whitespace().collect();
       let ls: Vec<_> = "unga  ega   ega   enge  oga   enge  enge".split_whitespace().collect();
       let ts: Vec<_> = "s.1.. s.2.i s.3.. p.1.. p.2.c p.2.f p.3..".split_whitespace().collect();

@@ -30,9 +30,9 @@ impl<'a, 'b, S: Split, T> State<'a, 'b, S, T> {
   fn generate_from_list(&mut self, rules: &[&'a Rule<S, T>], value: &S) -> Tree<'a, S, T> {
     let scores: Vec<_> = {
       let f = |x: &&'a Rule<S, T>| {
-        self.generate_from_rule(*x, value).map(|y| ((2 as f32).powf(x.split.score), y))
+        self.generate_from_rule(*x, value).map(|y| (2_f32.powf(x.split.score), y))
       };
-      rules.into_iter().filter_map(f).collect()
+      rules.iter().filter_map(f).collect()
     };
     let length = scores.len();
     let mut left = self.rng.gen::<f32>() * scores.iter().fold(0.0, |acc, x| acc + x.0);
@@ -180,7 +180,7 @@ mod tests {
   }
 
   fn make_term(term: &str) -> Term {
-    if term.starts_with("$") {
+    if term.starts_with('$') {
       Term::Symbol(term[1..].parse().unwrap())
     } else {
       Term::Terminal(term.into())

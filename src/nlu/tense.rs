@@ -18,7 +18,7 @@ pub struct Tense(HashMap<Interned, Interned>);
 impl Tense {
   pub fn new<T: Borrow<str>>(t: &HashMap<T, T>) -> Result<Tense> {
     let iter = t.iter().map(|(k, v)| Ok((Interned::new(k.borrow())?, Interned::new(v.borrow())?)));
-    iter.collect::<Result<HashMap<_, _>>>().map(|x| Tense(x))
+    iter.collect::<Result<HashMap<_, _>>>().map(Tense)
   }
 
   pub fn agree(&self, other: &Tense) -> bool {
@@ -39,14 +39,14 @@ impl Tense {
   }
 
   pub fn union_checked(&mut self, others: &[Tense]) -> Vec<String> {
-    if others.len() == 0 {
+    if others.is_empty() {
       return vec![];
     }
     let checks: Vec<_> = others.iter().map(|x| (x, self.check_base(x))).collect();
-    let agrees: Vec<_> = checks.iter().filter(|x| x.1.len() == 0).map(|x| x.0).collect();
+    let agrees: Vec<_> = checks.iter().filter(|x| x.1.is_empty()).map(|x| x.0).collect();
     if agrees.is_empty() {
       let min = checks.iter().map(|x| x.1.len()).min().unwrap();
-      let min_errors = checks.iter().filter(|x| x.1.len() == min).next().unwrap();
+      let min_errors = checks.iter().find(|x| x.1.len() == min).unwrap();
       min_errors.1.iter().map(|x| format!("{} should be {} (was: {})", x.0, x.1, x.2)).collect()
     } else if agrees.len() == 1 {
       self.union(agrees[0]);

@@ -63,7 +63,7 @@ fn get_precedence(rhs: &[ItemNode]) -> Vec<usize> {
   let mut result = vec![];
   rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Max).for_each(|(i, _)| result.push(i));
   rhs.iter().enumerate().filter(|(_, x)| x.mark == MarkNode::Min).for_each(|(i, _)| result.push(i));
-  return if result.is_empty() { (0..rhs.len()).collect() } else { result };
+  if result.is_empty() { (0..rhs.len()).collect() } else { result }
 }
 
 fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
@@ -109,7 +109,7 @@ fn get_template<T: Payload>(n: usize, rule: &RuleNode) -> Result<Rc<dyn Template
     None => return Ok(Rc::new(DefaultTemplate {})),
   };
   let terms = rule.rhs.iter().enumerate();
-  let limit = rule.rhs.iter().filter_map(|x| x.index.clone()).max();
+  let limit = rule.rhs.iter().filter_map(|x| x.index).max();
   let slots = if let Some(limit) = limit {
     let mut slots = vec![None; limit + 1];
     terms.for_each(|(i, x)| x.index.iter().for_each(|y| slots[*y] = Some((i, x.optional))));
@@ -190,7 +190,7 @@ impl<T: Payload> State<T> {
 
   fn build_term(&mut self, item: &ItemNode) -> Result<Term> {
     let base = self.build_expr(&item.expr)?;
-    return if item.optional { Ok(self.build_option(base)) } else { Ok(base) };
+    if item.optional { Ok(self.build_option(base)) } else { Ok(base) }
   }
 
   fn get_name(&mut self, term: &Term) -> String {
@@ -216,7 +216,7 @@ impl<T: Payload> State<T> {
   }
 
   fn process_rules(&mut self, lhs: &str, rules: &[RuleNode]) -> Result<()> {
-    let lhs = self.get_symbol(&lhs);
+    let lhs = self.get_symbol(lhs);
     rules.iter().try_for_each(|y| {
       let n = y.rhs.len();
       let precedence = get_precedence(&y.rhs);
@@ -251,7 +251,7 @@ impl<T: Payload> State<T> {
     {
       let Grammar { lexer, names, .. } = &self.grammar;
       let dummy = Some(T::base_lex("dummy"));
-      let check = |x: &str| lexer.unlex(&x, &None).is_empty() && lexer.unlex(&x, &dummy).is_empty();
+      let check = |x: &str| lexer.unlex(x, &None).is_empty() && lexer.unlex(x, &dummy).is_empty();
       let dead_end = rhs.iter().filter(|x| !lhs.contains(*x)).map(|x| names[*x].clone());
       let unreachable = lhs.iter().filter(|x| !rhs.contains(*x)).map(|x| names[*x].clone());
       let unknown = terminals.into_iter().filter(|x| check(x));
@@ -298,15 +298,15 @@ fn parse(input: &str) -> Result<Vec<RootNode>> {
       // Parsers for term and expr expressions. An expr can be a binding, macro, or term.
       let commas = seq3((&ws, st(","), &ws), |_| ());
       let term = any(&[
-        map(&symbol, |x| TermNode::Symbol(x)),
-        map(&id, |x| TermNode::Terminal(x)),
-        map(terminal, |x| TermNode::Terminal(x)),
+        map(&symbol, TermNode::Symbol),
+        map(&id, TermNode::Terminal),
+        map(terminal, TermNode::Terminal),
       ]);
       let (cell, expr) = lazy();
       cell.replace(any(&[
-        map(&binding, |x| ExprNode::Binding(x)),
+        map(&binding, ExprNode::Binding),
         seq4((&id, st("["), separate(&expr, &commas, 1), st("]")), |x| ExprNode::Macro(x.0, x.2)),
-        map(term, |x| ExprNode::Term(x)),
+        map(term, ExprNode::Term),
       ]));
 
       // A parser for an RHS item, which is a marked-up expr.

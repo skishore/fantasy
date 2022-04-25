@@ -517,7 +517,7 @@ mod tests {
   }
 
   fn make_term(term: &str) -> Term {
-    if term.starts_with("$") {
+    if term.starts_with('$') {
       Term::Symbol(term[1..].parse().unwrap())
     } else if term == "%ws" {
       Term::Terminal(" ".into())

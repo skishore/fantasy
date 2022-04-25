@@ -144,11 +144,11 @@ fn coerce_list(json: &Json) -> &[Json] {
 }
 
 fn dict_to_null(xs: Vec<(String, Json)>) -> Json {
-  return if xs.is_empty() { Json::default() } else { Json::new(Expr::Dict(xs)) };
+  if xs.is_empty() { Json::default() } else { Json::new(Expr::Dict(xs)) }
 }
 
 fn list_to_null(xs: Vec<Json>) -> Json {
-  return if xs.is_empty() { Json::default() } else { Json::new(Expr::List(xs)) };
+  if xs.is_empty() { Json::default() } else { Json::new(Expr::List(xs)) }
 }
 
 struct DictBaseTemplate(Vec<(String, Box<dyn Template<Json>>)>, HashSet<String>);
@@ -157,7 +157,7 @@ impl Template<Json> for DictBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
     let iter = self.0.iter().filter_map(|(k, v)| {
       let expr = v.merge(xs);
-      return if expr.empty() { None } else { Some((k.clone(), expr)) };
+      if expr.empty() { None } else { Some((k.clone(), expr)) }
     });
     dict_to_null(iter.collect::<Vec<_>>())
   }
@@ -222,7 +222,7 @@ struct ListBaseTemplate(Box<dyn Template<Json>>);
 impl Template<Json> for ListBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
     let base = self.0.merge(xs);
-    return if base.empty() { base } else { Json::new(Expr::List(vec![base])) };
+    if base.empty() { base } else { Json::new(Expr::List(vec![base])) }
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
@@ -284,7 +284,7 @@ impl Template<Json> for BaseTemplate {
   }
 
   fn split(&self, x: &Json) -> Vec<Args<Json>> {
-    return if *x == self.0 { vec![vec![]] } else { vec![] };
+    if *x == self.0 { vec![vec![]] } else { vec![] }
   }
 }
 
@@ -339,7 +339,7 @@ mod tests {
   fn test_error<T: std::fmt::Debug>(result: Result<T>, prefix: &str) {
     let error = format!("{:?}", result.unwrap_err());
     if !error.starts_with(prefix) {
-      let error = error.split('\n').nth(0).unwrap_or("");
+      let error = error.split('\n').next().unwrap_or("");
       panic!("Error does not match prefix:\nexpected: {:?}\n  actual: {:?}", prefix, error);
     }
   }

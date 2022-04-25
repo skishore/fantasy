@@ -60,7 +60,7 @@ pub fn parse_tables<'a>(names: &[&str], text: &'a str) -> Result<Vec<&'a str>> {
   }
   let (mut actual, mut result) = (vec![], vec![]);
   for block in blocks.iter().skip(1) {
-    let first = block.split('\n').nth(0).unwrap().trim();
+    let first = block.split('\n').next().unwrap().trim();
     let index = first.find(':').ok_or_else(|| format!("Block must start with NAME: {}", first))?;
     actual.push(block[..index].to_lowercase());
     result.push(&block[index + 1..]);
@@ -79,7 +79,7 @@ mod tests {
   fn test_error<T: std::fmt::Debug>(result: Result<T>, prefix: &str) {
     let error = format!("{:?}", result.unwrap_err());
     if !error.starts_with(prefix) {
-      let error = error.split('\n').nth(0).unwrap_or("");
+      let error = error.split('\n').next().unwrap_or("");
       panic!("Error does not match prefix:\nexpected: {:?}\n  actual: {:?}", prefix, error);
     }
   }

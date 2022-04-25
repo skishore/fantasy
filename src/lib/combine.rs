@@ -93,7 +93,7 @@ pub fn repeat<A: 'static>(parser: impl Into<Parser<A>>, min: usize) -> Parser<Ve
       remainder = x;
       result.push(value);
     }
-    return if result.len() < min { None } else { Some((result, remainder)) };
+    if result.len() < min { None } else { Some((result, remainder)) }
   })
 }
 
@@ -109,7 +109,7 @@ pub fn separate<A: 'static, B: 'static>(
     result.append(&mut x.1);
     result
   });
-  return if min == 0 { any(&[list, succeed(|| vec![])]) } else { list };
+  if min == 0 { any(&[list, succeed(std::vec::Vec::new)]) } else { list }
 }
 
 pub fn seq2<A: 'static, B: 'static, F: Fn((A, B)) -> T + 'static, T: 'static>(
@@ -206,7 +206,7 @@ mod tests {
   fn float_parser<'a>() -> Parser<(f32, Option<i32>)> {
     let base = regexp("-?(0|[1-9][0-9]*)([.][0-9]+)?", |x| x.parse::<f32>().unwrap());
     let exponent = regexp("-?(0|[1-9][0-9]*)", |x| x.parse::<i32>().unwrap());
-    return seq2((base, opt(seq2((any(&[tag("e"), tag("E")]), exponent), |x| x.1))), |x| x);
+    seq2((base, opt(seq2((any(&[tag("e"), tag("E")]), exponent), |x| x.1))), |x| x)
   }
 
   fn tag(x: &str) -> Parser<()> {
@@ -216,7 +216,7 @@ mod tests {
   fn test_error<T: std::fmt::Debug>(result: Result<T>, prefix: &str) {
     let error = format!("{:?}", result.unwrap_err());
     if !error.starts_with(prefix) {
-      let error = error.split('\n').nth(0).unwrap_or("");
+      let error = error.split('\n').next().unwrap_or("");
       panic!("Error does not match prefix:\nexpected: {:?}\n  actual: {:?}", prefix, error);
     }
   }
