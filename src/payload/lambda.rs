@@ -56,7 +56,7 @@ impl super::cached::Base for Expr {
     DEFAULT.with(|x| x.clone())
   }
 
-  fn template(input: &str) -> Result<Box<Template<Lambda>>> {
+  fn template(input: &str) -> Result<Box<dyn Template<Lambda>>> {
     template(input)
   }
 }
@@ -124,10 +124,10 @@ fn stringify_wrap(lambda: &Lambda, context: u32) -> String {
   return if parens { format!("({})", lambda.repr()) } else { lambda.repr().to_string() };
 }
 
-fn template(input: &str) -> Result<Box<Template<Lambda>>> {
+fn template(input: &str) -> Result<Box<dyn Template<Lambda>>> {
   use super::super::lib::combine::*;
 
-  type Node = Box<Template<Lambda>>;
+  type Node = Box<dyn Template<Lambda>>;
 
   pub fn wrap(x: impl Template<Lambda> + 'static) -> Node {
     Box::new(x)
@@ -178,7 +178,7 @@ fn template(input: &str) -> Result<Box<Template<Lambda>>> {
 
       let (cell, root) = lazy();
       let result = seq2((&ws, &root), |x| x.1);
-      let precedence: Vec<Box<Fn(Parser<Node>) -> Parser<Node>>> = vec![
+      let precedence: Vec<Box<dyn Fn(Parser<Node>) -> Parser<Node>>> = vec![
         Box::new(base),
         Box::new(binaries(vec![(".", Binary::Join)])),
         Box::new(unary("~", Unary::Not)),
@@ -194,7 +194,7 @@ fn template(input: &str) -> Result<Box<Template<Lambda>>> {
 
 // Templates that operate on lambda DCS expressions.
 
-struct BinaryTemplate(Binary, Box<Template<Lambda>>, Box<Template<Lambda>>);
+struct BinaryTemplate(Binary, Box<dyn Template<Lambda>>, Box<dyn Template<Lambda>>);
 
 impl Template<Lambda> for BinaryTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
@@ -239,7 +239,7 @@ impl Template<Lambda> for BinaryTemplate {
   }
 }
 
-struct CustomTemplate(String, Vec<Box<Template<Lambda>>>);
+struct CustomTemplate(String, Vec<Box<dyn Template<Lambda>>>);
 
 impl Template<Lambda> for CustomTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
@@ -284,7 +284,7 @@ impl Template<Lambda> for TerminalTemplate {
   }
 }
 
-struct UnaryTemplate(Unary, Box<Template<Lambda>>);
+struct UnaryTemplate(Unary, Box<dyn Template<Lambda>>);
 
 impl Template<Lambda> for UnaryTemplate {
   fn merge(&self, xs: &Args<Lambda>) -> Lambda {
@@ -329,7 +329,7 @@ mod tests {
     Lambda::parse(input).unwrap()
   }
 
-  fn t(input: &str) -> Box<Template<Lambda>> {
+  fn t(input: &str) -> Box<dyn Template<Lambda>> {
     Lambda::template(input).unwrap()
   }
 
@@ -337,7 +337,7 @@ mod tests {
     vec![]
   }
 
-  fn merge(template: &Template<Lambda>, args: Vec<Lambda>) -> Lambda {
+  fn merge(template: &dyn Template<Lambda>, args: Vec<Lambda>) -> Lambda {
     template.merge(&args.into_iter().enumerate().collect())
   }
 

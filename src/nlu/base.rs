@@ -40,9 +40,9 @@ pub struct Derivation<'a, S, T> {
 pub type Entry<T> = (f32, Rc<Match<T>>);
 
 pub trait Lexer<S, T> {
-  fn fix(&self, &Match<T>, &Tense) -> Vec<Rc<Match<T>>>;
-  fn lex<'a: 'b, 'b>(&'a self, &'b str) -> Vec<Token<'b, T>>;
-  fn unlex(&self, &str, &S) -> Vec<Rc<Match<T>>>;
+  fn fix(&self, _: &Match<T>, _: &Tense) -> Vec<Rc<Match<T>>>;
+  fn lex<'a: 'b, 'b>(&'a self, _: &'b str) -> Vec<Token<'b, T>>;
+  fn unlex(&self, _: &str, _: &S) -> Vec<Rc<Match<T>>>;
 }
 
 pub struct Match<T> {
@@ -77,7 +77,7 @@ pub struct Token<'a, T> {
 // subject and verb must agree, but its object is only checked internally.
 
 pub struct Grammar<S, T> {
-  pub lexer: Box<Lexer<S, T>>,
+  pub lexer: Box<dyn Lexer<S, T>>,
   pub names: Vec<String>,
   pub rules: Vec<Rule<S, T>>,
   pub start: usize,
@@ -86,8 +86,8 @@ pub struct Grammar<S, T> {
 pub struct Rule<S, T> {
   pub lhs: usize,
   pub rhs: Vec<Term>,
-  pub merge: Semantics<Fn(&[T]) -> T>,
-  pub split: Semantics<Fn(&S) -> Vec<Vec<S>>>,
+  pub merge: Semantics<dyn Fn(&[T]) -> T>,
+  pub split: Semantics<dyn Fn(&S) -> Vec<Vec<S>>>,
   pub precedence: Vec<usize>,
   pub tense: Tense,
 }

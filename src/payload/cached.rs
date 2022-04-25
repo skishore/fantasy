@@ -18,10 +18,10 @@ use std::rc::Rc;
 // be used for all equality checks and hashing on the Cached<T> type for a Base type T.
 
 pub trait Base: 'static + Default + Display + PartialEq {
-  fn base_lex(&str) -> Self;
+  fn base_lex(_: &str) -> Self;
   fn base_unlex(&self) -> Option<&str>;
   fn default_static() -> Cached<Self>;
-  fn template(&str) -> Result<Box<Template<Cached<Self>>>>;
+  fn template(_: &str) -> Result<Box<dyn Template<Cached<Self>>>>;
 }
 
 #[derive(Debug)]
@@ -93,7 +93,7 @@ impl<T: Base> Payload for Cached<T> {
     return if y.empty() { Err(format!("Empty payload: {}", x))? } else { Ok(y) };
   }
 
-  fn template(x: &str) -> Result<Box<Template<Self>>> {
+  fn template(x: &str) -> Result<Box<dyn Template<Self>>> {
     T::template(x)
   }
 }

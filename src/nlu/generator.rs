@@ -134,7 +134,7 @@ mod tests {
   use std::marker::PhantomData;
   use test::Bencher;
 
-  type Split<S> = Box<Fn(&S) -> Vec<Vec<S>>>;
+  type Split<S> = Box<dyn Fn(&S) -> Vec<Vec<S>>>;
 
   #[derive(Default)]
   struct CharacterLexer<T: Default> {
@@ -172,9 +172,9 @@ mod tests {
   }
 
   fn make_rule<S: Clone>(lhs: usize, rhs: &str, f: Split<S>) -> Rule<S, String> {
-    let merge: Semantics<Fn(&[String]) -> String> =
+    let merge: Semantics<dyn Fn(&[String]) -> String> =
       Semantics { callback: Box::new(|x| x.join("")), score: 0.0 };
-    let split: Semantics<Fn(&S) -> Vec<Vec<S>>> = Semantics { callback: f, score: 0.0 };
+    let split: Semantics<dyn Fn(&S) -> Vec<Vec<S>>> = Semantics { callback: f, score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
     Rule { lhs, rhs, merge, split, precedence: vec![], tense: Tense::default() }
   }
@@ -191,7 +191,7 @@ mod tests {
     Box::new(move |x| if *x == n { vec![vec![0]] } else { vec![] })
   }
 
-  fn split_operator(f: Box<Fn(f32, f32) -> f32>) -> Split<i32> {
+  fn split_operator(f: Box<dyn Fn(f32, f32) -> f32>) -> Split<i32> {
     Box::new(move |x| {
       let mut result = vec![];
       for a in 0..10 {

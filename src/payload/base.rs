@@ -4,11 +4,11 @@ use std::hash::Hash;
 pub type Args<T> = Vec<(usize, T)>;
 
 pub trait Payload: 'static + Clone + Default + Eq + Hash {
-  fn base_lex(&str) -> Self;
+  fn base_lex(_: &str) -> Self;
   fn base_unlex(&self) -> Option<&str>;
   fn empty(&self) -> bool;
-  fn parse(&str) -> Result<Self>;
-  fn template(&str) -> Result<Box<Template<Self>>>;
+  fn parse(_: &str) -> Result<Self>;
+  fn template(_: &str) -> Result<Box<dyn Template<Self>>>;
 }
 
 pub trait Template<T> {
@@ -46,11 +46,11 @@ impl<T: Payload> Template<T> for DefaultTemplate {
 pub struct SlotTemplate<T: Payload> {
   reversed: Vec<Option<usize>>,
   slots: Vec<Option<(usize, bool)>>,
-  template: Box<Template<T>>,
+  template: Box<dyn Template<T>>,
 }
 
 impl<T: Payload> SlotTemplate<T> {
-  pub fn new(n: usize, slots: Vec<Option<(usize, bool)>>, template: Box<Template<T>>) -> Self {
+  pub fn new(n: usize, slots: Vec<Option<(usize, bool)>>, template: Box<dyn Template<T>>) -> Self {
     let mut reversed = vec![None; n];
     slots.iter().enumerate().for_each(|(i, x)| x.iter().for_each(|y| reversed[y.0] = Some(i)));
     Self { reversed, slots, template }
@@ -114,7 +114,7 @@ mod tests {
     Json::parse(input).unwrap()
   }
 
-  fn t(input: &str) -> Box<Template<Json>> {
+  fn t(input: &str) -> Box<dyn Template<Json>> {
     Json::template(input).unwrap()
   }
 
@@ -122,7 +122,7 @@ mod tests {
     vec![]
   }
 
-  fn merge(template: &Template<Json>, args: Vec<Json>) -> Json {
+  fn merge(template: &dyn Template<Json>, args: Vec<Json>) -> Json {
     template.merge(&args.into_iter().enumerate().collect())
   }
 

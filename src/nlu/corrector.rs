@@ -15,7 +15,7 @@ type Generator<'a, T> = super::generator::Generator<'a, Option<T>, T>;
 type Memo<'a, T> = super::generator::Memo<'a, Option<T>, T>;
 
 type Grammar<T> = super::base::Grammar<Option<T>, T>;
-type Lexer<T> = super::base::Lexer<Option<T>, T>;
+type Lexer<T> = dyn super::base::Lexer<Option<T>, T>;
 type Rule<T> = super::base::Rule<Option<T>, T>;
 
 struct State<'a, 'b, T: Payload> {
@@ -210,11 +210,11 @@ mod tests {
     let n = rhs.len();
     let template = Rc::new(Json::template(template).unwrap());
     let (merge, split) = (template.clone(), template.clone());
-    let merge: Semantics<Fn(&[Json]) -> Json> = Semantics {
+    let merge: Semantics<dyn Fn(&[Json]) -> Json> = Semantics {
       callback: Box::new(move |x| merge.merge(&x.iter().cloned().enumerate().collect())),
       score: 0.0,
     };
-    let split: Semantics<Fn(&Option<Json>) -> Vec<Vec<Option<Json>>>> = Semantics {
+    let split: Semantics<dyn Fn(&Option<Json>) -> Vec<Vec<Option<Json>>>> = Semantics {
       callback: Box::new(move |x| {
         let mut result = vec![];
         for option in x.as_ref().map(|y| split.split(y)).unwrap_or(vec![vec![]]) {

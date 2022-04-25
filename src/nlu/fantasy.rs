@@ -68,13 +68,13 @@ fn get_precedence(rhs: &[ItemNode]) -> Vec<usize> {
 
 fn get_rule<T: Payload>(lhs: usize, rhs: Vec<Term>) -> Rule<T> {
   let n = rhs.len();
-  let template: Rc<Template<T>> =
+  let template: Rc<dyn Template<T>> =
     if n == 1 { Rc::new(UnitTemplate {}) } else { Rc::new(DefaultTemplate {}) };
   let (merge, split) = get_semantics(n, &RuleNode::default(), template);
   Rule { lhs, rhs, merge, split, precedence: (0..n).collect(), tense: Tense::default() }
 }
 
-fn get_semantics<T: Payload>(n: usize, rule: &RuleNode, template: Rc<Template<T>>) -> Pair<T> {
+fn get_semantics<T: Payload>(n: usize, rule: &RuleNode, template: Rc<dyn Template<T>>) -> Pair<T> {
   let (merge, split) = (template.clone(), template.clone());
   (
     Merge {
@@ -103,7 +103,7 @@ fn get_semantics<T: Payload>(n: usize, rule: &RuleNode, template: Rc<Template<T>
 // This required assumption fails in the case of symbols that can expand to an empty
 // RHS without provided rule semantics. However, the optimization is critical, as we
 // need a way to stop generation in the default case where it works.
-fn get_template<T: Payload>(n: usize, rule: &RuleNode) -> Result<Rc<Template<T>>> {
+fn get_template<T: Payload>(n: usize, rule: &RuleNode) -> Result<Rc<dyn Template<T>>> {
   let template = match &rule.template {
     Some(x) => T::template(x)?,
     None => return Ok(Rc::new(DefaultTemplate {})),
@@ -128,11 +128,11 @@ fn get_warning(mut xs: Vec<String>, message: &str) -> Result<()> {
 // Logic for building a grammar from an AST.
 
 type Grammar<T> = super::base::Grammar<Option<T>, T>;
-type Lexer<T> = super::base::Lexer<Option<T>, T>;
+type Lexer<T> = dyn super::base::Lexer<Option<T>, T>;
 type Rule<T> = super::base::Rule<Option<T>, T>;
 
-type Merge<T> = super::base::Semantics<Fn(&[T]) -> T>;
-type Split<T> = super::base::Semantics<Fn(&Option<T>) -> Vec<Vec<Option<T>>>>;
+type Merge<T> = super::base::Semantics<dyn Fn(&[T]) -> T>;
+type Split<T> = super::base::Semantics<dyn Fn(&Option<T>) -> Vec<Vec<Option<T>>>>;
 type Pair<T> = (Merge<T>, Split<T>);
 
 struct State<T: Payload> {
@@ -403,7 +403,6 @@ pub fn compile<F: Fn(&str) -> Result<Box<Lexer<T>>>, T: Payload>(
 #[cfg(test)]
 mod tests {
   use super::super::super::hindi::lexer::HindiLexer;
-  use super::super::super::lib::alloc::BUMP;
   use super::super::super::nlu::corrector::Corrector;
   use super::super::super::nlu::generator::Generator;
   use super::super::super::nlu::parser::Parser;
@@ -438,7 +437,6 @@ mod tests {
     let generator = Generator::new(&grammar);
     let mut rng = rand::SeedableRng::from_seed([17; 32]);
     let semantics = Some(Lambda::parse("Tell(owner.I & type.child, want.type.water)").unwrap());
-    unsafe { BUMP.start(1 << 32); }
     b.iter(|| generator.generate(&mut rng, &semantics).unwrap());
   }
 
@@ -446,7 +444,6 @@ mod tests {
   fn parsing_benchmark(b: &mut Bencher) {
     let grammar = make_grammar().unwrap();
     let parser = Parser::new(&grammar);
-    unsafe { BUMP.start(1 << 32); }
     b.iter(|| parser.parse("meri bacche ko pani chahie").unwrap());
   }
 }

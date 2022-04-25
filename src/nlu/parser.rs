@@ -509,8 +509,8 @@ mod tests {
   }
 
   fn make_rule<F: Fn(&[T]) -> T + 'static, T>(lhs: usize, rhs: &str, f: F) -> Rule<(), T> {
-    let merge: Semantics<Fn(&[T]) -> T> = Semantics { callback: Box::new(f), score: 0.0 };
-    let split: Semantics<Fn(&()) -> Vec<Vec<()>>> =
+    let merge: Semantics<dyn Fn(&[T]) -> T> = Semantics { callback: Box::new(f), score: 0.0 };
+    let split: Semantics<dyn Fn(&()) -> Vec<Vec<()>>> =
       Semantics { callback: Box::new(|_| unimplemented!()), score: 0.0 };
     let rhs = rhs.split(' ').filter(|x| !x.is_empty()).map(make_term).collect();
     Rule { lhs, rhs, merge, split, precedence: vec![], tense: Tense::default() }

@@ -45,7 +45,7 @@ impl super::cached::Base for Expr {
     DEFAULT.with(|x| x.clone())
   }
 
-  fn template(input: &str) -> Result<Box<Template<Json>>> {
+  fn template(input: &str) -> Result<Box<dyn Template<Json>>> {
     template(input)
   }
 }
@@ -70,10 +70,10 @@ fn stringify(expr: &Expr) -> String {
   }
 }
 
-fn template(input: &str) -> Result<Box<Template<Json>>> {
+fn template(input: &str) -> Result<Box<dyn Template<Json>>> {
   use super::super::lib::combine::*;
 
-  type Node = Box<Template<Json>>;
+  type Node = Box<dyn Template<Json>>;
 
   pub fn wrap(x: impl Template<Json> + 'static) -> Node {
     Box::new(x)
@@ -151,7 +151,7 @@ fn list_to_null(xs: Vec<Json>) -> Json {
   return if xs.is_empty() { Json::default() } else { Json::new(Expr::List(xs)) };
 }
 
-struct DictBaseTemplate(Vec<(String, Box<Template<Json>>)>, HashSet<String>);
+struct DictBaseTemplate(Vec<(String, Box<dyn Template<Json>>)>, HashSet<String>);
 
 impl Template<Json> for DictBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -174,7 +174,7 @@ impl Template<Json> for DictBaseTemplate {
   }
 }
 
-struct DictPairTemplate(Box<Template<Json>>, Box<Template<Json>>);
+struct DictPairTemplate(Box<dyn Template<Json>>, Box<dyn Template<Json>>);
 
 impl Template<Json> for DictPairTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -205,7 +205,7 @@ impl Template<Json> for DictPairTemplate {
   }
 }
 
-struct DictWrapTemplate(Box<Template<Json>>);
+struct DictWrapTemplate(Box<dyn Template<Json>>);
 
 impl Template<Json> for DictWrapTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -217,7 +217,7 @@ impl Template<Json> for DictWrapTemplate {
   }
 }
 
-struct ListBaseTemplate(Box<Template<Json>>);
+struct ListBaseTemplate(Box<dyn Template<Json>>);
 
 impl Template<Json> for ListBaseTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -235,7 +235,7 @@ impl Template<Json> for ListBaseTemplate {
   }
 }
 
-struct ListPairTemplate(Box<Template<Json>>, Box<Template<Json>>);
+struct ListPairTemplate(Box<dyn Template<Json>>, Box<dyn Template<Json>>);
 
 impl Template<Json> for ListPairTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -257,7 +257,7 @@ impl Template<Json> for ListPairTemplate {
   }
 }
 
-struct ListWrapTemplate(Box<Template<Json>>);
+struct ListWrapTemplate(Box<dyn Template<Json>>);
 
 impl Template<Json> for ListWrapTemplate {
   fn merge(&self, xs: &Args<Json>) -> Json {
@@ -272,8 +272,8 @@ impl Template<Json> for ListWrapTemplate {
 // Specific implementations of the Template interface.
 
 enum Item {
-  Literals(Vec<(String, Box<Template<Json>>)>),
-  Variable(Box<Template<Json>>),
+  Literals(Vec<(String, Box<dyn Template<Json>>)>),
+  Variable(Box<dyn Template<Json>>),
 }
 
 struct BaseTemplate(Json);
@@ -288,7 +288,7 @@ impl Template<Json> for BaseTemplate {
   }
 }
 
-fn dict(items: Vec<Item>) -> Box<Template<Json>> {
+fn dict(items: Vec<Item>) -> Box<dyn Template<Json>> {
   if items.is_empty() {
     return Box::new(BaseTemplate(Json::default()));
   }
@@ -303,7 +303,7 @@ fn dict(items: Vec<Item>) -> Box<Template<Json>> {
   Box::new(DictWrapTemplate(xs.fold(base, |a, x| Box::new(DictPairTemplate(a, x)))))
 }
 
-fn list(items: Vec<(Box<Template<Json>>, bool)>) -> Box<Template<Json>> {
+fn list(items: Vec<(Box<dyn Template<Json>>, bool)>) -> Box<dyn Template<Json>> {
   if items.is_empty() {
     return Box::new(BaseTemplate(Json::default()));
   }
@@ -324,7 +324,7 @@ mod tests {
     Json::parse(input).unwrap()
   }
 
-  fn t(input: &str) -> Box<Template<Json>> {
+  fn t(input: &str) -> Box<dyn Template<Json>> {
     Json::template(input).unwrap()
   }
 
@@ -332,7 +332,7 @@ mod tests {
     vec![]
   }
 
-  fn merge(template: &Template<Json>, args: Vec<Json>) -> Json {
+  fn merge(template: &dyn Template<Json>, args: Vec<Json>) -> Json {
     template.merge(&args.into_iter().enumerate().collect())
   }
 

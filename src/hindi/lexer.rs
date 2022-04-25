@@ -51,7 +51,7 @@ pub struct HindiLexer<T: Payload> {
 }
 
 impl<T: Payload> HindiLexer<T> {
-  pub fn new(text: &str) -> Result<Box<Lexer<Option<T>, T>>> {
+  pub fn new(text: &str) -> Result<Box<dyn Lexer<Option<T>, T>>> {
     let mut from_head = HashMap::default();
     let mut from_name = HashMap::default();
     let mut from_word = HashMap::default();

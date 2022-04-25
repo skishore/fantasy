@@ -1,6 +1,4 @@
 #![allow(dead_code)]
-#![feature(allocator_api)]
-#![feature(ptr_offset_from)]
 #![feature(test)]
 
 extern crate rand;
@@ -17,7 +15,6 @@ mod nlu;
 mod payload;
 
 use hindi::lexer::HindiLexer;
-use lib::alloc::BUMP;
 use lib::base::Result;
 use nlu::base::{Grammar, Match};
 use nlu::corrector::{Corrector, Diff};
@@ -26,25 +23,9 @@ use nlu::generator::Generator;
 use nlu::parser::Parser;
 use payload::base::Payload;
 use payload::lambda::Lambda;
-use std::alloc::{GlobalAlloc, Layout};
 use std::fs::read_to_string;
 use std::rc::Rc;
 use std::time::SystemTime;
-
-struct OtherAllocator;
-
-unsafe impl GlobalAlloc for OtherAllocator {
-  unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-    BUMP.alloc(layout)
-  }
-
-  unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-    BUMP.dealloc(ptr, layout)
-  }
-}
-
-#[global_allocator]
-static OTHER: OtherAllocator = OtherAllocator;
 
 fn render<T>(matches: &[Rc<Match<T>>]) -> String {
   let texts = matches.iter().map(|x| x.texts.get("latin").map(|y| y.as_str()).unwrap_or("?"));

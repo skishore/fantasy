@@ -10,7 +10,7 @@ struct State<'a> {
   remainder: usize,
 }
 
-type Method<T> = for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>;
+type Method<T> = dyn for<'a> Fn(&'a str, &mut State<'a>) -> Option<(T, &'a str)>;
 
 pub struct Parser<T>(Rc<Method<T>>);
 
